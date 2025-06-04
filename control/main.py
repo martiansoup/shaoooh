@@ -1,4 +1,4 @@
-from machine import Pin
+from machine import Pin, UART
 import time
 
 # Button mapping
@@ -7,21 +7,22 @@ import time
 # Connecting each button to low/ground is a button press
 # Numbered by GPx
 pins = {
-  'R': Pin(2, mode=Pin.OPEN_DRAIN, pull=None, value=1),
-  'X': Pin(3, mode=Pin.OPEN_DRAIN, pull=None, value=1),
-  'A': Pin(4, mode=Pin.OPEN_DRAIN, pull=None, value=1),
-  'B': Pin(5, mode=Pin.OPEN_DRAIN, pull=None, value=1),
-  's': Pin(6, mode=Pin.OPEN_DRAIN, pull=None, value=1),
-  'S': Pin(7, mode=Pin.OPEN_DRAIN, pull=None, value=1),
-  'Y': Pin(8, mode=Pin.OPEN_DRAIN, pull=None, value=1),
-  'L': Pin(9, mode=Pin.OPEN_DRAIN, pull=None, value=1),
-  'r': Pin(10, mode=Pin.OPEN_DRAIN, pull=None, value=1),
-  'u': Pin(11, mode=Pin.OPEN_DRAIN, pull=None, value=1),
-  'd': Pin(12, mode=Pin.OPEN_DRAIN, pull=None, value=1),
-  'l': Pin(13, mode=Pin.OPEN_DRAIN, pull=None, value=1),
+  b'R': Pin(2, mode=Pin.OPEN_DRAIN, pull=None, value=1),
+  b'X': Pin(3, mode=Pin.OPEN_DRAIN, pull=None, value=1),
+  b'A': Pin(4, mode=Pin.OPEN_DRAIN, pull=None, value=1),
+  b'B': Pin(5, mode=Pin.OPEN_DRAIN, pull=None, value=1),
+  b's': Pin(6, mode=Pin.OPEN_DRAIN, pull=None, value=1),
+  b'S': Pin(7, mode=Pin.OPEN_DRAIN, pull=None, value=1),
+  b'Y': Pin(8, mode=Pin.OPEN_DRAIN, pull=None, value=1),
+  b'L': Pin(9, mode=Pin.OPEN_DRAIN, pull=None, value=1),
+  b'r': Pin(10, mode=Pin.OPEN_DRAIN, pull=None, value=1),
+  b'u': Pin(11, mode=Pin.OPEN_DRAIN, pull=None, value=1),
+  b'd': Pin(12, mode=Pin.OPEN_DRAIN, pull=None, value=1),
+  b'l': Pin(13, mode=Pin.OPEN_DRAIN, pull=None, value=1),
 }
 
 led = Pin(25, mode=Pin.OUT, value=0)
+uart = UART(0, baudrate=115200, bits=8, parity=None, tx=Pin(16), rx=Pin(17))
 
 
 # Indicate setup complete
@@ -30,40 +31,28 @@ time.sleep(0.5)
 led.value(0)
 print('Shaooh initialised...')
 
-x = 5
-while x > 0:
-    print('countdown = {}'.format(x))
-    time.sleep(1)
-    x -= 1
-
-print('Testing A input')
-for x in range(10):
-    print('press {}'.format(x))
-    pins['A'].value(0)
-    time.sleep(0.2)
-    pins['A'].value(1)
-    time.sleep(0.1)
-    pins['B'].value(0)
-    time.sleep(0.2)
-    pins['B'].value(1)
-    time.sleep(0.1)
-    pins['X'].value(0)
-    time.sleep(0.2)
-    pins['X'].value(1)
-    time.sleep(0.1)
-    pins['Y'].value(0)
-    time.sleep(0.2)
-    pins['Y'].value(1)
-    time.sleep(0.1)
-    pins['A'].value(0)
-    pins['B'].value(0)
-    pins['X'].value(0)
-    pins['Y'].value(0)
-    time.sleep(0.2)
-    pins['A'].value(1)
-    pins['B'].value(1)
-    pins['X'].value(1)
-    pins['Y'].value(1)
-    time.sleep(0.1)
-    time.sleep(1)
+# Start monitoring UART
+use_next_char = False
+current_cmd = None
+while True:
+  if uart.any():
+    byte = uart.read(1)
+    # 'q' used as delimiter to indicate next char is a valid command
+    if byte == b'q':
+        use_next_char = True
+    elif use_next_char:
+        # 'p' indicates pause, else use as indication of button to switch
+        if byte == b'p':
+          time.sleep(0.1)
+        else:
+          current_cmd = byte
+        use_next_char = False
+    elif current_cmd is not None:
+        val = 1 # Not pressed (active-low)
+        if byte == b'1':
+            val = 0
+        pins[current_cmd].value(val)
+        current_cmd = None
+  else:
+    time.sleep(0.01)
 
