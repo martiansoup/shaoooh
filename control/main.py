@@ -24,12 +24,19 @@ pins = {
 led = Pin(25, mode=Pin.OUT, value=0)
 uart = UART(0, baudrate=115200, bits=8, parity=None, tx=Pin(16), rx=Pin(17))
 
+delay_times = {
+  b'm': 0.05, # micro-pause
+  b'p': 0.1,  # pause
+  b'P': 0.5,  # Pause
+  b'M': 1     # mega-pause
+}
 
 # Indicate setup complete
 led.value(1)
 time.sleep(0.5)
 led.value(0)
-print('Shaooh initialised...')
+print('Shaoooh control board initialised...')
+uart.write('Shaoooh control board initialised...\n')
 
 # Start monitoring UART
 use_next_char = False
@@ -42,8 +49,8 @@ while True:
         use_next_char = True
     elif use_next_char:
         # 'p' indicates pause, else use as indication of button to switch
-        if byte == b'p':
-          time.sleep(0.1)
+        if byte in delay_times:
+          time.sleep(delay_times[byte])
         else:
           current_cmd = byte
         use_next_char = False
@@ -51,7 +58,8 @@ while True:
         val = 1 # Not pressed (active-low)
         if byte == b'1':
             val = 0
-        pins[current_cmd].value(val)
+        if current_cmd in pins:
+          pins[current_cmd].value(val)
         current_cmd = None
   else:
     time.sleep(0.01)

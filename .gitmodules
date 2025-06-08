@@ -1,0 +1,3 @@
+[submodule "reference/pokeapi"]
+	path = reference/pokeapi
+	url = https://github.com/PokeAPI/pokeapi.git
