@@ -49,8 +49,8 @@
     }
     .game-output {
       width: 100%;
-      max-width: 800px;
-      height: 450px;
+      max-width: 512px;
+      height: 384px;
       background-color: #111;
       border: 2px solid #00ffd0;
       border-radius: 10px;
@@ -60,6 +60,28 @@
       justify-content: center;
       font-size: 1.2em;
       color: #888;
+    }
+    .ds-controls {
+      border: 2px solid #b10000;
+      background-color: #220000;
+      border-radius: 10px;
+      width: fit-content;
+      height: fit-content;
+    }
+    .ds-controls button {
+      background-color: #b10000;
+      color: #fff;
+      border: none;
+      padding: 5px 5px;
+      font-size: 1em;
+      font-weight: bold;
+      border-radius: 5px;
+      margin: 0 10px;
+      cursor: pointer;
+      min-width: 70px;
+    }
+    .game-and-control {
+      display: flex
     }
   </style>
 </head>
@@ -75,9 +97,24 @@
     <div class="status-item">Encounters: <span id="encounters">0</span></div>
   </div>
 
-  <div class="game-output" id="gameOutput">
-    Game output will appear here
-    <!-- Replace this with live video feed or screenshots -->
+  <div class="game-and-control">
+    <div class="ds-controls">
+      <table>
+        <tr><td><button onclick="b" value="L">L</button></td><td></td><td></td><td></td><td></td><td></td><td><button onclick="b()" value="R">R</button></td></tr>
+        <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td></td><td><button onclick="b()" value="Up">Up</button></td><td></td><td></td><td></td><td><button onclick="b()" value="X">X</button></td><td></td></tr>
+        <tr><td><button onclick="b()" value="Left">Left</button></td><td></td><td><button onclick="b()" value="Right">Right</button></td><td></td><td><button onclick="b()" value="Y">Y</button></td><td></td><td><button onclick="b()" value="A">A</button></td></tr>
+        <tr><td></td><td><button onclick="b()" value="Down">Down</button></td><td></td><td></td><td></td><td><button onclick="b()" value="B">B</button></td><td></td></tr>
+        <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td><td></td><td><button onclick="b()" value="Start">Start</button></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td><td></td><td><button onclick="b()" value="Select">Select</button></td><td></td><td></td></tr>
+      </table>
+    </div>
+
+    <div class="game-output" id="gameOutput">
+      Game output will appear here
+      <!-- Replace this with live video feed or screenshots -->
+    </div>
   </div>
 
   <div class="controls" id="controls">
@@ -91,6 +128,18 @@
 
   <script>
     let state = "/api/state";
+    let button = "/api/button";
+
+    function b() {
+      fetch(button, {
+        method: "POST",
+        body: JSON.stringify(window.event.target.value),
+        headers: {
+          "Content-Type": "application/json",
+        }
+      })
+      .catch(err => console.log(err));
+    }
 
     function stateButton(e) {
       var transition = e.target.value;
@@ -135,6 +184,8 @@
       });
     }
 
+    var errorCount = 0;
+
     function updateState() {
       fetch(state)
         .then(res => res.json())
@@ -147,9 +198,16 @@
           }
           document.getElementById("encounters").innerHTML = out.state.encounters;
           buildControls(out.transitions);
+          errorCount = 0;
           setTimeout(updateState, 1000)
         })
-        .catch(err => console.log(err));
+        .catch(err => {
+          errorCount++;
+          if (errorCount < 10) {
+            setTimeout(updateState, 1000)
+          }
+          console.log(err);
+        });
     }
 
     window.onload = function() {

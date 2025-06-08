@@ -1,10 +1,11 @@
-use axum::{Json, Router, extract::State, routing::get};
+use axum::{Json, Router, extract::State, routing::get, routing::post};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, oneshot, watch};
 use tower_http::services::{ServeDir, ServeFile};
 mod states;
 use states::*;
 use tokio::signal;
+use crate::control::{Button, ShaooohControl};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 struct RequestTransition {
@@ -23,6 +24,7 @@ struct ResponseAppState {
 struct ApiState {
     rx: watch::Receiver<AppState>,
     tx: mpsc::Sender<RequestTransition>,
+    button_tx: mpsc::Sender<Button>
 }
 
 pub struct Shaoooh {
@@ -30,6 +32,7 @@ pub struct Shaoooh {
     app: AppState,
     tx: watch::Sender<AppState>,
     rx: mpsc::Receiver<RequestTransition>,
+    button_rx: mpsc::Receiver<Button>
 }
 
 impl Shaoooh {
@@ -41,16 +44,19 @@ impl Shaoooh {
         };
         let (state_tx, state_rx) = watch::channel(app.clone());
         let (transition_tx, transition_rx) = mpsc::channel(1);
+        let (button_tx, button_rx) = mpsc::channel(8);
 
         let api = ApiState {
             rx: state_rx,
             tx: transition_tx,
+            button_tx: button_tx
         };
         Self {
             api: Some(api),
             app,
             tx: state_tx,
             rx: transition_rx,
+            button_rx: button_rx
         }
     }
 
@@ -62,10 +68,13 @@ impl Shaoooh {
             .route_service("/", index)
             .nest_service("/static", static_dir)
             .route("/api/state", get(get_state).post(post_state))
+            .route("/api/button", post(post_button))
             .with_state(state)
     }
 
     fn main_thread(mut self, mut shutdown_rx: oneshot::Receiver<()>) -> () {
+        let mut control = ShaooohControl::new();
+
         while let Err(_) = shutdown_rx.try_recv() {
             // Manual transition requests from
             if !self.rx.is_empty() {
@@ -113,11 +122,17 @@ impl Shaoooh {
                 }
             }
 
+            if !self.button_rx.is_empty() {
+                if let Some(button) = self.button_rx.blocking_recv() {
+                    control.press(button);
+                }
+            }
+
             if self.rx.is_closed() {
                 break;
             }
 
-            std::thread::sleep(std::time::Duration::new(1, 0));
+            std::thread::sleep(std::time::Duration::new(0, 50000));
         }
     }
 
@@ -168,6 +183,24 @@ async fn post_state(
     Json(payload): Json<RequestTransition>,
 ) -> Json<ApiResponse> {
     let res = state.tx.send(payload).await;
+    match res {
+        Ok(_) => Json(ApiResponse {
+            ok: true,
+            error: "".to_string(),
+        }),
+        Err(e) => Json(ApiResponse {
+            ok: false,
+            error: e.to_string(),
+        }),
+    }
+}
+
+#[axum::debug_handler]
+async fn post_button(
+    State(state): State<ApiState>,
+    Json(payload): Json<Button>,
+) -> Json<ApiResponse> {
+    let res = state.button_tx.send(payload).await;
     match res {
         Ok(_) => Json(ApiResponse {
             ok: true,

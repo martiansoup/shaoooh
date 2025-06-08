@@ -1,5 +1,7 @@
 use simple_logger::SimpleLogger;
 mod app;
+mod control;
+mod hunt;
 use crate::app::Shaoooh;
 
 #[tokio::main]
