@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Shaoooh - Shiny Hunting Automaton Operating On Original Hardware</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #1e1e2f;
+      color: #ffffff;
+      margin: 0;
+      padding: 20px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    h1 {
+      color: #00ffd0;
+    }
+    .status-panel {
+      background-color: #2c2c3e;
+      padding: 20px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .status-item {
+      font-size: 1.2em;
+    }
+    .controls {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .controls button {
+      background-color: #00ffd0;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      font-size: 1em;
+      border-radius: 5px;
+      margin: 0 10px;
+      cursor: pointer;
+    }
+    .controls button:hover {
+      background-color: #00c8a2;
+    }
+    .game-output {
+      width: 100%;
+      max-width: 800px;
+      height: 450px;
+      background-color: #111;
+      border: 2px solid #00ffd0;
+      border-radius: 10px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2em;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Shaoooh - Shiny Hunting Automaton Operating On Original Hardware</h1>
+  </header>
+
+  <div class="status-panel">
+    <div class="status-item">Species: <span id="species">Unknown</span></div>
+    <div class="status-item">State: <span id="state">Unknown</span></div>
+    <div class="status-item">Encounters: <span id="encounters">0</span></div>
+  </div>
+
+  <div class="game-output" id="gameOutput">
+    Game output will appear here
+    <!-- Replace this with live video feed or screenshots -->
+  </div>
+
+  <div class="controls" id="controls">
+  </div>
+
+  <div class="controls" id="argument">
+    <label for="species">Species</label> <input name="species" id="arg_species" value="1" />
+    <label for="game">Game</label> <input name="game" id="arg_game" value="FireRedLeafGreen" />
+    <label for="method">Method</label> <input name="method" id="arg_method" value="SoftResetGift" />
+  </div>
+
+  <script>
+    let state = "/api/state";
+
+    function stateButton(e) {
+      var transition = e.target.value;
+      var needsArg = e.target.dataset.needsArg == "true";
+      var argument = null;
+      console.log(transition);
+
+      if (needsArg) {
+        argument = {
+          species: parseInt(document.getElementById("arg_species").value),
+          game: document.getElementById("arg_game").value,
+          method: document.getElementById("arg_method").value
+        };
+      }
+
+      var request = {
+        transition: transition,
+        arg: argument
+      };
+
+      fetch(state, {
+        method: "POST",
+        body: JSON.stringify(request),
+        headers: {
+          "Content-Type": "application/json",
+        }
+      })
+      .catch(err => console.log(err));
+    }
+
+    function buildControls(transitions) {
+      var controls = document.getElementById("controls");
+      controls.innerHTML = "";
+
+      transitions.forEach(element => {
+        var b = document.createElement("button");
+        b.onclick = stateButton;
+        b.innerText = element.transition;
+        b.value = element.transition;
+        b.dataset.needsArg = element.needs_arg;
+        controls.appendChild(b);
+      });
+    }
+
+    function updateState() {
+      fetch(state)
+        .then(res => res.json())
+        .then(out => {
+          document.getElementById("state").innerHTML = out.state.state;
+          if (out.state.arg === null) {
+            document.getElementById("species").innerHTML = "";
+          } else {
+            document.getElementById("species").innerHTML = out.state.arg.species;
+          }
+          document.getElementById("encounters").innerHTML = out.state.encounters;
+          buildControls(out.transitions);
+          setTimeout(updateState, 1000)
+        })
+        .catch(err => console.log(err));
+    }
+
+    window.onload = function() {
+      updateState();
+    }
+  </script>
+
+</body>
+</html>
