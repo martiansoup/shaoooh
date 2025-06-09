@@ -35,13 +35,26 @@ impl HuntBuild {
             target,
             game: game.clone(),
             method: method.clone(),
-            wait_start: SystemTime::now()
+            wait_start: SystemTime::now(),
         };
-        if game == Game::FireRedLeafGreen && method == Method::SoftResetGift && (target == 1 || target == 4 || target == 7) {
-            Ok(Box::new(FRLGStarterGift { base, state: FRLGStarterGiftState::SoftReset }))
-        } else if game == Game::DiamondPearl && method == Method::RandomEncounter && (target == 396 || target == 399 || target == 401 || target == 403) {
+        if game == Game::FireRedLeafGreen
+            && method == Method::SoftResetGift
+            && (target == 1 || target == 4 || target == 7)
+        {
+            Ok(Box::new(FRLGStarterGift {
+                base,
+                state: FRLGStarterGiftState::SoftReset,
+            }))
+        } else if game == Game::DiamondPearl
+            && method == Method::RandomEncounter
+            && (target == 396 || target == 399 || target == 401 || target == 403)
+        {
             // TODO only for route 202 for testing
-            Ok(Box::new(DPRandomEncounter { base, state: DPRandomEncounterState::TryGetEncounter, next_dir: Button::Up }))
+            Ok(Box::new(DPRandomEncounter {
+                base,
+                state: DPRandomEncounterState::TryGetEncounter,
+                next_dir: Button::Up,
+            }))
         } else {
             log::error!(
                 "Hunt not found for target:{}, game:{:?}, method:{:?}",
@@ -58,5 +71,5 @@ struct BaseHunt {
     target: u32,
     game: Game,
     method: Method,
-    wait_start: SystemTime
+    wait_start: SystemTime,
 }

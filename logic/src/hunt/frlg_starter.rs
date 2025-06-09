@@ -1,5 +1,10 @@
+use crate::{
+    app::states::{Game, RequestTransition, Transition},
+    control::{Button, ShaooohControl},
+    hunt::{BaseHunt, HuntFSM, HuntResult},
+    vision::{Processing, ProcessingResult},
+};
 use std::time::{Duration, SystemTime};
-use crate::{app::states::{Game, RequestTransition, Transition}, control::{Button, ShaooohControl}, hunt::{BaseHunt, HuntFSM, HuntResult}, vision::{Processing, ProcessingResult}};
 
 #[derive(PartialEq, Clone, Debug)]
 pub(crate) enum FRLGStarterGiftState {
@@ -20,12 +25,12 @@ pub(crate) enum FRLGStarterGiftState {
     AToSelSummary,
     Detect,
     Done,
-    Wait(Duration, Box<FRLGStarterGiftState>)
+    Wait(Duration, Box<FRLGStarterGiftState>),
 }
 
 pub(crate) struct FRLGStarterGift {
     pub(crate) base: BaseHunt,
-    pub(crate) state: FRLGStarterGiftState
+    pub(crate) state: FRLGStarterGiftState,
 }
 
 impl FRLGStarterGift {
@@ -38,12 +43,15 @@ impl FRLGStarterGift {
 impl HuntFSM for FRLGStarterGift {
     fn processing(&self) -> Vec<Processing> {
         if self.state == FRLGStarterGiftState::Detect {
-            vec![Processing::Sprite(Game::FireRedLeafGreen, vec![self.base.target], true)]
+            vec![Processing::Sprite(
+                Game::FireRedLeafGreen,
+                vec![self.base.target],
+                true,
+            )]
         } else {
             Vec::new()
         }
     }
-
 
     fn step(&mut self, control: &mut ShaooohControl, results: Vec<ProcessingResult>) -> HuntResult {
         let incr_encounters = self.state == FRLGStarterGiftState::Detect;
@@ -52,7 +60,7 @@ impl HuntFSM for FRLGStarterGift {
         let mut transition = None;
 
         match &self.state {
-            FRLGStarterGiftState::Wait(_, _) => {},
+            FRLGStarterGiftState::Wait(_, _) => {}
             s => {
                 log::debug!("STATE = {:?}", s);
             }
@@ -121,7 +129,10 @@ impl HuntFSM for FRLGStarterGift {
             }
             FRLGStarterGiftState::Detect => {
                 if found_shiny {
-                    transition = Some(RequestTransition { transition: Transition::FoundTarget, arg: None });
+                    transition = Some(RequestTransition {
+                        transition: Transition::FoundTarget,
+                        arg: None,
+                    });
                     FRLGStarterGiftState::Done
                 } else {
                     FRLGStarterGiftState::SoftReset

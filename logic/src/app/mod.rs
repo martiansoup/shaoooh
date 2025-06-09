@@ -85,7 +85,7 @@ impl Shaoooh {
     }
 
     fn transition_logic(&mut self, from: HuntState, hunt: &mut Option<Box<dyn HuntFSM>>) -> bool {
-        if self.app.state == HuntState::Hunt && from == HuntState::Idle {
+        if self.app.state == HuntState::Hunt && from != HuntState::Hunt {
             // TODO check if existing hunt in progress
             // Build hunt object
             let target = self.app.arg.as_ref().unwrap().species;

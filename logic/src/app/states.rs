@@ -116,6 +116,7 @@ pub(crate) struct TransitionArg {
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum Game {
+    None,
     RubySapphire,
     Emerald,
     FireRedLeafGreen,

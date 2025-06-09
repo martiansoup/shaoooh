@@ -1,4 +1,13 @@
-use opencv::{core::{Size, Vector}, highgui, prelude::*, videoio::VideoCapture};
+use std::collections::HashMap;
+
+use opencv::{
+    core::{Size, Vector},
+    highgui,
+    imgcodecs::{IMREAD_COLOR, IMREAD_UNCHANGED},
+    imgproc::{THRESH_BINARY, THRESH_BINARY_INV, TM_CCORR_NORMED},
+    prelude::*,
+    videoio::VideoCapture,
+};
 
 use crate::app::states::Game;
 
@@ -8,7 +17,7 @@ pub enum Processing {
     Sprite(Game, Vec<u32>, bool),
     DPStartEncounter,
     DPInEncounter,
-    DPEncounterReady
+    DPEncounterReady,
 }
 
 #[derive(Debug)]
@@ -22,6 +31,9 @@ pub struct ProcessingResult {
 pub struct Vision {
     cam: VideoCapture,
     encoded: Vector<u8>,
+    game: Game,
+    // Reference, Shiny, Mask
+    reference: HashMap<u32, (Mat, Mat, Mat)>,
 }
 
 impl Vision {
@@ -32,10 +44,10 @@ impl Vision {
     const BORDER_TB: i32 = 20;
     const X0: i32 = Vision::BORDER_LR - Vision::BORDER_KEEP;
     const Y0: i32 = Vision::BORDER_TB - Vision::BORDER_KEEP;
-    const W1: i32 = (Vision::WIDTH  - (Vision::BORDER_LR * 2) ) + (Vision::BORDER_KEEP * 2);
-    const H1: i32 = (Vision::HEIGHT - (Vision::BORDER_TB * 2) ) + (Vision::BORDER_KEEP * 2);
-    const DS_W : i32 = 256;
-    const DS_H : i32 = 192;
+    const W1: i32 = (Vision::WIDTH - (Vision::BORDER_LR * 2)) + (Vision::BORDER_KEEP * 2);
+    const H1: i32 = (Vision::HEIGHT - (Vision::BORDER_TB * 2)) + (Vision::BORDER_KEEP * 2);
+    const DS_W: i32 = 256;
+    const DS_H: i32 = 192;
 
     pub fn new() -> Self {
         log::info!("Starting video capture");
@@ -53,47 +65,237 @@ impl Vision {
         Self {
             cam,
             encoded: Vector::default(),
+            reference: HashMap::new(),
+            game: Game::None,
         }
     }
 
-    fn match_sprite(&mut self, game: &Game, species: &Vec<u32>, flipped: &bool, frame: &Mat) -> ProcessingResult {
-        // TODO actually process
-        ProcessingResult { process: Processing::Sprite(game.clone(), species.clone(), *flipped), met: true, species: 1, shiny: false }
+    fn get_or_create_references(&mut self, game: &Game, species: u32) -> &(Mat, Mat, Mat) {
+        if *game != self.game {
+            self.reference.clear();
+            self.game = game.clone();
+        }
+        if !self.reference.contains_key(&species) {
+            let dir = match game {
+                Game::FireRedLeafGreen => "frlg",
+                Game::DiamondPearl => "dp",
+                _ => "?", // TODO other games
+            };
+            let path = format!("../reference/images/{}/{:03}.png", dir, species);
+            let shiny_path = format!("../reference/images/{}/{:03}_shiny.png", dir, species);
+
+            let ref_img_raw =
+                opencv::imgcodecs::imread(&path, IMREAD_UNCHANGED).expect("Couldn't read image");
+            let ref_img =
+                opencv::imgcodecs::imread(&path, IMREAD_COLOR).expect("Couldn't read image");
+            let shi_img =
+                opencv::imgcodecs::imread(&shiny_path, IMREAD_COLOR).expect("Couldn't read image");
+
+            let mut channels: Vector<Mat> = Default::default();
+            opencv::core::split(&ref_img_raw, &mut channels);
+            let alpha = channels.get(3).unwrap();
+
+            let mut mask = Mat::default();
+
+            opencv::imgproc::threshold(&alpha, &mut mask, 0.0, 255.0, THRESH_BINARY);
+
+            self.reference.insert(species, (ref_img, shi_img, mask));
+        }
+        self.reference.get(&species).expect("Must be present")
     }
 
-    fn dp_encounter_ready(&mut self, frame: &Mat) -> ProcessingResult {
-        // TODO actually process
-        ProcessingResult { process: Processing::DPEncounterReady, met: false, species: 0, shiny: false }
-    }
+    fn match_sprite(
+        &mut self,
+        game: &Game,
+        species: &Vec<u32>,
+        flipped: &bool,
+        frame: &Mat,
+    ) -> ProcessingResult {
+        if *flipped {
+            panic!("FLIPPED"); // TODO
+        }
+        let mut found_species = 0;
+        let mut max = 0.0;
+        let mut is_shiny = false;
 
-    fn dp_in_encounter(&mut self, frame: &Mat) -> ProcessingResult {
-        // TODO actually process
-        ProcessingResult { process: Processing::DPInEncounter, met: false, species: 0, shiny: false }
-    }
+        for s in species {
+            let (reference, shiny, mask) = self.get_or_create_references(game, *s);
 
-    fn dp_start_encounter(&mut self, frame: &Mat) -> ProcessingResult {
-        // TODO actually process
-        ProcessingResult { process: Processing::DPStartEncounter, met: false, species: 0, shiny: false }
-    }
+            let mut result = Mat::default();
+            opencv::imgproc::match_template(frame, reference, &mut result, TM_CCORR_NORMED, mask)
+                .expect("Failed to convolve");
+            let mut result_shiny = Mat::default();
+            opencv::imgproc::match_template(frame, shiny, &mut result_shiny, TM_CCORR_NORMED, mask)
+                .expect("Failed to convolve");
 
-    fn process(&mut self, process: &Processing, frame: &Mat) -> ProcessingResult {
-        log::info!("Processing {:?}", process);
-        let res = match process {
-            Processing::Sprite(game, species_list, flipped) => self.match_sprite(game, species_list, flipped, frame),
-            Processing::DPEncounterReady => self.dp_encounter_ready(frame),
-            Processing::DPInEncounter => self.dp_in_encounter(frame),
-            Processing::DPStartEncounter => self.dp_start_encounter(frame)
+            let mut max_val = 0.0;
+            let mut max_val_shiny = 0.0;
+            // TODO draw rectangle?
+            opencv::core::min_max_loc(
+                &result,
+                None,
+                Some(&mut max_val),
+                None,
+                None,
+                &opencv::core::no_array(),
+            )
+            .expect("min max failed");
+            opencv::core::min_max_loc(
+                &result_shiny,
+                None,
+                Some(&mut max_val_shiny),
+                None,
+                None,
+                &opencv::core::no_array(),
+            )
+            .expect("min max failed");
+
+            log::info!("species = {}, val = {}", s, max_val);
+
+            if max_val > max {
+                max = max_val;
+                found_species = *s;
+                is_shiny = false;
+            }
+            if max_val_shiny > max {
+                max = max_val_shiny;
+                found_species = *s;
+                is_shiny = true;
+            }
+        }
+        // TODO actually process
+        let res = ProcessingResult {
+            process: Processing::Sprite(game.clone(), species.clone(), *flipped),
+            met: found_species != 0,
+            species: found_species,
+            shiny: is_shiny,
         };
         log::info!("Process results {:?}", res);
         res
     }
 
+    fn dp_encounter_ready(&mut self, frame: &Mat) -> ProcessingResult {
+        // X, Y, Width, Height
+        let hp_bar = frame
+            .roi(opencv::core::Rect::new(150, 100, 106, 35))
+            .expect("Failed to crop")
+            .clone_pointee();
+        let mut hp_bar_grey = Mat::default();
+        opencv::imgproc::cvt_color(
+            &hp_bar,
+            &mut hp_bar_grey,
+            opencv::imgproc::COLOR_BGR2GRAY,
+            0,
+        );
+        let mut hp_bar_thr_w = Mat::default();
+        opencv::imgproc::threshold(&hp_bar_grey, &mut hp_bar_thr_w, 210.0, 255.0, THRESH_BINARY);
+
+        let ready = opencv::core::count_non_zero(&hp_bar_thr_w).unwrap() > 1500;
+
+        ProcessingResult {
+            process: Processing::DPEncounterReady,
+            met: ready,
+            species: 0,
+            shiny: false,
+        }
+    }
+
+    fn dp_in_encounter(&mut self, frame: &Mat) -> ProcessingResult {
+        let bottom_bar = frame
+            .roi(opencv::core::Rect::new(0, 145, 256, 47))
+            .expect("Failed to crop")
+            .clone_pointee();
+        let mut bottom_bar_grey = Mat::default();
+        opencv::imgproc::cvt_color(
+            &bottom_bar,
+            &mut bottom_bar_grey,
+            opencv::imgproc::COLOR_BGR2GRAY,
+            0,
+        );
+        let mut bottom_bar_thr_w = Mat::default();
+        opencv::imgproc::threshold(
+            &bottom_bar_grey,
+            &mut bottom_bar_thr_w,
+            210.0,
+            255.0,
+            THRESH_BINARY,
+        );
+
+        let in_enc = opencv::core::count_non_zero(&bottom_bar_thr_w).unwrap() > 6500;
+
+        ProcessingResult {
+            process: Processing::DPInEncounter,
+            met: in_enc,
+            species: 0,
+            shiny: false,
+        }
+    }
+
+    fn dp_start_encounter(&mut self, frame: &Mat) -> ProcessingResult {
+        let bottom_bar = frame
+            .roi(opencv::core::Rect::new(0, 145, 256, 47))
+            .expect("Failed to crop")
+            .clone_pointee();
+        let mut bottom_bar_grey = Mat::default();
+        opencv::imgproc::cvt_color(
+            &bottom_bar,
+            &mut bottom_bar_grey,
+            opencv::imgproc::COLOR_BGR2GRAY,
+            0,
+        );
+        let mut bottom_bar_thr_b = Mat::default();
+        opencv::imgproc::threshold(
+            &bottom_bar_grey,
+            &mut bottom_bar_thr_b,
+            40.0,
+            255.0,
+            THRESH_BINARY_INV,
+        );
+
+        let start = opencv::core::count_non_zero(&bottom_bar_thr_b).unwrap() > 10000;
+
+        ProcessingResult {
+            process: Processing::DPStartEncounter,
+            met: start,
+            species: 0,
+            shiny: false,
+        }
+    }
+
+    fn process(&mut self, process: &Processing, frame: &Mat) -> ProcessingResult {
+        match process {
+            Processing::Sprite(game, species_list, flipped) => {
+                self.match_sprite(game, species_list, flipped, frame)
+            }
+            Processing::DPEncounterReady => self.dp_encounter_ready(frame),
+            Processing::DPInEncounter => self.dp_in_encounter(frame),
+            Processing::DPStartEncounter => self.dp_start_encounter(frame),
+        }
+    }
+
     pub fn process_next_frame(&mut self, processing: Vec<Processing>) -> Vec<ProcessingResult> {
         let mut input_frame = Mat::default();
-        self.cam.read(&mut input_frame).expect("Failed to read frame");
-        let unsized_frame = input_frame.roi(opencv::core::Rect::new(Self::X0, Self::Y0, Self::W1, Self::H1)).expect("Failed to crop").clone_pointee();
+        self.cam
+            .read(&mut input_frame)
+            .expect("Failed to read frame");
+        let unsized_frame = input_frame
+            .roi(opencv::core::Rect::new(
+                Self::X0,
+                Self::Y0,
+                Self::W1,
+                Self::H1,
+            ))
+            .expect("Failed to crop")
+            .clone_pointee();
         let mut frame = Mat::default();
-        opencv::imgproc::resize(&unsized_frame, &mut frame, Size::new(Self::DS_W, Self::DS_H), 0.0, 0.0, 0);
+        opencv::imgproc::resize(
+            &unsized_frame,
+            &mut frame,
+            Size::new(Self::DS_W, Self::DS_H),
+            0.0,
+            0.0,
+            0,
+        );
 
         // Save to encoded frame
         opencv::imgcodecs::imencode(".png", &frame, &mut self.encoded, &Vector::new())
@@ -104,7 +306,7 @@ impl Vision {
         highgui::imshow("capture", &frame).expect("Failed to show capture");
         highgui::wait_key(1).expect("Event loop failed");
 
-        processing.iter().map(|p| self.process(p, &frame) ).collect()
+        processing.iter().map(|p| self.process(p, &frame)).collect()
     }
 
     pub fn read_frame(&self) -> &[u8] {
