@@ -1,13 +1,23 @@
 use std::sync::{Arc, Mutex};
 
-use axum::{extract::State, http::{StatusCode, header}, routing::{get, post}, Json, Router, response::IntoResponse};
+use axum::{
+    Json, Router,
+    extract::State,
+    http::{StatusCode, header},
+    response::IntoResponse,
+    routing::{get, post},
+};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, oneshot, watch};
 use tower_http::services::{ServeDir, ServeFile};
-mod states;
+pub(crate) mod states;
+use crate::{
+    control::{Button, ShaooohControl},
+    hunt::{HuntBuild, HuntFSM},
+    vision::Vision,
+};
 use states::*;
 use tokio::signal;
-use crate::{control::{Button, ShaooohControl}, vision::Vision};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 struct RequestTransition {
@@ -27,7 +37,7 @@ struct ApiState {
     rx: watch::Receiver<AppState>,
     tx: mpsc::Sender<RequestTransition>,
     button_tx: mpsc::Sender<Button>,
-    image: Arc<Mutex<Vec<u8>>>
+    image: Arc<Mutex<Vec<u8>>>,
 }
 
 pub struct Shaoooh {
@@ -36,7 +46,7 @@ pub struct Shaoooh {
     tx: watch::Sender<AppState>,
     rx: mpsc::Receiver<RequestTransition>,
     button_rx: mpsc::Receiver<Button>,
-    image: Arc<Mutex<Vec<u8>>>
+    image: Arc<Mutex<Vec<u8>>>,
 }
 
 impl Shaoooh {
@@ -54,16 +64,16 @@ impl Shaoooh {
         let api = ApiState {
             rx: state_rx,
             tx: transition_tx,
-            button_tx: button_tx,
-            image: image_mutex.clone()
+            button_tx,
+            image: image_mutex.clone(),
         };
         Self {
             api: Some(api),
             app,
             tx: state_tx,
             rx: transition_rx,
-            button_rx: button_rx,
-            image: image_mutex
+            button_rx,
+            image: image_mutex,
         }
     }
 
@@ -80,57 +90,101 @@ impl Shaoooh {
             .with_state(state)
     }
 
-    fn main_thread(mut self, mut shutdown_rx: oneshot::Receiver<()>) -> () {
+    fn transition_logic(&mut self, from: HuntState, hunt: &mut Option<Box<dyn HuntFSM>>) -> bool {
+        if self.app.state == HuntState::Hunt && from == HuntState::Idle {
+            // TODO check if existing hunt in progress
+            // Build hunt object
+            let target = self.app.arg.as_ref().unwrap().species;
+            let game = self.app.arg.as_ref().unwrap().game.clone();
+            let method = self.app.arg.as_ref().unwrap().method.clone();
+            let new_hunt = HuntBuild::build(target, game, method);
+            match new_hunt {
+                Ok(h) => *hunt = Some(Box::new(h) as Box<dyn HuntFSM>),
+                Err(_) => return false,
+            };
+        }
+        if self.app.state == HuntState::Idle {
+            if let Some(h) = hunt {
+                h.cleanup();
+            }
+            *hunt = None;
+        }
+        true
+    }
+
+    fn do_transition(
+        &mut self,
+        transition_req: RequestTransition,
+        hunt: &mut Option<Box<dyn HuntFSM>>,
+        automatic: bool,
+    ) {
+        let possible_transitions = self.app.state.possible_transitions();
+        let try_transition = possible_transitions
+            .iter()
+            .find(|x| x.transition == transition_req.transition);
+        match try_transition {
+            Some(transition) => {
+                log::info!("Got transition {:?}", transition);
+                let arg = transition_req.arg;
+                if arg.is_some() == transition.needs_arg && (automatic || !transition.automatic) {
+                    let prev_state = self.app.state.clone();
+                    self.app.state = transition.next_state.clone();
+                    if transition.needs_arg {
+                        self.app.arg = Some(arg.unwrap());
+                        self.app.encounters = 0; // TODO read previous encounters if from file
+                        log::info!("Got argument: {:?}", self.app.arg);
+                    }
+                    if self.transition_logic(prev_state, hunt) {
+                        self.tx
+                            .send(self.app.clone())
+                            .expect("Couldn't update state");
+                    } else {
+                        log::error!("Failed to change state, resetting to idle");
+                        self.app.state = HuntState::Idle;
+                    }
+                } else if !automatic && transition.automatic {
+                    log::error!(
+                        "{:?} is an automatic transition only",
+                        transition.transition
+                    );
+                } else {
+                    log::error!("Unexpected argument value for {:?}", transition.transition);
+                }
+            }
+            None => {
+                log::error!(
+                    "In state {:?}, got illegal transition request {:?}",
+                    self.app.state,
+                    transition_req
+                );
+            }
+        }
+    }
+
+    fn main_thread(mut self, mut shutdown_rx: oneshot::Receiver<()>) {
         let mut control = ShaooohControl::new();
         let mut vision = Vision::new();
+        let mut hunt: Option<Box<dyn HuntFSM>> = None;
 
-        while let Err(_) = shutdown_rx.try_recv() {
+        while shutdown_rx.try_recv().is_err() {
+            // What processing is needed
+            let processing = if let Some(h) = &mut hunt {
+                h.processing()
+            } else {
+                Vec::new()
+            };
             // Frame processing
-            vision.process_next_frame();
+            let results = vision.process_next_frame(processing);
+
+            // Step state machines
+            if let Some(h) = &mut hunt {
+                h.step(&mut control, results);
+            }
 
             // Manual transition requests from
             if !self.rx.is_empty() {
                 if let Some(transition_req) = self.rx.blocking_recv() {
-                    let possible_transitions = self.app.state.possible_transitions();
-                    let try_transition = possible_transitions
-                        .iter()
-                        .find(|x| x.transition == transition_req.transition);
-                    match try_transition {
-                        Some(transition) => {
-                            log::info!("Got transition {:?}", transition);
-                            let arg = transition_req.arg;
-                            if arg.is_some() == transition.needs_arg && !transition.automatic {
-                                self.app.state = transition.next_state.clone();
-                                if transition.needs_arg {
-                                    self.app.arg = Some(arg.unwrap());
-                                    self.app.encounters = 0; // TODO read previous encounters if from file
-                                    log::info!("Got argument: {:?}", self.app.arg);
-                                }
-                                self.tx
-                                    .send(self.app.clone())
-                                    .expect("Couldn't update state");
-                            } else {
-                                if transition.automatic {
-                                    log::error!(
-                                        "{:?} is an automatic transition only",
-                                        transition.transition
-                                    );
-                                } else {
-                                    log::error!(
-                                        "Unexpected argument value for {:?}",
-                                        transition.transition
-                                    );
-                                }
-                            }
-                        }
-                        None => {
-                            log::error!(
-                                "In state {:?}, got illegal transition request {:?}",
-                                self.app.state,
-                                transition_req
-                            );
-                        }
-                    }
+                    self.do_transition(transition_req, &mut hunt, false);
                 }
             }
 
@@ -234,16 +288,15 @@ async fn post_button(
 async fn get_frame(State(state): State<ApiState>) -> impl IntoResponse {
     let headers = [
         (header::CONTENT_TYPE, "image/png"),
-        (header::CACHE_CONTROL, "max-age=0, must-revalidate")
+        (header::CACHE_CONTROL, "max-age=0, must-revalidate"),
     ];
 
-    let resp = if let Ok(img_rd) = state.image.lock() {
+    if let Ok(img_rd) = state.image.lock() {
         (StatusCode::OK, headers, (*img_rd).clone())
     } else {
         let vec = Vec::new();
         (StatusCode::INTERNAL_SERVER_ERROR, headers, vec.clone())
-    };
-    resp
+    }
 }
 
 async fn shutdown(shutdown_tx: oneshot::Sender<()>) {

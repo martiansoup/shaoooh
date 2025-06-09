@@ -11,7 +11,7 @@ pub enum Transition {
     FalseDetect,
 }
 
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Serialize, Debug, PartialEq)]
 pub enum HuntState {
     Idle,
     Hunt,
@@ -102,13 +102,13 @@ impl HuntState {
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub(crate) struct TransitionArg {
-    name: String,
-    species: u32,
-    game: Game,
-    method: Method,
+    pub(crate) name: String,
+    pub(crate) species: u32,
+    pub(crate) game: Game,
+    pub(crate) method: Method,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum Game {
     RubySapphire,
     Emerald,
@@ -120,7 +120,7 @@ pub enum Game {
     Black2White2,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum Method {
     RandomEncounter,
     SoftResetEncounter,
