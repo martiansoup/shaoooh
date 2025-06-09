@@ -19,12 +19,6 @@ use crate::{
 use states::*;
 use tokio::signal;
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
-struct RequestTransition {
-    transition: Transition,
-    arg: Option<TransitionArg>,
-}
-
 // Response to any requests for the current state, also includes possible transitions
 #[derive(Clone, Serialize)]
 struct ResponseAppState {
@@ -178,10 +172,20 @@ impl Shaoooh {
 
             // Step state machines
             if let Some(h) = &mut hunt {
-                h.step(&mut control, results);
+                let result = h.step(&mut control, results);
+                // Automatic transition requests
+                if result.incr_encounters {
+                    self.app.encounters += 1;
+                    self.tx
+                        .send(self.app.clone())
+                        .expect("Couldn't update state");
+                }
+                if let Some(transition_req) = result.transition {
+                    self.do_transition(transition_req, &mut hunt, true);
+                }
             }
 
-            // Manual transition requests from
+            // Manual transition requests from API
             if !self.rx.is_empty() {
                 if let Some(transition_req) = self.rx.blocking_recv() {
                     self.do_transition(transition_req, &mut hunt, false);

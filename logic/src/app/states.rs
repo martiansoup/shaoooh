@@ -27,6 +27,12 @@ pub struct StateTransition {
     pub(crate) automatic: bool,
 }
 
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct RequestTransition {
+    pub(crate) transition: Transition,
+    pub(crate) arg: Option<TransitionArg>,
+}
+
 impl HuntState {
     pub fn possible_transitions(&self) -> Vec<StateTransition> {
         match self {

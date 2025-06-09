@@ -1,14 +1,19 @@
 use opencv::{core::Vector, highgui, prelude::*, videoio::VideoCapture};
 
+use crate::app::states::Game;
+
+#[derive(Debug)]
 pub enum Processing {
-    Gen3TextBox,
+    // List of sprites to check, and should it be flipped
+    Sprite(Game, Vec<u32>, bool)
 }
 
+#[derive(Debug)]
 pub struct ProcessingResult {
-    process: Processing,
-    met: bool,
-    species: u32,
-    shiny: bool,
+    pub(crate) process: Processing,
+    pub(crate) met: bool,
+    pub(crate) species: u32,
+    pub(crate) shiny: bool,
 }
 
 pub struct Vision {
@@ -46,6 +51,20 @@ impl Vision {
         }
     }
 
+    fn match_sprite(&mut self, game: &Game, species: &Vec<u32>, flipped: &bool, frame: &Mat) -> ProcessingResult {
+        // TODO actually process
+        ProcessingResult { process: Processing::Sprite(game.clone(), species.clone(), *flipped), met: true, species: 1, shiny: false }
+    }
+
+    fn process(&mut self, process: &Processing, frame: &Mat) -> ProcessingResult {
+        log::info!("Processing {:?}", process);
+        let res = match process {
+            Processing::Sprite(game, species_list, flipped) => self.match_sprite(game, species_list, flipped, frame)
+        };
+        log::info!("Process results {:?}", res);
+        res
+    }
+
     pub fn process_next_frame(&mut self, processing: Vec<Processing>) -> Vec<ProcessingResult> {
         let mut frame = Mat::default();
         self.cam.read(&mut frame).expect("Failed to read frame");
@@ -58,7 +77,8 @@ impl Vision {
         // TODO don't show gui ?
         highgui::imshow("capture", &frame).expect("Failed to show capture");
         highgui::wait_key(1).expect("Event loop failed");
-        Vec::new()
+
+        processing.iter().map(|p| self.process(p, &frame) ).collect()
     }
 
     pub fn read_frame(&self) -> &[u8] {
