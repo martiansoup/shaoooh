@@ -112,8 +112,7 @@
     </div>
 
     <div class="game-output" id="gameOutput">
-      Game output will appear here
-      <!-- Replace this with live video feed or screenshots -->
+      <img id="gameOutputImage" src="/api/frame" style="width: 512px;height: 384px;" />
     </div>
   </div>
 
@@ -121,6 +120,7 @@
   </div>
 
   <div class="controls" id="argument">
+    <label for="name">ID</label> <input name="name" id="arg_name" value="Fushigidane" />
     <label for="species">Species</label> <input name="species" id="arg_species" value="1" />
     <label for="game">Game</label> <input name="game" id="arg_game" value="FireRedLeafGreen" />
     <label for="method">Method</label> <input name="method" id="arg_method" value="SoftResetGift" />
@@ -149,6 +149,7 @@
 
       if (needsArg) {
         argument = {
+          name: document.getElementById("arg_name").value,
           species: parseInt(document.getElementById("arg_species").value),
           game: document.getElementById("arg_game").value,
           method: document.getElementById("arg_method").value
@@ -185,6 +186,7 @@
     }
 
     var errorCount = 0;
+    var cache = 0;
 
     function updateState() {
       fetch(state)
@@ -199,6 +201,8 @@
           document.getElementById("encounters").innerHTML = out.state.encounters;
           buildControls(out.transitions);
           errorCount = 0;
+          document.getElementById("gameOutputImage").src = "/api/frame?"+cache;
+          cache++;
           setTimeout(updateState, 1000)
         })
         .catch(err => {

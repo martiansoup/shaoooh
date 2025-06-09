@@ -102,6 +102,7 @@ impl HuntState {
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub(crate) struct TransitionArg {
+    name: String,
     species: u32,
     game: Game,
     method: Method,
