@@ -17,6 +17,13 @@ pub enum Button {
     Down,
 }
 
+pub enum Delay {
+    Twentieth,
+    Tenth,
+    Half,
+    Sec
+}
+
 pub struct ShaooohControl {
     port: Box<dyn SerialPort>,
 }
@@ -31,6 +38,7 @@ impl ShaooohControl {
         }
     }
 
+    // TODO add delay
     pub fn press(&mut self, button: Button) {
         let cchar = match button {
             Button::A => 'A',

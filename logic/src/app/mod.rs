@@ -7,7 +7,7 @@ use axum::{
     response::IntoResponse,
     routing::{get, post},
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tokio::sync::{mpsc, oneshot, watch};
 use tower_http::services::{ServeDir, ServeFile};
 pub(crate) mod states;
@@ -93,7 +93,7 @@ impl Shaoooh {
             let method = self.app.arg.as_ref().unwrap().method.clone();
             let new_hunt = HuntBuild::build(target, game, method);
             match new_hunt {
-                Ok(h) => *hunt = Some(Box::new(h) as Box<dyn HuntFSM>),
+                Ok(h) => *hunt = Some(h),
                 Err(_) => return false,
             };
         }
