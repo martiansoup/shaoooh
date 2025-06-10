@@ -28,6 +28,7 @@ for no in nos:
     m_in = cv2.imread(f"../reference/images/dp/{no:03}_shiny.png", cv2.IMREAD_UNCHANGED)
     imgs[n] = cv2.imread(f"../reference/images/dp/{no:03}_shiny.png", cv2.IMREAD_COLOR)
     _, masks[n] = cv2.threshold(m_in[:, :, 3], 0, 255, cv2.THRESH_BINARY)
+    cv2.imshow("mask", masks[n])
 
 border_l = 16
 border_r = border_l

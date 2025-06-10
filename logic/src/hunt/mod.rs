@@ -1,3 +1,4 @@
+use std::time::Duration;
 use std::time::SystemTime;
 
 mod frlg_starter;
@@ -54,6 +55,12 @@ impl HuntBuild {
                 base,
                 state: DPRandomEncounterState::TryGetEncounter,
                 next_dir: Button::Up,
+                timer: SystemTime::now(),
+                last_timer_duration: Duration::default(),
+                min_shiny: Duration::from_secs(9999),
+                min_normal: Duration::from_secs(9999),
+                max_shiny: Duration::from_secs(0),
+                max_normal: Duration::from_secs(0),
             }))
         } else {
             log::error!(

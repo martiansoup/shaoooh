@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
 use opencv::{
-    core::{Size, Vector},
+    core::{NORM_MINMAX, Point, Rect, Size, Vector},
     highgui,
     imgcodecs::{IMREAD_COLOR, IMREAD_UNCHANGED},
-    imgproc::{THRESH_BINARY, THRESH_BINARY_INV, TM_CCORR_NORMED},
+    imgproc::{
+        COLOR_BGR2HSV, HISTCMP_CORREL, LINE_8, THRESH_BINARY, THRESH_BINARY_INV, TM_CCORR_NORMED,
+    },
     prelude::*,
     videoio::VideoCapture,
 };
@@ -15,6 +17,7 @@ use crate::app::states::Game;
 pub enum Processing {
     // List of sprites to check, and should it be flipped
     Sprite(Game, Vec<u32>, bool),
+    FRLGShinyStar,
     DPStartEncounter,
     DPInEncounter,
     DPEncounterReady,
@@ -32,6 +35,7 @@ pub struct Vision {
     cam: VideoCapture,
     encoded: Vector<u8>,
     game: Game,
+    flipped: bool,
     // Reference, Shiny, Mask
     reference: HashMap<u32, (Mat, Mat, Mat)>,
 }
@@ -67,13 +71,23 @@ impl Vision {
             encoded: Vector::default(),
             reference: HashMap::new(),
             game: Game::None,
+            flipped: false,
         }
     }
 
-    fn get_or_create_references(&mut self, game: &Game, species: u32) -> &(Mat, Mat, Mat) {
+    fn get_or_create_references(
+        &mut self,
+        game: &Game,
+        flipped: &bool,
+        species: u32,
+    ) -> &(Mat, Mat, Mat) {
         if *game != self.game {
             self.reference.clear();
             self.game = game.clone();
+        }
+        if *flipped != self.flipped {
+            self.reference.clear();
+            self.flipped = flipped.clone();
         }
         if !self.reference.contains_key(&species) {
             let dir = match game {
@@ -81,15 +95,30 @@ impl Vision {
                 Game::DiamondPearl => "dp",
                 _ => "?", // TODO other games
             };
+            // TODO check files exist as doesn't error from opencv
             let path = format!("../reference/images/{}/{:03}.png", dir, species);
             let shiny_path = format!("../reference/images/{}/{:03}_shiny.png", dir, species);
 
-            let ref_img_raw =
+            let ref_img_raw_in =
                 opencv::imgcodecs::imread(&path, IMREAD_UNCHANGED).expect("Couldn't read image");
-            let ref_img =
+            let ref_img_in =
                 opencv::imgcodecs::imread(&path, IMREAD_COLOR).expect("Couldn't read image");
-            let shi_img =
+            let shi_img_in =
                 opencv::imgcodecs::imread(&shiny_path, IMREAD_COLOR).expect("Couldn't read image");
+
+            let mut ref_img_raw = Mat::default();
+            let mut ref_img = Mat::default();
+            let mut shi_img = Mat::default();
+
+            if *flipped {
+                opencv::core::flip(&ref_img_raw_in, &mut ref_img_raw, 1);
+                opencv::core::flip(&ref_img_in, &mut ref_img, 1);
+                opencv::core::flip(&shi_img_in, &mut shi_img, 1);
+            } else {
+                ref_img_raw = ref_img_raw_in;
+                ref_img = ref_img_in;
+                shi_img = shi_img_in;
+            }
 
             let mut channels: Vector<Mat> = Default::default();
             opencv::core::split(&ref_img_raw, &mut channels);
@@ -97,7 +126,8 @@ impl Vision {
 
             let mut mask = Mat::default();
 
-            opencv::imgproc::threshold(&alpha, &mut mask, 0.0, 255.0, THRESH_BINARY);
+            opencv::imgproc::threshold(&alpha, &mut mask, 0.0, 255.0, THRESH_BINARY)
+                .expect("Failed to create mask");
 
             self.reference.insert(species, (ref_img, shi_img, mask));
         }
@@ -111,32 +141,47 @@ impl Vision {
         flipped: &bool,
         frame: &Mat,
     ) -> ProcessingResult {
-        if *flipped {
-            panic!("FLIPPED"); // TODO
-        }
         let mut found_species = 0;
         let mut max = 0.0;
-        let mut is_shiny = false;
+        let mut is_shiny_conv = false;
+        let mut found_location = Point::default();
+        let mut tpl_w = 0;
+        let mut tpl_h = 0;
 
         for s in species {
-            let (reference, shiny, mask) = self.get_or_create_references(game, *s);
+            let (reference, shiny, mask) = self.get_or_create_references(game, flipped, *s);
 
+            let mask_copy = mask.clone();
             let mut result = Mat::default();
-            opencv::imgproc::match_template(frame, reference, &mut result, TM_CCORR_NORMED, mask)
-                .expect("Failed to convolve");
+            opencv::imgproc::match_template(
+                frame,
+                reference,
+                &mut result,
+                TM_CCORR_NORMED,
+                &mask_copy,
+            )
+            .expect("Failed to convolve");
             let mut result_shiny = Mat::default();
-            opencv::imgproc::match_template(frame, shiny, &mut result_shiny, TM_CCORR_NORMED, mask)
-                .expect("Failed to convolve");
+            opencv::imgproc::match_template(
+                frame,
+                shiny,
+                &mut result_shiny,
+                TM_CCORR_NORMED,
+                &mask_copy,
+            )
+            .expect("Failed to convolve");
 
             let mut max_val = 0.0;
             let mut max_val_shiny = 0.0;
+            let mut max_loc = Point::default();
+            let mut max_loc_shiny = Point::default();
             // TODO draw rectangle?
             opencv::core::min_max_loc(
                 &result,
                 None,
                 Some(&mut max_val),
                 None,
-                None,
+                Some(&mut max_loc),
                 &opencv::core::no_array(),
             )
             .expect("min max failed");
@@ -145,7 +190,7 @@ impl Vision {
                 None,
                 Some(&mut max_val_shiny),
                 None,
-                None,
+                Some(&mut max_loc_shiny),
                 &opencv::core::no_array(),
             )
             .expect("min max failed");
@@ -155,15 +200,34 @@ impl Vision {
             if max_val > max {
                 max = max_val;
                 found_species = *s;
-                is_shiny = false;
+                is_shiny_conv = false;
+                found_location = max_loc;
+                tpl_w = reference.cols();
+                tpl_h = reference.rows();
             }
             if max_val_shiny > max {
                 max = max_val_shiny;
                 found_species = *s;
-                is_shiny = true;
+                is_shiny_conv = true;
+                found_location = max_loc_shiny;
+                tpl_w = shiny.cols();
+                tpl_h = shiny.rows();
             }
         }
-        // TODO actually process
+
+        let mut for_rect = frame.clone();
+        let rect = Rect {
+            x: found_location.x,
+            y: found_location.y,
+            width: tpl_w,
+            height: tpl_h,
+        };
+
+        // Display current find
+        opencv::imgproc::rectangle(&mut for_rect, rect, 0.0.into(), 1, LINE_8, 0);
+        highgui::imshow("found", &for_rect).expect("Failed to show rectangle");
+
+        let is_shiny = is_shiny_conv;
         let res = ProcessingResult {
             process: Processing::Sprite(game.clone(), species.clone(), *flipped),
             met: found_species != 0,
@@ -172,6 +236,27 @@ impl Vision {
         };
         log::info!("Process results {:?}", res);
         res
+    }
+
+    fn frlg_shiny_star(&mut self, frame: &Mat) -> ProcessingResult {
+        // X, Y, Width, Height
+        let star = frame
+            .roi(opencv::core::Rect::new(106, 52, 16, 16))
+            .expect("Failed to crop")
+            .clone_pointee();
+        let mut star_grey = Mat::default();
+        opencv::imgproc::cvt_color(&star, &mut star_grey, opencv::imgproc::COLOR_BGR2GRAY, 0);
+        let mut star_thr_w = Mat::default();
+        opencv::imgproc::threshold(&star_grey, &mut star_thr_w, 200.0, 255.0, THRESH_BINARY);
+
+        let shiny = opencv::core::count_non_zero(&star_thr_w).unwrap() < 190;
+
+        ProcessingResult {
+            process: Processing::FRLGShinyStar,
+            met: shiny,
+            species: 0,
+            shiny,
+        }
     }
 
     fn dp_encounter_ready(&mut self, frame: &Mat) -> ProcessingResult {
@@ -267,6 +352,7 @@ impl Vision {
             Processing::Sprite(game, species_list, flipped) => {
                 self.match_sprite(game, species_list, flipped, frame)
             }
+            Processing::FRLGShinyStar => self.frlg_shiny_star(frame),
             Processing::DPEncounterReady => self.dp_encounter_ready(frame),
             Processing::DPInEncounter => self.dp_in_encounter(frame),
             Processing::DPStartEncounter => self.dp_start_encounter(frame),

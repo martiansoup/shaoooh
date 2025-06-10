@@ -25,6 +25,12 @@ pub(crate) struct DPRandomEncounter {
     pub(crate) base: BaseHunt,
     pub(crate) state: DPRandomEncounterState,
     pub(crate) next_dir: Button,
+    pub(crate) timer: SystemTime,
+    pub(crate) last_timer_duration: Duration,
+    pub(crate) min_shiny: Duration,
+    pub(crate) max_shiny: Duration,
+    pub(crate) min_normal: Duration,
+    pub(crate) max_normal: Duration,
 }
 
 impl DPRandomEncounter {
@@ -83,6 +89,7 @@ impl HuntFSM for DPRandomEncounter {
                 Processing::DPStartEncounter => enter_encounter = r.met,
                 Processing::DPInEncounter => in_encounter = r.met,
                 Processing::DPEncounterReady => encounter_ready = r.met,
+                _ => {}
             }
         }
 
@@ -106,6 +113,7 @@ impl HuntFSM for DPRandomEncounter {
             }
             DPRandomEncounterState::EnteringEncounter => {
                 if in_encounter {
+                    self.timer = SystemTime::now();
                     DPRandomEncounterState::WaitEncounterReady
                 } else {
                     DPRandomEncounterState::EnteringEncounter
@@ -113,14 +121,29 @@ impl HuntFSM for DPRandomEncounter {
             }
             DPRandomEncounterState::WaitEncounterReady => {
                 if encounter_ready {
+                    self.last_timer_duration = self.timer.elapsed().unwrap();
                     DPRandomEncounterState::Detect
                 } else {
                     DPRandomEncounterState::WaitEncounterReady
                 }
             }
             DPRandomEncounterState::Detect => {
+                // TODO change to trace or remove?
+                log::info!(
+                    "Durations: min_normal={:?},max_normal={:?} - min_shiny={:?},max_shiny={:?}",
+                    self.min_normal,
+                    self.max_normal,
+                    self.min_shiny,
+                    self.max_shiny
+                );
                 if let Some(detect) = detect_result {
                     if detect.shiny {
+                        if self.last_timer_duration > self.max_shiny {
+                            self.max_shiny = self.last_timer_duration;
+                        }
+                        if self.last_timer_duration < self.min_shiny {
+                            self.min_shiny = self.last_timer_duration;
+                        }
                         if detect.species == self.base.target {
                             transition = Some(RequestTransition {
                                 transition: Transition::FoundTarget,
@@ -134,6 +157,12 @@ impl HuntFSM for DPRandomEncounter {
                         }
                         DPRandomEncounterState::Done
                     } else {
+                        if self.last_timer_duration > self.max_normal {
+                            self.max_normal = self.last_timer_duration;
+                        }
+                        if self.last_timer_duration < self.min_normal {
+                            self.min_normal = self.last_timer_duration;
+                        }
                         DPRandomEncounterState::WaitIntimidate
                     }
                 } else {

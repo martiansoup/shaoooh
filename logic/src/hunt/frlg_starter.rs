@@ -43,11 +43,10 @@ impl FRLGStarterGift {
 impl HuntFSM for FRLGStarterGift {
     fn processing(&self) -> Vec<Processing> {
         if self.state == FRLGStarterGiftState::Detect {
-            vec![Processing::Sprite(
-                Game::FireRedLeafGreen,
-                vec![self.base.target],
-                true,
-            )]
+            vec![
+                Processing::Sprite(Game::FireRedLeafGreen, vec![self.base.target], true),
+                Processing::FRLGShinyStar,
+            ]
         } else {
             Vec::new()
         }
@@ -55,12 +54,23 @@ impl HuntFSM for FRLGStarterGift {
 
     fn step(&mut self, control: &mut ShaooohControl, results: Vec<ProcessingResult>) -> HuntResult {
         let incr_encounters = self.state == FRLGStarterGiftState::Detect;
+        let mut shiny_sprite = false;
+        let mut shiny_star = false;
 
-        let found_shiny = results.iter().any(|r| r.shiny);
+        for r in results {
+            match r.process {
+                Processing::Sprite(_, _, _) => shiny_sprite = r.shiny,
+                Processing::FRLGShinyStar => shiny_star = r.shiny,
+                _ => {}
+            }
+        }
+
+        let found_shiny = shiny_sprite | shiny_star;
         let mut transition = None;
 
         match &self.state {
             FRLGStarterGiftState::Wait(_, _) => {}
+            FRLGStarterGiftState::Done => {}
             s => {
                 log::debug!("STATE = {:?}", s);
             }
@@ -113,11 +123,11 @@ impl HuntFSM for FRLGStarterGift {
             }
             FRLGStarterGiftState::StartToMenu => {
                 control.press(Button::Start);
-                self.create_wait_secs(1, FRLGStarterGiftState::AToSelParty)
+                self.create_wait_secs(2, FRLGStarterGiftState::AToSelParty)
             }
             FRLGStarterGiftState::AToSelParty => {
                 control.press(Button::A);
-                self.create_wait_secs(1, FRLGStarterGiftState::AToSelStarter)
+                self.create_wait_secs(2, FRLGStarterGiftState::AToSelStarter)
             }
             FRLGStarterGiftState::AToSelStarter => {
                 control.press(Button::A);
