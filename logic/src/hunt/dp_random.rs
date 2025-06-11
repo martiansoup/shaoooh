@@ -1,6 +1,6 @@
 use std::time::{Duration, SystemTime};
 
-use crate::app::states::{Game, RequestTransition, Transition};
+use crate::app::states::{Game, Method, RequestTransition, Transition, TransitionArg};
 use crate::control::{Button, ShaooohControl};
 use crate::hunt::{BaseHunt, HuntFSM, HuntResult};
 use crate::vision::{Processing, ProcessingResult};
@@ -20,6 +20,8 @@ pub(crate) enum DPRandomEncounterState {
     LeavingEncounter,
     Wait(Duration, Box<DPRandomEncounterState>),
 }
+
+const SHINY_DURATION: Duration = Duration::from_millis(10200);
 
 pub(crate) struct DPRandomEncounter {
     pub(crate) base: BaseHunt,
@@ -137,7 +139,7 @@ impl HuntFSM for DPRandomEncounter {
                     self.max_shiny
                 );
                 if let Some(detect) = detect_result {
-                    if detect.shiny {
+                    if detect.shiny || (self.last_timer_duration > SHINY_DURATION) {
                         if self.last_timer_duration > self.max_shiny {
                             self.max_shiny = self.last_timer_duration;
                         }
@@ -152,7 +154,12 @@ impl HuntFSM for DPRandomEncounter {
                         } else {
                             transition = Some(RequestTransition {
                                 transition: Transition::FoundNonTarget,
-                                arg: None,
+                                arg: Some(TransitionArg {
+                                    name: String::from(""),
+                                    species: detect.species,
+                                    game: Game::DiamondPearl,
+                                    method: Method::RandomEncounter,
+                                }),
                             });
                         }
                         DPRandomEncounterState::Done

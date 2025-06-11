@@ -38,6 +38,7 @@ impl HuntBuild {
             method: method.clone(),
             wait_start: SystemTime::now(),
         };
+        // TODO new method for FSMs
         if game == Game::FireRedLeafGreen
             && method == Method::SoftResetGift
             && (target == 1 || target == 4 || target == 7)

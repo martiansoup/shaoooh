@@ -1,4 +1,8 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    fs::read_to_string,
+    io::{BufWriter, Write},
+    sync::{Arc, Mutex},
+};
 
 use axum::{
     Json, Router,
@@ -7,7 +11,7 @@ use axum::{
     response::IntoResponse,
     routing::{get, post},
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, oneshot, watch};
 use tower_http::services::{ServeDir, ServeFile};
 pub(crate) mod states;
@@ -43,12 +47,26 @@ pub struct Shaoooh {
     image: Arc<Mutex<Vec<u8>>>,
 }
 
+// Struct to load/save from disc
+#[derive(Clone, Serialize, Deserialize)]
+struct HuntInformation {
+    name: String,
+    species: u32,
+    game: Game,
+    method: Method,
+    encounters: u64,
+    phases: Vec<Phase>,
+    complete: bool,
+}
+
 impl Shaoooh {
     pub fn new() -> Self {
         let app = AppState {
             state: HuntState::Idle,
             arg: None,
             encounters: 0,
+            phases: Vec::new(),
+            last_phase: 0,
         };
         let (state_tx, state_rx) = watch::channel(app.clone());
         let (transition_tx, transition_rx) = mpsc::channel(1);
@@ -84,7 +102,49 @@ impl Shaoooh {
             .with_state(state)
     }
 
-    fn transition_logic(&mut self, from: HuntState, hunt: &mut Option<Box<dyn HuntFSM>>) -> bool {
+    fn filename_from_name(name: &str) -> String {
+        format!("hunt_{}.json", name)
+    }
+
+    fn try_get_encounters(name: &str) -> (Vec<Phase>, u64) {
+        if std::fs::exists(Self::filename_from_name(name)).unwrap_or(false) {
+            let data = std::fs::read_to_string(Self::filename_from_name(name))
+                .expect("Couldn't read file");
+            let hunt: HuntInformation = serde_json::from_str(&data).expect("Failed to parse json");
+            (hunt.phases, hunt.encounters)
+        } else {
+            (Vec::new(), 0)
+        }
+    }
+
+    fn update_state(&mut self) {
+        if self.app.state != HuntState::Idle {
+            let name = self.app.arg.as_ref().unwrap().name.clone();
+            let state = HuntInformation {
+                name: self.app.arg.as_ref().unwrap().name.clone(),
+                species: self.app.arg.as_ref().unwrap().species,
+                game: self.app.arg.as_ref().unwrap().game.clone(),
+                method: self.app.arg.as_ref().unwrap().method.clone(),
+                encounters: self.app.encounters,
+                phases: self.app.phases.clone(),
+                complete: self.app.state == HuntState::FoundTarget,
+            };
+            let mut file = std::fs::File::create(Self::filename_from_name(&name)).unwrap();
+            let mut writer = BufWriter::new(file);
+            serde_json::to_writer(&mut writer, &state);
+            writer.flush();
+        }
+        self.tx
+            .send(self.app.clone())
+            .expect("Couldn't update state");
+    }
+
+    fn transition_logic(
+        &mut self,
+        from: HuntState,
+        hunt: &mut Option<Box<dyn HuntFSM>>,
+        transition: &Transition,
+    ) -> bool {
         if self.app.state == HuntState::Hunt && from != HuntState::Hunt {
             // TODO check if existing hunt in progress
             // Build hunt object
@@ -96,6 +156,17 @@ impl Shaoooh {
                 Ok(h) => *hunt = Some(h),
                 Err(_) => return false,
             };
+        }
+        if self.app.state != HuntState::FoundNonTarget
+            && from == HuntState::FoundNonTarget
+            && *transition != Transition::FalseDetect
+        {
+            let phase = Phase {
+                caught: *transition == Transition::Caught,
+                species: self.app.last_phase,
+                encounters: self.app.encounters,
+            };
+            self.app.phases.push(phase);
         }
         if self.app.state == HuntState::Idle {
             if let Some(h) = hunt {
@@ -124,14 +195,17 @@ impl Shaoooh {
                     let prev_state = self.app.state.clone();
                     self.app.state = transition.next_state.clone();
                     if transition.needs_arg {
-                        self.app.arg = Some(arg.unwrap());
-                        self.app.encounters = 0; // TODO read previous encounters if from file
-                        log::info!("Got argument: {:?}", self.app.arg);
+                        if transition.next_state == HuntState::FoundNonTarget {
+                            self.app.last_phase = arg.unwrap().species;
+                        } else {
+                            self.app.arg = Some(arg.unwrap());
+                            (self.app.phases, self.app.encounters) =
+                                Self::try_get_encounters(&self.app.arg.as_ref().unwrap().name);
+                            log::info!("Got argument: {:?}", self.app.arg);
+                        }
                     }
-                    if self.transition_logic(prev_state, hunt) {
-                        self.tx
-                            .send(self.app.clone())
-                            .expect("Couldn't update state");
+                    if self.transition_logic(prev_state, hunt, &transition.transition) {
+                        self.update_state();
                     } else {
                         log::error!("Failed to change state, resetting to idle");
                         self.app.state = HuntState::Idle;
@@ -176,9 +250,7 @@ impl Shaoooh {
                 // Automatic transition requests
                 if result.incr_encounters {
                     self.app.encounters += 1;
-                    self.tx
-                        .send(self.app.clone())
-                        .expect("Couldn't update state");
+                    self.update_state();
                 }
                 if let Some(transition_req) = result.transition {
                     self.do_transition(transition_req, &mut hunt, true);

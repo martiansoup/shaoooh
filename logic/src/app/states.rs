@@ -52,7 +52,7 @@ impl HuntState {
                 StateTransition {
                     transition: Transition::FoundNonTarget,
                     next_state: Self::FoundNonTarget,
-                    needs_arg: false,
+                    needs_arg: true,
                     automatic: true,
                 },
                 StateTransition {
@@ -66,7 +66,7 @@ impl HuntState {
                 StateTransition {
                     transition: Transition::Caught,
                     next_state: Self::Hunt,
-                    needs_arg: false, // TODO True to record phase?
+                    needs_arg: false,
                     automatic: false,
                 },
                 StateTransition {
@@ -140,4 +140,13 @@ pub(crate) struct AppState {
     pub(crate) state: HuntState,
     pub(crate) arg: Option<TransitionArg>,
     pub(crate) encounters: u64,
+    pub(crate) phases: Vec<Phase>,
+    pub(crate) last_phase: u32,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub(crate) struct Phase {
+    pub(crate) species: u32,
+    pub(crate) encounters: u64,
+    pub(crate) caught: bool,
 }
