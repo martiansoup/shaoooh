@@ -108,6 +108,7 @@ impl Shaoooh {
 
     fn try_get_encounters(name: &str) -> (Vec<Phase>, u64) {
         if std::fs::exists(Self::filename_from_name(name)).unwrap_or(false) {
+            // TODO error check information? And check if already complete?
             let data = std::fs::read_to_string(Self::filename_from_name(name))
                 .expect("Couldn't read file");
             let hunt: HuntInformation = serde_json::from_str(&data).expect("Failed to parse json");
@@ -146,7 +147,6 @@ impl Shaoooh {
         transition: &Transition,
     ) -> bool {
         if self.app.state == HuntState::Hunt && from != HuntState::Hunt {
-            // TODO check if existing hunt in progress
             // Build hunt object
             let target = self.app.arg.as_ref().unwrap().species;
             let game = self.app.arg.as_ref().unwrap().game.clone();

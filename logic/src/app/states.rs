@@ -15,7 +15,7 @@ pub enum Transition {
 pub enum HuntState {
     Idle,
     Hunt,
-    FoundNonTarget, // TODO might need to track which species the non-target is?
+    FoundNonTarget,
     FoundTarget,
 }
 

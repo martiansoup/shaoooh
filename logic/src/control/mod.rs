@@ -55,7 +55,6 @@ impl ShaooohControl {
             Button::Down => 'd',
         };
         let control_string = format!("q{}1qpq{}0", cchar, cchar);
-        // TODO check number of bytes written and write remaining if needed
         self.port
             .write_all(control_string.as_bytes())
             .expect("Couldn't write");

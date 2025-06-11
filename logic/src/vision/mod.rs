@@ -175,7 +175,7 @@ impl Vision {
             let mut max_val_shiny = 0.0;
             let mut max_loc = Point::default();
             let mut max_loc_shiny = Point::default();
-            // TODO draw rectangle?
+
             opencv::core::min_max_loc(
                 &result,
                 None,
@@ -223,7 +223,7 @@ impl Vision {
             height: tpl_h,
         };
 
-        // Display current find
+        // Display current find TODO should this be included?
         opencv::imgproc::rectangle(&mut for_rect, rect, 0.0.into(), 1, LINE_8, 0);
         highgui::imshow("found", &for_rect).expect("Failed to show rectangle");
 
@@ -387,7 +387,6 @@ impl Vision {
         opencv::imgcodecs::imencode(".png", &frame, &mut self.encoded, &Vector::new())
             .expect("Failed to encode frame");
 
-        // TODO Do per-frame processing
         // TODO don't show gui ?
         highgui::imshow("capture", &frame).expect("Failed to show capture");
         highgui::wait_key(1).expect("Event loop failed");
