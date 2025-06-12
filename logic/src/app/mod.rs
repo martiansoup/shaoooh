@@ -59,6 +59,17 @@ struct HuntInformation {
     complete: bool,
 }
 
+#[derive(Deserialize)]
+struct UserConfig {
+    webhook_url: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct WebHookInfo {
+    value1: String,
+    value2: u64,
+}
+
 impl Shaoooh {
     pub fn new() -> Self {
         let app = AppState {
@@ -103,7 +114,7 @@ impl Shaoooh {
     }
 
     fn filename_from_name(name: &str) -> String {
-        format!("hunt_{}.json", name)
+        format!("hunts/hunt_{}.json", name)
     }
 
     fn try_get_encounters(name: &str) -> (Vec<Phase>, u64) {
@@ -283,10 +294,56 @@ impl Shaoooh {
         }
     }
 
+    async fn call_webhook(mut rx: watch::Receiver<AppState>) {
+        let path = "user_config.json";
+        if std::fs::exists(path).unwrap_or(false) {
+            let data = std::fs::read_to_string(path).expect("Couldn't read file");
+            if let Ok(cfg) = serde_json::from_str::<UserConfig>(&data) {
+                log::info!("Loaded user configuration");
+
+                if let Some(url) = cfg.webhook_url {
+                    loop {
+                        let mut state_copy = None;
+                        {
+                            state_copy = Some((*rx.borrow_and_update()).clone());
+                        }
+                        if rx.changed().await.is_err() {
+                            break;
+                        }
+                        if let Some(state) = state_copy {
+                            let content = WebHookInfo {
+                                value1: format!("{:?}", &state.state),
+                                value2: state.encounters,
+                            };
+                            let interesting_encounter =
+                                (state.encounters % 64 == 0) && (state.encounters != 0);
+                            let interesting_state = (state.state != HuntState::Idle)
+                                && (state.state != HuntState::Hunt);
+                            if interesting_encounter || interesting_state {
+                                log::info!("Calling webhook with {:?}", content);
+                                let client = reqwest::Client::new();
+                                match client.post(&url).json(&content).send().await {
+                                    Ok(_) => {}
+                                    Err(e) => {
+                                        log::error!("Failed to send webhook {:?}", e);
+                                    }
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     pub async fn serve(mut self) -> Result<(), String> {
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
 
         let state = self.api.take().expect("Couldn't get API state");
+
+        let rx_clone = state.rx.clone();
+
+        tokio::spawn(Self::call_webhook(rx_clone));
 
         let main_thread = std::thread::spawn(|| {
             self.main_thread(shutdown_rx);

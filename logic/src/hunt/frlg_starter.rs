@@ -23,6 +23,7 @@ pub(crate) enum FRLGStarterGiftState {
     AToSelParty,
     AToSelStarter,
     AToSelSummary,
+    RToSelStats,
     Detect,
     Done,
     Wait(Duration, Box<FRLGStarterGiftState>),
@@ -135,7 +136,11 @@ impl HuntFSM for FRLGStarterGift {
             }
             FRLGStarterGiftState::AToSelSummary => {
                 control.press(Button::A);
-                self.create_wait_secs(3, FRLGStarterGiftState::Detect)
+                self.create_wait_secs(2, FRLGStarterGiftState::RToSelStats)
+            }
+            FRLGStarterGiftState::RToSelStats => {
+                control.press(Button::Right);
+                self.create_wait_secs(1, FRLGStarterGiftState::Detect)
             }
             FRLGStarterGiftState::Detect => {
                 if found_shiny {

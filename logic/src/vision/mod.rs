@@ -38,6 +38,7 @@ pub struct Vision {
     flipped: bool,
     // Reference, Shiny, Mask
     reference: HashMap<u32, (Mat, Mat, Mat)>,
+    img_index: u32,
 }
 
 impl Vision {
@@ -52,6 +53,7 @@ impl Vision {
     const H1: i32 = (Vision::HEIGHT - (Vision::BORDER_TB * 2)) + (Vision::BORDER_KEEP * 2);
     const DS_W: i32 = 256;
     const DS_H: i32 = 192;
+    const MAX_IMAGES: u32 = 16;
 
     pub fn new() -> Self {
         log::info!("Starting video capture");
@@ -72,6 +74,7 @@ impl Vision {
             reference: HashMap::new(),
             game: Game::None,
             flipped: false,
+            img_index: 0,
         }
     }
 
@@ -223,8 +226,11 @@ impl Vision {
             height: tpl_h,
         };
 
-        // Display current find TODO should this be included?
         opencv::imgproc::rectangle(&mut for_rect, rect, 0.0.into(), 1, LINE_8, 0);
+        let filename = format!("hunts/{:03}.png", self.img_index);
+        opencv::imgcodecs::imwrite(&filename, &for_rect, &Vector::new());
+        self.img_index += 1;
+        // Display current find TODO should this be included?
         highgui::imshow("found", &for_rect).expect("Failed to show rectangle");
 
         let is_shiny = is_shiny_conv;
