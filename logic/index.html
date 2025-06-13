@@ -190,7 +190,26 @@
     }
 
     var errorCount = 0;
-    var cache = 0;
+
+    window.stateTimer = 1000;
+    window.frameTimer = 1000;
+
+    function updateFrame() {
+      fetch("/api/frame")
+        .then(res => res.blob())
+        .then(blob => {
+          var img = document.getElementById("gameOutputImage");
+          img.src = URL.createObjectURL(blob);
+          setTimeout(updateFrame, window.frameTimer);
+        })
+        .catch(err => {
+          errorCount++;
+          if (errorCount < 10) {
+            setTimeout(updateFrame, window.frameTimer)
+          }
+          console.log(err);
+        });
+    }
 
     function updateState() {
       fetch(state)
@@ -205,14 +224,12 @@
           document.getElementById("encounters").innerHTML = out.state.encounters;
           buildControls(out.transitions);
           errorCount = 0;
-          document.getElementById("gameOutputImage").src = "/api/frame?"+cache;
-          cache++;
-          setTimeout(updateState, 1000)
+          setTimeout(updateState, window.stateTimer)
         })
         .catch(err => {
           errorCount++;
           if (errorCount < 10) {
-            setTimeout(updateState, 1000)
+            setTimeout(updateState, window.stateTimer)
           }
           console.log(err);
         });
@@ -220,6 +237,7 @@
 
     window.onload = function() {
       updateState();
+      updateFrame();
     }
   </script>
 

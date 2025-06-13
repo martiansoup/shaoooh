@@ -230,6 +230,9 @@ impl Vision {
         let filename = format!("hunts/{:03}.png", self.img_index);
         opencv::imgcodecs::imwrite(&filename, &for_rect, &Vector::new());
         self.img_index += 1;
+        if self.img_index >= Self::MAX_IMAGES {
+            self.img_index = 0; // Reset index after reaching max
+        }
         // Display current find TODO should this be included?
         highgui::imshow("found", &for_rect).expect("Failed to show rectangle");
 
