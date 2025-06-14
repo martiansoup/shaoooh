@@ -73,7 +73,11 @@ impl HuntFSM for FRLGStarterGift {
 
         let found_shiny = shiny_sprite | shiny_star;
         if found_shiny {
-            log::info!("shiny_sprite = {}, shiny_star = {}", shiny_sprite, shiny_star);
+            log::info!(
+                "shiny_sprite = {}, shiny_star = {}",
+                shiny_sprite,
+                shiny_star
+            );
         }
         let mut transition = None;
 

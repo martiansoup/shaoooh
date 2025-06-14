@@ -124,12 +124,9 @@
     <label for="species">Species</label> <input name="species" id="arg_species" value="1" />
     <label for="game">Game</label> <input name="game" id="arg_game" value="FireRedLeafGreen" />
     <label for="method">Method</label> <input name="method" id="arg_method" value="SoftResetGift" />
-    <!--<label for="name">ID</label> <input name="name" id="arg_name" value="YellowShinx" />
-    <label for="species">Species</label> <input name="species" id="arg_species" value="403" />
-    <label for="game">Game</label> <input name="game" id="arg_game" value="DiamondPearl" />
-    <label for="method">Method</label> <input name="method" id="arg_method" value="RandomEncounter" />-->
-    <br />
+    <br /><br />
     <button onclick="frlg_bulba()">FRLG Bulbasaur</button>
+    <button onclick="frlg_rat()">FRLG Ratatta</button>
     <button onclick="dp_shinx()">DP Cute Charm Shinx</button>
   </div>
 
@@ -142,6 +139,12 @@
       document.getElementById("arg_species").value = "1";
       document.getElementById("arg_game").value = "FireRedLeafGreen";
       document.getElementById("arg_method").value = "SoftResetGift";
+    }
+    function frlg_rat() {
+      document.getElementById("arg_name").value = "Hazel";
+      document.getElementById("arg_species").value = "19";
+      document.getElementById("arg_game").value = "FireRedLeafGreen";
+      document.getElementById("arg_method").value = "RandomEncounter";
     }
     function dp_shinx() {
       document.getElementById("arg_name").value = "YellowShinx";

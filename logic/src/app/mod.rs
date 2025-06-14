@@ -304,7 +304,13 @@ impl Shaoooh {
                         }
                         if let Some(state) = state_copy {
                             let content = reqwest::multipart::Form::new()
-                                .text("message", format!("State = {:?}, No. encounters = {}", &state.state, state.encounters))
+                                .text(
+                                    "message",
+                                    format!(
+                                        "State = {:?}, No. encounters = {}",
+                                        &state.state, state.encounters
+                                    ),
+                                )
                                 .text("token", api_key.clone())
                                 .text("user", user_id.clone());
                             let interesting_encounter =
@@ -314,7 +320,12 @@ impl Shaoooh {
                             if interesting_encounter || interesting_state {
                                 log::info!("Calling webhook with {:?}", content);
                                 let client = reqwest::Client::new();
-                                match client.post("https://api.pushover.net/1/messages.json").multipart(content).send().await {
+                                match client
+                                    .post("https://api.pushover.net/1/messages.json")
+                                    .multipart(content)
+                                    .send()
+                                    .await
+                                {
                                     Ok(_) => {}
                                     Err(e) => {
                                         log::error!("Failed to send webhook {:?}", e);

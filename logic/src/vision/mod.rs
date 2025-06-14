@@ -18,6 +18,9 @@ pub enum Processing {
     // List of sprites to check, and should it be flipped
     Sprite(Game, Vec<u32>, bool),
     FRLGShinyStar,
+    FRLGStartEncounter,
+    FRLGInEncounter,
+    FRLGEncounterReady,
     DPStartEncounter,
     DPInEncounter,
     DPEncounterReady,
@@ -268,6 +271,18 @@ impl Vision {
         }
     }
 
+    fn frlg_encounter_ready(&mut self, frame: &Mat) -> ProcessingResult {
+        unimplemented!();
+    }
+
+    fn frlg_in_encounter(&mut self, frame: &Mat) -> ProcessingResult {
+        unimplemented!();
+    }
+
+    fn frlg_start_encounter(&mut self, frame: &Mat) -> ProcessingResult {
+        unimplemented!();
+    }
+
     fn dp_encounter_ready(&mut self, frame: &Mat) -> ProcessingResult {
         // X, Y, Width, Height
         let hp_bar = frame
@@ -362,6 +377,9 @@ impl Vision {
                 self.match_sprite(game, species_list, flipped, frame)
             }
             Processing::FRLGShinyStar => self.frlg_shiny_star(frame),
+            Processing::FRLGEncounterReady => self.frlg_encounter_ready(frame),
+            Processing::FRLGInEncounter => self.frlg_in_encounter(frame),
+            Processing::FRLGStartEncounter => self.frlg_start_encounter(frame),
             Processing::DPEncounterReady => self.dp_encounter_ready(frame),
             Processing::DPInEncounter => self.dp_in_encounter(frame),
             Processing::DPStartEncounter => self.dp_start_encounter(frame),

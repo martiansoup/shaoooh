@@ -1,9 +1,11 @@
+use crate::control::Button;
 use std::time::Duration;
 use std::time::SystemTime;
 
 mod frlg_starter;
-use crate::control::Button;
 use crate::hunt::frlg_starter::*;
+mod frlg_random;
+use crate::hunt::frlg_random::*;
 mod dp_random;
 use crate::hunt::dp_random::*;
 
