@@ -61,13 +61,8 @@ struct HuntInformation {
 
 #[derive(Deserialize)]
 struct UserConfig {
-    webhook_url: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-struct WebHookInfo {
-    value1: String,
-    value2: u64,
+    api_key: Option<String>,
+    user_id: Option<String>,
 }
 
 impl Shaoooh {
@@ -301,20 +296,17 @@ impl Shaoooh {
             if let Ok(cfg) = serde_json::from_str::<UserConfig>(&data) {
                 log::info!("Loaded user configuration");
 
-                if let Some(url) = cfg.webhook_url {
+                if let (Some(api_key), Some(user_id)) = (cfg.api_key, cfg.user_id) {
                     loop {
                         let mut state_copy = None;
                         {
                             state_copy = Some((*rx.borrow_and_update()).clone());
                         }
-                        if rx.changed().await.is_err() {
-                            break;
-                        }
                         if let Some(state) = state_copy {
-                            let content = WebHookInfo {
-                                value1: format!("{:?}", &state.state),
-                                value2: state.encounters,
-                            };
+                            let content = reqwest::multipart::Form::new()
+                                .text("message", format!("State = {:?}, No. encounters = {}", &state.state, state.encounters))
+                                .text("token", api_key.clone())
+                                .text("user", user_id.clone());
                             let interesting_encounter =
                                 (state.encounters % 64 == 0) && (state.encounters != 0);
                             let interesting_state = (state.state != HuntState::Idle)
@@ -322,13 +314,16 @@ impl Shaoooh {
                             if interesting_encounter || interesting_state {
                                 log::info!("Calling webhook with {:?}", content);
                                 let client = reqwest::Client::new();
-                                match client.post(&url).json(&content).send().await {
+                                match client.post("https://api.pushover.net/1/messages.json").multipart(content).send().await {
                                     Ok(_) => {}
                                     Err(e) => {
                                         log::error!("Failed to send webhook {:?}", e);
                                     }
                                 };
                             }
+                        }
+                        if rx.changed().await.is_err() {
+                            break;
                         }
                     }
                 }

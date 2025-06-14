@@ -124,11 +124,11 @@ impl HuntFSM for FRLGStarterGift {
             }
             FRLGStarterGiftState::BToNotName => {
                 control.press(Button::B);
-                self.create_wait_msecs(2500, FRLGStarterGiftState::AToAdvText3)
+                self.create_wait_msecs(2750, FRLGStarterGiftState::AToAdvText3)
             }
             FRLGStarterGiftState::AToAdvText3 => {
                 control.press(Button::A);
-                self.create_wait_msecs(3750, FRLGStarterGiftState::StartToMenu)
+                self.create_wait_msecs(4000, FRLGStarterGiftState::StartToMenu)
             }
             FRLGStarterGiftState::StartToMenu => {
                 control.press(Button::Start);

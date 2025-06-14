@@ -128,11 +128,27 @@
     <label for="species">Species</label> <input name="species" id="arg_species" value="403" />
     <label for="game">Game</label> <input name="game" id="arg_game" value="DiamondPearl" />
     <label for="method">Method</label> <input name="method" id="arg_method" value="RandomEncounter" />-->
+    <br />
+    <button onclick="frlg_bulba()">FRLG Bulbasaur</button>
+    <button onclick="dp_shinx()">DP Cute Charm Shinx</button>
   </div>
 
   <script>
     let state = "/api/state";
     let button = "/api/button";
+
+    function frlg_bulba() {
+      document.getElementById("arg_name").value = "Fushigidane";
+      document.getElementById("arg_species").value = "1";
+      document.getElementById("arg_game").value = "FireRedLeafGreen";
+      document.getElementById("arg_method").value = "SoftResetGift";
+    }
+    function dp_shinx() {
+      document.getElementById("arg_name").value = "YellowShinx";
+      document.getElementById("arg_species").value = "403";
+      document.getElementById("arg_game").value = "DiamondPearl";
+      document.getElementById("arg_method").value = "RandomEncounter";
+    }
 
     function b() {
       fetch(button, {
