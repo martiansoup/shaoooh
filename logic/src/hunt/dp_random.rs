@@ -65,13 +65,13 @@ impl HuntFSM for DPRandomEncounter {
                 false,
             )]
         } else if self.state == DPRandomEncounterState::TryGetEncounter {
-            vec![Processing::DPStartEncounter]
+            vec![Processing::DP_START_ENCOUNTER]
         } else if self.state == DPRandomEncounterState::EnteringEncounter {
-            vec![Processing::DPInEncounter]
+            vec![Processing::DP_IN_ENCOUNTER]
         } else if self.state == DPRandomEncounterState::WaitEncounterReady {
-            vec![Processing::DPInEncounter, Processing::DPEncounterReady]
+            vec![Processing::DP_IN_ENCOUNTER, Processing::DP_ENCOUNTER_READY]
         } else if self.state == DPRandomEncounterState::LeavingEncounter {
-            vec![Processing::DPInEncounter, Processing::DPStartEncounter]
+            vec![Processing::DP_IN_ENCOUNTER, Processing::DP_START_ENCOUNTER]
         } else {
             Vec::new()
         }
@@ -88,9 +88,9 @@ impl HuntFSM for DPRandomEncounter {
         for r in results {
             match r.process {
                 Processing::Sprite(_, _, _) => detect_result = Some(r),
-                Processing::DPStartEncounter => enter_encounter = r.met,
-                Processing::DPInEncounter => in_encounter = r.met,
-                Processing::DPEncounterReady => encounter_ready = r.met,
+                Processing::DP_START_ENCOUNTER => enter_encounter = r.met,
+                Processing::DP_IN_ENCOUNTER => in_encounter = r.met,
+                Processing::DP_ENCOUNTER_READY => encounter_ready = r.met,
                 _ => {}
             }
         }

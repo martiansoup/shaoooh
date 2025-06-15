@@ -1,4 +1,5 @@
 use crate::control::Button;
+use std::fs::File;
 use std::time::Duration;
 use std::time::SystemTime;
 
@@ -48,6 +49,17 @@ impl HuntBuild {
             Ok(Box::new(FRLGStarterGift {
                 base,
                 state: FRLGStarterGiftState::SoftReset,
+            }))
+        } else if game == Game::FireRedLeafGreen
+            && method == Method::RandomEncounter
+            && (target == 16 || target == 19) {
+            Ok(Box::new(FRLGRandomEncounter {
+                base,
+                state: FRLGRandomEncounterState::TryGetEncounter,
+                next_dir: Button::Down,
+                timer: SystemTime::now(),
+                last_timer_duration: Duration::default(),
+                stats_file: File::create("stats.csv").unwrap()
             }))
         } else if game == Game::DiamondPearl
             && method == Method::RandomEncounter

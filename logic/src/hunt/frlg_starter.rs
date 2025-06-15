@@ -51,7 +51,7 @@ impl HuntFSM for FRLGStarterGift {
         if self.state == FRLGStarterGiftState::Detect {
             vec![
                 Processing::Sprite(Game::FireRedLeafGreen, vec![self.base.target], true),
-                Processing::FRLGShinyStar,
+                Processing::FRLG_SHINY_STAR,
             ]
         } else {
             Vec::new()
@@ -66,7 +66,7 @@ impl HuntFSM for FRLGStarterGift {
         for r in results {
             match r.process {
                 Processing::Sprite(_, _, _) => shiny_sprite = r.shiny,
-                Processing::FRLGShinyStar => shiny_star = r.shiny,
+                Processing::FRLG_SHINY_STAR => shiny_star = r.shiny,
                 _ => {}
             }
         }

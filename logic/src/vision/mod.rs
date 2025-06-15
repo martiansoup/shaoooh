@@ -13,17 +13,48 @@ use opencv::{
 
 use crate::app::{Shaoooh, states::Game};
 
-#[derive(Debug)]
+#[derive(PartialEq, Clone, Debug)]
+pub struct RegionDetectSettings {
+    pub x : i32,
+    pub y : i32,
+    pub w : i32,
+    pub h : i32,
+    pub col_thresh : f64,
+    pub num_thresh : i32,
+    pub invert : bool
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct ChannelDetectSettings {
+    pub x : i32,
+    pub y : i32,
+    pub w : i32,
+    pub h : i32,
+    pub h_lo : f64,
+    pub s_lo : f64,
+    pub v_lo : f64,
+    pub h_hi : f64,
+    pub s_hi : f64,
+    pub v_hi : f64,
+    pub num_thresh : i32
+}
+
+#[derive(Debug, PartialEq)]
 pub enum Processing {
     // List of sprites to check, and should it be flipped
     Sprite(Game, Vec<u32>, bool),
-    FRLGShinyStar,
-    FRLGStartEncounter,
-    FRLGInEncounter,
-    FRLGEncounterReady,
-    DPStartEncounter,
-    DPInEncounter,
-    DPEncounterReady,
+    RegionDetect(RegionDetectSettings),
+    ChannelDetect(ChannelDetectSettings),
+}
+
+impl Processing {
+    pub const DP_START_ENCOUNTER : Self = Processing::RegionDetect(RegionDetectSettings { x: 0, y: 145, w: 256, h: 47, col_thresh: 40.0, num_thresh: 10000, invert: true });
+    pub const DP_IN_ENCOUNTER : Self = Processing::RegionDetect(RegionDetectSettings { x: 0, y: 145, w: 256, h: 47, col_thresh: 210.0, num_thresh: 6500, invert: false });
+    pub const DP_ENCOUNTER_READY : Self = Processing::RegionDetect(RegionDetectSettings { x: 150, y: 100, w: 106, h: 35, col_thresh: 210.0, num_thresh: 1500, invert: false });
+    pub const FRLG_SHINY_STAR : Self = Processing::RegionDetect(RegionDetectSettings { x: 106, y: 52, w: 16, h: 16, col_thresh: 200.0, num_thresh: 190, invert: false });
+    pub const FRLG_START_ENCOUNTER : Self = Processing::RegionDetect(RegionDetectSettings { x: 20, y: 140, w: 215, h: 30, col_thresh: 40.0, num_thresh:  6000, invert: true });
+    pub const FRLG_IN_ENCOUNTER : Self = Processing::RegionDetect(RegionDetectSettings { x: 20, y: 140, w: 215, h: 30, col_thresh: 55.0, num_thresh: 5000, invert: false });
+    pub const FRLG_ENCOUNTER_READY : Self = Processing::ChannelDetect(ChannelDetectSettings { x: 20, y: 140, w: 215, h: 30, h_lo: 0.0, s_lo: 100.0, v_lo: 150.0, h_hi: 20.0, s_hi: 255.0, v_hi: 255.0, num_thresh: 10 });
 }
 
 #[derive(Debug)]
@@ -255,124 +286,45 @@ impl Vision {
         res
     }
 
-    fn frlg_shiny_star(&mut self, frame: &Mat) -> ProcessingResult {
-        // X, Y, Width, Height
-        let star = frame
-            .roi(opencv::core::Rect::new(106, 52, 16, 16))
-            .expect("Failed to crop")
-            .clone_pointee();
-        let mut star_grey = Mat::default();
-        opencv::imgproc::cvt_color(&star, &mut star_grey, opencv::imgproc::COLOR_BGR2GRAY, 0);
-        let mut star_thr_w = Mat::default();
-        opencv::imgproc::threshold(&star_grey, &mut star_thr_w, 200.0, 255.0, THRESH_BINARY);
+    fn region_detect(&mut self, settings: &RegionDetectSettings, frame: &Mat) -> ProcessingResult {
+        let region = frame.roi(opencv::core::Rect::new(settings.x, settings.y, settings.w, settings.h))
+        .expect("Failed to crop to region of interest")
+        .clone_pointee();
+        let mut greyscale = Mat::default();
+        opencv::imgproc::cvt_color(&region, &mut greyscale, opencv::imgproc::COLOR_BGR2GRAY, 0);
+        let mut thresholded = Mat::default();
+        let typ = if settings.invert { THRESH_BINARY_INV } else { THRESH_BINARY };
+        opencv::imgproc::threshold(&greyscale, &mut thresholded, settings.col_thresh, 255.0, typ);
 
-        let shiny = opencv::core::count_non_zero(&star_thr_w).unwrap() < 190;
+        let met = opencv::core::count_non_zero(&thresholded).unwrap() > settings.num_thresh;
 
         ProcessingResult {
-            process: Processing::FRLGShinyStar,
-            met: shiny,
+            process: Processing::RegionDetect(settings.clone()),
+            met,
             species: 0,
-            shiny,
+            shiny: false
         }
     }
 
-    fn frlg_encounter_ready(&mut self, frame: &Mat) -> ProcessingResult {
-        unimplemented!();
-    }
+    fn channel_detect(&mut self, settings: &ChannelDetectSettings, frame: &Mat) -> ProcessingResult {
+        let region = frame.roi(opencv::core::Rect::new(settings.x, settings.y, settings.w, settings.h))
+        .expect("Failed to crop to region of interest")
+        .clone_pointee();
+        let mut hsv = Mat::default();
+        opencv::imgproc::cvt_color(&region, &mut hsv, opencv::imgproc::COLOR_BGR2HSV, 0);
+        let mut thresholded = Mat::default();
+        let lower = Vector::from_slice(&vec![settings.h_lo, settings.s_lo, settings.v_lo]);
+        let upper = Vector::from_slice(&vec![settings.h_hi, settings.s_hi, settings.v_hi]);
+        opencv::core::in_range(&hsv, &lower, &upper, &mut thresholded);
 
-    fn frlg_in_encounter(&mut self, frame: &Mat) -> ProcessingResult {
-        unimplemented!();
-    }
-
-    fn frlg_start_encounter(&mut self, frame: &Mat) -> ProcessingResult {
-        unimplemented!();
-    }
-
-    fn dp_encounter_ready(&mut self, frame: &Mat) -> ProcessingResult {
-        // X, Y, Width, Height
-        let hp_bar = frame
-            .roi(opencv::core::Rect::new(150, 100, 106, 35))
-            .expect("Failed to crop")
-            .clone_pointee();
-        let mut hp_bar_grey = Mat::default();
-        opencv::imgproc::cvt_color(
-            &hp_bar,
-            &mut hp_bar_grey,
-            opencv::imgproc::COLOR_BGR2GRAY,
-            0,
-        );
-        let mut hp_bar_thr_w = Mat::default();
-        opencv::imgproc::threshold(&hp_bar_grey, &mut hp_bar_thr_w, 210.0, 255.0, THRESH_BINARY);
-
-        let ready = opencv::core::count_non_zero(&hp_bar_thr_w).unwrap() > 1500;
+        let count = opencv::core::count_non_zero(&thresholded).unwrap();
+        let met = count > settings.num_thresh;
 
         ProcessingResult {
-            process: Processing::DPEncounterReady,
-            met: ready,
+            process: Processing::ChannelDetect(settings.clone()),
+            met,
             species: 0,
-            shiny: false,
-        }
-    }
-
-    fn dp_in_encounter(&mut self, frame: &Mat) -> ProcessingResult {
-        let bottom_bar = frame
-            .roi(opencv::core::Rect::new(0, 145, 256, 47))
-            .expect("Failed to crop")
-            .clone_pointee();
-        let mut bottom_bar_grey = Mat::default();
-        opencv::imgproc::cvt_color(
-            &bottom_bar,
-            &mut bottom_bar_grey,
-            opencv::imgproc::COLOR_BGR2GRAY,
-            0,
-        );
-        let mut bottom_bar_thr_w = Mat::default();
-        opencv::imgproc::threshold(
-            &bottom_bar_grey,
-            &mut bottom_bar_thr_w,
-            210.0,
-            255.0,
-            THRESH_BINARY,
-        );
-
-        let in_enc = opencv::core::count_non_zero(&bottom_bar_thr_w).unwrap() > 6500;
-
-        ProcessingResult {
-            process: Processing::DPInEncounter,
-            met: in_enc,
-            species: 0,
-            shiny: false,
-        }
-    }
-
-    fn dp_start_encounter(&mut self, frame: &Mat) -> ProcessingResult {
-        let bottom_bar = frame
-            .roi(opencv::core::Rect::new(0, 145, 256, 47))
-            .expect("Failed to crop")
-            .clone_pointee();
-        let mut bottom_bar_grey = Mat::default();
-        opencv::imgproc::cvt_color(
-            &bottom_bar,
-            &mut bottom_bar_grey,
-            opencv::imgproc::COLOR_BGR2GRAY,
-            0,
-        );
-        let mut bottom_bar_thr_b = Mat::default();
-        opencv::imgproc::threshold(
-            &bottom_bar_grey,
-            &mut bottom_bar_thr_b,
-            40.0,
-            255.0,
-            THRESH_BINARY_INV,
-        );
-
-        let start = opencv::core::count_non_zero(&bottom_bar_thr_b).unwrap() > 10000;
-
-        ProcessingResult {
-            process: Processing::DPStartEncounter,
-            met: start,
-            species: 0,
-            shiny: false,
+            shiny: false
         }
     }
 
@@ -381,13 +333,8 @@ impl Vision {
             Processing::Sprite(game, species_list, flipped) => {
                 self.match_sprite(game, species_list, flipped, frame)
             }
-            Processing::FRLGShinyStar => self.frlg_shiny_star(frame),
-            Processing::FRLGEncounterReady => self.frlg_encounter_ready(frame),
-            Processing::FRLGInEncounter => self.frlg_in_encounter(frame),
-            Processing::FRLGStartEncounter => self.frlg_start_encounter(frame),
-            Processing::DPEncounterReady => self.dp_encounter_ready(frame),
-            Processing::DPInEncounter => self.dp_in_encounter(frame),
-            Processing::DPStartEncounter => self.dp_start_encounter(frame),
+            Processing::ChannelDetect(settings) => self.channel_detect(settings, frame),
+            Processing::RegionDetect(settings) => self.region_detect(settings, frame)
         }
     }
 
