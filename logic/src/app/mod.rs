@@ -66,6 +66,9 @@ struct UserConfig {
 }
 
 impl Shaoooh {
+    pub const VIDEO_NUM: u32 = 250;
+    pub const VIDEO_DEV: &str = "/dev/video250";
+
     pub fn new() -> Self {
         let app = AppState {
             state: HuntState::Idle,
@@ -248,18 +251,27 @@ impl Shaoooh {
                 Vec::new()
             };
             // Frame processing
-            let results = vision.process_next_frame(processing);
-
-            // Step state machines
-            if let Some(h) = &mut hunt {
-                let result = h.step(&mut control, results);
-                // Automatic transition requests
-                if result.incr_encounters {
-                    self.app.encounters += 1;
-                    self.update_state();
+            if let Ok(results) = vision.process_next_frame(processing) {
+                // Step state machines
+                if let Some(h) = &mut hunt {
+                    let result = h.step(&mut control, results);
+                    // Automatic transition requests
+                    if result.incr_encounters {
+                        self.app.encounters += 1;
+                        self.update_state();
+                    }
+                    if let Some(transition_req) = result.transition {
+                        self.do_transition(transition_req, &mut hunt, true);
+                    }
                 }
-                if let Some(transition_req) = result.transition {
-                    self.do_transition(transition_req, &mut hunt, true);
+
+                if let Ok(mut img_wr) = self.image.try_lock() {
+                    img_wr.clear();
+                    img_wr.extend(vision.read_frame());
+                }
+            } else {
+                if !self.rx.is_closed() {
+                    log::warn!("Failed to process frame");
                 }
             }
 
@@ -274,11 +286,6 @@ impl Shaoooh {
                 if let Some(button) = self.button_rx.blocking_recv() {
                     control.press(button);
                 }
-            }
-
-            if let Ok(mut img_wr) = self.image.try_lock() {
-                img_wr.clear();
-                img_wr.extend(vision.read_frame());
             }
 
             if self.rx.is_closed() {
@@ -456,6 +463,8 @@ async fn shutdown(shutdown_tx: oneshot::Sender<()>) {
         _ = ctrl_c => {},
         _ = terminate => {},
     }
+
+    log::info!("Got shutdown");
 
     shutdown_tx
         .send(())

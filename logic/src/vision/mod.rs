@@ -8,10 +8,10 @@ use opencv::{
         COLOR_BGR2HSV, HISTCMP_CORREL, LINE_8, THRESH_BINARY, THRESH_BINARY_INV, TM_CCORR_NORMED,
     },
     prelude::*,
-    videoio::VideoCapture,
+    videoio::{CAP_V4L2, VideoCapture},
 };
 
-use crate::app::states::Game;
+use crate::app::{Shaoooh, states::Game};
 
 #[derive(Debug)]
 pub enum Processing {
@@ -60,7 +60,12 @@ impl Vision {
 
     pub fn new() -> Self {
         log::info!("Starting video capture");
-        let mut cam = VideoCapture::from_file("/dev/video0", 0).expect("Couldn't open video");
+        let mut cam =
+            VideoCapture::from_file(Shaoooh::VIDEO_DEV, CAP_V4L2).expect("Couldn't open video");
+        log::debug!("Video capture opened");
+
+        cam.set(opencv::videoio::CAP_PROP_READ_TIMEOUT_MSEC, 2000.0)
+            .expect("Failed to set property");
 
         cam.set(opencv::videoio::CAP_PROP_BRIGHTNESS, 50.0)
             .expect("Failed to set property");
@@ -386,11 +391,17 @@ impl Vision {
         }
     }
 
-    pub fn process_next_frame(&mut self, processing: Vec<Processing>) -> Vec<ProcessingResult> {
+    pub fn process_next_frame(
+        &mut self,
+        processing: Vec<Processing>,
+    ) -> Result<Vec<ProcessingResult>, ()> {
         let mut input_frame = Mat::default();
         self.cam
             .read(&mut input_frame)
             .expect("Failed to read frame");
+        if input_frame.empty() {
+            return Err(());
+        }
         let unsized_frame = input_frame
             .roi(opencv::core::Rect::new(
                 Self::X0,
@@ -418,7 +429,7 @@ impl Vision {
         highgui::imshow("capture", &frame).expect("Failed to show capture");
         highgui::wait_key(1).expect("Event loop failed");
 
-        processing.iter().map(|p| self.process(p, &frame)).collect()
+        Ok(processing.iter().map(|p| self.process(p, &frame)).collect())
     }
 
     pub fn read_frame(&self) -> &[u8] {

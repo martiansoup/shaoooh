@@ -148,7 +148,7 @@ impl HuntFSM for FRLGStarterGift {
             }
             FRLGStarterGiftState::AToSelSummary => {
                 control.press(Button::A);
-                self.create_wait_msecs(1000, FRLGStarterGiftState::RToSelStats)
+                self.create_wait_msecs(1500, FRLGStarterGiftState::RToSelStats)
             }
             FRLGStarterGiftState::RToSelStats => {
                 control.press(Button::Right);
