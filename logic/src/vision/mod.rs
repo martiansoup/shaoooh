@@ -15,28 +15,28 @@ use crate::app::{Shaoooh, states::Game};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct RegionDetectSettings {
-    pub x : i32,
-    pub y : i32,
-    pub w : i32,
-    pub h : i32,
-    pub col_thresh : f64,
-    pub num_thresh : i32,
-    pub invert : bool
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    pub col_thresh: f64,
+    pub num_thresh: i32,
+    pub invert: bool,
 }
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct ChannelDetectSettings {
-    pub x : i32,
-    pub y : i32,
-    pub w : i32,
-    pub h : i32,
-    pub h_lo : f64,
-    pub s_lo : f64,
-    pub v_lo : f64,
-    pub h_hi : f64,
-    pub s_hi : f64,
-    pub v_hi : f64,
-    pub num_thresh : i32
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    pub h_lo: f64,
+    pub s_lo: f64,
+    pub v_lo: f64,
+    pub h_hi: f64,
+    pub s_hi: f64,
+    pub v_hi: f64,
+    pub num_thresh: i32,
 }
 
 #[derive(Debug, PartialEq)]
@@ -48,13 +48,73 @@ pub enum Processing {
 }
 
 impl Processing {
-    pub const DP_START_ENCOUNTER : Self = Processing::RegionDetect(RegionDetectSettings { x: 0, y: 145, w: 256, h: 47, col_thresh: 40.0, num_thresh: 10000, invert: true });
-    pub const DP_IN_ENCOUNTER : Self = Processing::RegionDetect(RegionDetectSettings { x: 0, y: 145, w: 256, h: 47, col_thresh: 210.0, num_thresh: 6500, invert: false });
-    pub const DP_ENCOUNTER_READY : Self = Processing::RegionDetect(RegionDetectSettings { x: 150, y: 100, w: 106, h: 35, col_thresh: 210.0, num_thresh: 1500, invert: false });
-    pub const FRLG_SHINY_STAR : Self = Processing::RegionDetect(RegionDetectSettings { x: 106, y: 52, w: 16, h: 16, col_thresh: 200.0, num_thresh: 190, invert: false });
-    pub const FRLG_START_ENCOUNTER : Self = Processing::RegionDetect(RegionDetectSettings { x: 20, y: 140, w: 215, h: 30, col_thresh: 40.0, num_thresh:  6000, invert: true });
-    pub const FRLG_IN_ENCOUNTER : Self = Processing::RegionDetect(RegionDetectSettings { x: 20, y: 140, w: 215, h: 30, col_thresh: 55.0, num_thresh: 5000, invert: false });
-    pub const FRLG_ENCOUNTER_READY : Self = Processing::ChannelDetect(ChannelDetectSettings { x: 20, y: 140, w: 215, h: 30, h_lo: 0.0, s_lo: 100.0, v_lo: 150.0, h_hi: 20.0, s_hi: 255.0, v_hi: 255.0, num_thresh: 10 });
+    pub const DP_START_ENCOUNTER: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 0,
+        y: 145,
+        w: 256,
+        h: 47,
+        col_thresh: 40.0,
+        num_thresh: 10000,
+        invert: true,
+    });
+    pub const DP_IN_ENCOUNTER: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 0,
+        y: 145,
+        w: 256,
+        h: 47,
+        col_thresh: 210.0,
+        num_thresh: 6500,
+        invert: false,
+    });
+    pub const DP_ENCOUNTER_READY: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 150,
+        y: 100,
+        w: 106,
+        h: 35,
+        col_thresh: 210.0,
+        num_thresh: 1500,
+        invert: false,
+    });
+    pub const FRLG_SHINY_STAR: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 106,
+        y: 52,
+        w: 16,
+        h: 16,
+        col_thresh: 200.0,
+        num_thresh: 190,
+        invert: false,
+    });
+    pub const FRLG_START_ENCOUNTER: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 20,
+        y: 140,
+        w: 215,
+        h: 30,
+        col_thresh: 40.0,
+        num_thresh: 6000,
+        invert: true,
+    });
+    pub const FRLG_IN_ENCOUNTER: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 20,
+        y: 140,
+        w: 215,
+        h: 30,
+        col_thresh: 55.0,
+        num_thresh: 5000,
+        invert: false,
+    });
+    pub const FRLG_ENCOUNTER_READY: Self = Processing::ChannelDetect(ChannelDetectSettings {
+        x: 20,
+        y: 140,
+        w: 215,
+        h: 30,
+        h_lo: 0.0,
+        s_lo: 100.0,
+        v_lo: 150.0,
+        h_hi: 20.0,
+        s_hi: 255.0,
+        v_hi: 255.0,
+        num_thresh: 10,
+    });
 }
 
 #[derive(Debug)]
@@ -273,7 +333,7 @@ impl Vision {
             self.img_index = 0; // Reset index after reaching max
         }
         // Display current find TODO should this be included?
-        highgui::imshow("found", &for_rect).expect("Failed to show rectangle");
+        //highgui::imshow("found", &for_rect).expect("Failed to show rectangle");
 
         let is_shiny = is_shiny_conv;
         let res = ProcessingResult {
@@ -287,14 +347,27 @@ impl Vision {
     }
 
     fn region_detect(&mut self, settings: &RegionDetectSettings, frame: &Mat) -> ProcessingResult {
-        let region = frame.roi(opencv::core::Rect::new(settings.x, settings.y, settings.w, settings.h))
-        .expect("Failed to crop to region of interest")
-        .clone_pointee();
+        let region = frame
+            .roi(opencv::core::Rect::new(
+                settings.x, settings.y, settings.w, settings.h,
+            ))
+            .expect("Failed to crop to region of interest")
+            .clone_pointee();
         let mut greyscale = Mat::default();
         opencv::imgproc::cvt_color(&region, &mut greyscale, opencv::imgproc::COLOR_BGR2GRAY, 0);
         let mut thresholded = Mat::default();
-        let typ = if settings.invert { THRESH_BINARY_INV } else { THRESH_BINARY };
-        opencv::imgproc::threshold(&greyscale, &mut thresholded, settings.col_thresh, 255.0, typ);
+        let typ = if settings.invert {
+            THRESH_BINARY_INV
+        } else {
+            THRESH_BINARY
+        };
+        opencv::imgproc::threshold(
+            &greyscale,
+            &mut thresholded,
+            settings.col_thresh,
+            255.0,
+            typ,
+        );
 
         let met = opencv::core::count_non_zero(&thresholded).unwrap() > settings.num_thresh;
 
@@ -302,14 +375,21 @@ impl Vision {
             process: Processing::RegionDetect(settings.clone()),
             met,
             species: 0,
-            shiny: false
+            shiny: false,
         }
     }
 
-    fn channel_detect(&mut self, settings: &ChannelDetectSettings, frame: &Mat) -> ProcessingResult {
-        let region = frame.roi(opencv::core::Rect::new(settings.x, settings.y, settings.w, settings.h))
-        .expect("Failed to crop to region of interest")
-        .clone_pointee();
+    fn channel_detect(
+        &mut self,
+        settings: &ChannelDetectSettings,
+        frame: &Mat,
+    ) -> ProcessingResult {
+        let region = frame
+            .roi(opencv::core::Rect::new(
+                settings.x, settings.y, settings.w, settings.h,
+            ))
+            .expect("Failed to crop to region of interest")
+            .clone_pointee();
         let mut hsv = Mat::default();
         opencv::imgproc::cvt_color(&region, &mut hsv, opencv::imgproc::COLOR_BGR2HSV, 0);
         let mut thresholded = Mat::default();
@@ -324,7 +404,7 @@ impl Vision {
             process: Processing::ChannelDetect(settings.clone()),
             met,
             species: 0,
-            shiny: false
+            shiny: false,
         }
     }
 
@@ -334,7 +414,7 @@ impl Vision {
                 self.match_sprite(game, species_list, flipped, frame)
             }
             Processing::ChannelDetect(settings) => self.channel_detect(settings, frame),
-            Processing::RegionDetect(settings) => self.region_detect(settings, frame)
+            Processing::RegionDetect(settings) => self.region_detect(settings, frame),
         }
     }
 
@@ -372,9 +452,9 @@ impl Vision {
         opencv::imgcodecs::imencode(".png", &frame, &mut self.encoded, &Vector::new())
             .expect("Failed to encode frame");
 
-        // TODO don't show gui ?
-        highgui::imshow("capture", &frame).expect("Failed to show capture");
-        highgui::wait_key(1).expect("Event loop failed");
+        // TODO show gui or not ?
+        //highgui::imshow("capture", &frame).expect("Failed to show capture");
+        //highgui::wait_key(1).expect("Event loop failed");
 
         Ok(processing.iter().map(|p| self.process(p, &frame)).collect())
     }

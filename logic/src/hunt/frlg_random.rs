@@ -67,7 +67,10 @@ impl HuntFSM for FRLGRandomEncounter {
         } else if self.state == FRLGRandomEncounterState::EnteringEncounter {
             vec![Processing::FRLG_IN_ENCOUNTER]
         } else if self.state == FRLGRandomEncounterState::WaitEncounterReady {
-            vec![Processing::FRLG_IN_ENCOUNTER, Processing::FRLG_ENCOUNTER_READY]
+            vec![
+                Processing::FRLG_IN_ENCOUNTER,
+                Processing::FRLG_ENCOUNTER_READY,
+            ]
         } else {
             Vec::new()
         }

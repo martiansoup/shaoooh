@@ -2,6 +2,8 @@ use std::{
     fs::read_to_string,
     io::{BufWriter, Write},
     sync::{Arc, Mutex},
+    thread,
+    time::Duration,
 };
 
 use axum::{
@@ -18,6 +20,7 @@ pub(crate) mod states;
 use crate::{
     control::{Button, ShaooohControl},
     hunt::{HuntBuild, HuntFSM},
+    lights::{Lights, PixelData},
     vision::Vision,
 };
 use states::*;
@@ -349,6 +352,78 @@ impl Shaoooh {
         }
     }
 
+    pub fn lights_thread(mut rx: watch::Receiver<AppState>) {
+        const NUM_PIXELS: u32 = 7;
+        let mut anim = 0;
+        let mut lights = Lights::new(NUM_PIXELS, 18);
+        while let Ok(_) = rx.has_changed() {
+            let state_copy = { (*rx.borrow_and_update()).clone() };
+
+            let mut data = Vec::new();
+
+            let interesting_state =
+                (state_copy.state != HuntState::Idle) && (state_copy.state != HuntState::Hunt);
+
+            let num: u64 = NUM_PIXELS.into();
+            if interesting_state {
+                for n in 0..num {
+                    let highlight_pixel = (anim + num) % num == n;
+                    let highlight_pixel_m1 = (anim + num - 1) % num == n;
+                    let highlight_pixel_m2 = (anim + num - 2) % num == n;
+                    let c = if highlight_pixel {
+                        60
+                    } else if highlight_pixel_m1 {
+                        25
+                    } else if highlight_pixel_m2 {
+                        10
+                    } else {
+                        0
+                    };
+                    let r = 0;
+                    let (g, b) = if state_copy.state == HuntState::FoundTarget {
+                        (c, 0)
+                    } else {
+                        (0, c)
+                    };
+                    let w = 0;
+                    data.push(PixelData { r, g, b, w });
+                }
+                anim += 1;
+            } else if state_copy.state == HuntState::Idle {
+                for n in 0..num {
+                    data.push(PixelData {
+                        r: 0,
+                        g: 0,
+                        b: 0,
+                        w: 0,
+                    });
+                }
+            } else {
+                for n in 0..num {
+                    let highlight_pixel = (state_copy.encounters + num) % num == n;
+                    let highlight_pixel_m1 = (state_copy.encounters + num - 1) % num == n;
+                    let highlight_pixel_m2 = (state_copy.encounters + num - 2) % num == n;
+                    let r = if highlight_pixel {
+                        60
+                    } else if highlight_pixel_m1 {
+                        25
+                    } else if highlight_pixel_m2 {
+                        10
+                    } else {
+                        0
+                    };
+                    let g = 0;
+                    let b = 0;
+                    let w = 0;
+                    data.push(PixelData { r, g, b, w });
+                }
+            }
+
+            lights.draw(data);
+            thread::sleep(Duration::from_millis(100));
+        }
+    }
+
     pub async fn serve(mut self) -> Result<(), String> {
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
 
@@ -357,6 +432,12 @@ impl Shaoooh {
         let rx_clone = state.rx.clone();
 
         tokio::spawn(Self::call_webhook(rx_clone));
+
+        let rx_light_clone = state.rx.clone();
+        let light_thread = std::thread::spawn(|| {
+            Self::lights_thread(rx_light_clone);
+            log::info!("Light thread complete");
+        });
 
         let main_thread = std::thread::spawn(|| {
             self.main_thread(shutdown_rx);
@@ -370,6 +451,7 @@ impl Shaoooh {
             .unwrap();
 
         main_thread.join().expect("Error from main thread");
+        light_thread.join().expect("Error from light thread");
 
         Ok(())
     }

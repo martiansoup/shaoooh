@@ -1,3 +1,6 @@
 [submodule "reference/pokeapi"]
 	path = reference/pokeapi
 	url = https://github.com/PokeAPI/pokeapi.git
+[submodule "logic/rpi-utils"]
+	path = logic/rpi-utils
+	url = https://github.com/raspberrypi/utils.git

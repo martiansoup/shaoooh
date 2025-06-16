@@ -4,6 +4,7 @@ use simple_logger::SimpleLogger;
 mod app;
 mod control;
 mod hunt;
+mod lights;
 mod vision;
 use crate::app::Shaoooh;
 
