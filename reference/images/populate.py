@@ -2,6 +2,7 @@
 
 import os
 import urllib.request
+import csv
 
 def try_get_images(root_url, destination, limit, suffix):
     s = "" if len(suffix) == 0 else f"_{suffix}"
@@ -12,14 +13,39 @@ def try_get_images(root_url, destination, limit, suffix):
         if not os.path.exists(dest):
             urllib.request.urlretrieve(url, dest)
 
+def try_get_images_rs(root_url, destination, limit, suffix):
+    s = "" if len(suffix) == 0 else f"_{suffix}"
+    with open("../pokeapi/data/v2/csv/pokemon_dex_numbers.csv") as f:
+        reader = csv.reader(f, delimiter=',', quotechar='"')
+        for r in reader:
+            if r[1] == "4" and int(r[2]) <= 202: # Hoenn dex and less than (or eq) 202
+                hoenn = int(r[2])
+                nat = int(r[0])
+                zero_padded_nat = f"{nat:03}"
+                zero_padded_h = f"{hoenn:03}"
+                dest = os.path.join(destination, f"{zero_padded_nat}{s}.gif")
+                url = f"{root_url}{zero_padded_h}.gif"
+                if not os.path.exists(dest):
+                    urllib.request.urlretrieve(url, dest)
+
+    #for x in range(1, limit+1):
+
 def frlg():
     destination = "frlg"
     last_in_dex = 386 # Deoxys
     if not os.path.exists(destination):
         os.mkdir(destination)
     try_get_images("https://www.serebii.net/pokearth/sprites/frlg/", destination, last_in_dex, "")
-    try_get_images("https://www.serebii.net/Shiny/FRLG/", destination, last_in_dex, "shiny")
+    try_get_images("https://www.serebii.net/Shiny/FRLG/", destination, 151, "shiny")
     # TODO only gets shiny up to 151
+
+def rs():
+    destination = "rs"
+    last_in_dex = 386 # Deoxys
+    if not os.path.exists(destination):
+        os.mkdir(destination)
+    try_get_images("https://www.serebii.net/pokearth/sprites/rs/", destination, last_in_dex, "")
+    try_get_images_rs("https://www.serebii.net/Shiny/RuSa/", destination, last_in_dex, "shiny")
 
 def diamond_pearl():
     destination = "dp"
@@ -31,4 +57,5 @@ def diamond_pearl():
 
 if __name__=="__main__":
     frlg()
+    rs()
     diamond_pearl()

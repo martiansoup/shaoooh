@@ -34,6 +34,8 @@ async fn main() {
     // TODO stream elsewhere as well, e.g.
     // ffmpeg -f v4l2 -i /dev/video0 -c:v libx264 -c:a copy -f tee -map 0:v "[f=v4l2]/dev/video250|[f=mpegts]udp://192.168.68.11:8090"
     // but only supports one connection and cannot reconnect
+    // TODO select video device, e.g. "v4l2-ctl -z usb-xhci-hcd.0-1 --list-devices"
+    // TODO need to set brightness via v4l2-ctl first?
     Command::new("ffmpeg")
         .arg("-f")
         .arg("v4l2")

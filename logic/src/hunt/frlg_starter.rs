@@ -4,6 +4,7 @@ use crate::{
     hunt::{BaseHunt, HuntFSM, HuntResult},
     vision::{Processing, ProcessingResult},
 };
+use rand::Rng;
 use std::time::{Duration, SystemTime};
 
 #[derive(PartialEq, Clone, Debug)]
@@ -89,6 +90,7 @@ impl HuntFSM for FRLGStarterGift {
             }
         }
 
+        // TODO times only work for Japanese version
         self.state = match &self.state {
             FRLGStarterGiftState::SoftReset => {
                 control.gen3_soft_reset();
@@ -152,7 +154,9 @@ impl HuntFSM for FRLGStarterGift {
             }
             FRLGStarterGiftState::RToSelStats => {
                 control.press(Button::Right);
-                self.create_wait_msecs(1000, FRLGStarterGiftState::Detect)
+                let mut rng = rand::thread_rng();
+                let wait = 1000 + (17 * rng.gen_range(0..10));
+                self.create_wait_msecs(wait, FRLGStarterGiftState::Detect)
             }
             FRLGStarterGiftState::Detect => {
                 if found_shiny {

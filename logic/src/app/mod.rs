@@ -365,17 +365,26 @@ impl Shaoooh {
                 (state_copy.state != HuntState::Idle) && (state_copy.state != HuntState::Hunt);
 
             let num: u64 = NUM_PIXELS.into();
+            let num_circle = num - 1;
             if interesting_state {
-                for n in 0..num {
-                    let highlight_pixel = (anim + num) % num == n;
-                    let highlight_pixel_m1 = (anim + num - 1) % num == n;
-                    let highlight_pixel_m2 = (anim + num - 2) % num == n;
+                let r = 0;
+                let (g, b) = if state_copy.state == HuntState::FoundTarget {
+                    (50, 0)
+                } else {
+                    (0, 50)
+                };
+                let w = 0;
+                data.push(PixelData { r, g, b, w });
+                for n in 1..num {
+                    let highlight_pixel = (anim + num_circle) % num_circle == (n-1);
+                    let highlight_pixel_m1 = (anim + num_circle - 1) % num_circle == (n-1);
+                    let highlight_pixel_m2 = (anim + num_circle - 2) % num_circle == (n-1);
                     let c = if highlight_pixel {
                         60
                     } else if highlight_pixel_m1 {
-                        25
-                    } else if highlight_pixel_m2 {
                         10
+                    } else if highlight_pixel_m2 {
+                        5
                     } else {
                         0
                     };
@@ -399,10 +408,18 @@ impl Shaoooh {
                     });
                 }
             } else {
-                for n in 0..num {
-                    let highlight_pixel = (state_copy.encounters + num) % num == n;
-                    let highlight_pixel_m1 = (state_copy.encounters + num - 1) % num == n;
-                    let highlight_pixel_m2 = (state_copy.encounters + num - 2) % num == n;
+                data.push(PixelData {
+                    r: 0,
+                    g: 0,
+                    b: 0,
+                    w: 0,
+                });
+                for n in 1..num {
+                    let highlight_pixel = (state_copy.encounters + num_circle) % num_circle == (n-1);
+                    let highlight_pixel_m1 =
+                        (state_copy.encounters + num_circle - 1) % num_circle == (n-1);
+                    let highlight_pixel_m2 =
+                        (state_copy.encounters + num_circle - 2) % num_circle == (n-1);
                     let r = if highlight_pixel {
                         60
                     } else if highlight_pixel_m1 {
