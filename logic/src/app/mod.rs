@@ -69,8 +69,8 @@ struct UserConfig {
 }
 
 impl Shaoooh {
-    pub const VIDEO_NUM: u32 = 250;
-    pub const VIDEO_DEV: &str = "/dev/video250";
+    pub const VIDEO_NUM: u32 = 0;
+    pub const VIDEO_DEV: &str = "/dev/video0";
 
     pub fn new() -> Self {
         let app = AppState {
@@ -376,9 +376,9 @@ impl Shaoooh {
                 let w = 0;
                 data.push(PixelData { r, g, b, w });
                 for n in 1..num {
-                    let highlight_pixel = (anim + num_circle) % num_circle == (n-1);
-                    let highlight_pixel_m1 = (anim + num_circle - 1) % num_circle == (n-1);
-                    let highlight_pixel_m2 = (anim + num_circle - 2) % num_circle == (n-1);
+                    let highlight_pixel = (anim + num_circle) % num_circle == (n - 1);
+                    let highlight_pixel_m1 = (anim + num_circle - 1) % num_circle == (n - 1);
+                    let highlight_pixel_m2 = (anim + num_circle - 2) % num_circle == (n - 1);
                     let c = if highlight_pixel {
                         60
                     } else if highlight_pixel_m1 {
@@ -415,11 +415,12 @@ impl Shaoooh {
                     w: 0,
                 });
                 for n in 1..num {
-                    let highlight_pixel = (state_copy.encounters + num_circle) % num_circle == (n-1);
+                    let highlight_pixel =
+                        (state_copy.encounters + num_circle) % num_circle == (n - 1);
                     let highlight_pixel_m1 =
-                        (state_copy.encounters + num_circle - 1) % num_circle == (n-1);
+                        (state_copy.encounters + num_circle - 1) % num_circle == (n - 1);
                     let highlight_pixel_m2 =
-                        (state_copy.encounters + num_circle - 2) % num_circle == (n-1);
+                        (state_copy.encounters + num_circle - 2) % num_circle == (n - 1);
                     let r = if highlight_pixel {
                         60
                     } else if highlight_pixel_m1 {

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serialport::SerialPort;
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum Button {
     A,
     B,
@@ -40,6 +40,10 @@ impl ShaooohControl {
 
     // TODO add delay
     pub fn press(&mut self, button: Button) {
+        self.press_delay(button, Delay::Tenth);
+    }
+
+    pub fn press_delay(&mut self, button: Button, delay: Delay) {
         let cchar = match button {
             Button::A => 'A',
             Button::B => 'B',
@@ -54,7 +58,13 @@ impl ShaooohControl {
             Button::Up => 'u',
             Button::Down => 'd',
         };
-        let control_string = format!("q{}1qpq{}0", cchar, cchar);
+        let pchar = match delay {
+            Delay::Half => 'P',
+            Delay::Sec => 'M',
+            Delay::Tenth => 'p',
+            Delay::Twentieth => 'm',
+        };
+        let control_string = format!("q{}1q{}q{}0", cchar, pchar, cchar);
         self.port
             .write_all(control_string.as_bytes())
             .expect("Couldn't write");

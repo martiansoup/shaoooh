@@ -195,11 +195,22 @@ impl Vision {
             let dir = match game {
                 Game::FireRedLeafGreen => "frlg",
                 Game::DiamondPearl => "dp",
-                _ => "?", // TODO other games
+                Game::RubySapphire => "rs",
+                _ => panic!("Unimplemented game"), // TODO other games
             };
             // TODO check files exist as doesn't error from opencv
-            let path = format!("../reference/images/{}/{:03}.png", dir, species);
-            let shiny_path = format!("../reference/images/{}/{:03}_shiny.png", dir, species);
+            let path_png = format!("../reference/images/{}/{:03}.png", dir, species);
+            let path = if std::fs::exists(&path_png).unwrap() {
+                path_png
+            } else {
+                panic!("Couldn't get reference image {}", path_png)
+            };
+            let shiny_path_png = format!("../reference/images/{}/{:03}_shiny.png", dir, species);
+            let shiny_path = if std::fs::exists(&shiny_path_png).unwrap() {
+                shiny_path_png
+            } else {
+                panic!("Couldn't get reference image {}", shiny_path_png)
+            };
 
             let ref_img_raw_in =
                 opencv::imgcodecs::imread(&path, IMREAD_UNCHANGED).expect("Couldn't read image");
@@ -333,7 +344,7 @@ impl Vision {
             self.img_index = 0; // Reset index after reaching max
         }
         // Display current find TODO should this be included?
-        //highgui::imshow("found", &for_rect).expect("Failed to show rectangle");
+        highgui::imshow("found", &for_rect).expect("Failed to show rectangle");
 
         let is_shiny = is_shiny_conv;
         let res = ProcessingResult {
@@ -453,8 +464,8 @@ impl Vision {
             .expect("Failed to encode frame");
 
         // TODO show gui or not ?
-        //highgui::imshow("capture", &frame).expect("Failed to show capture");
-        //highgui::wait_key(1).expect("Event loop failed");
+        highgui::imshow("capture", &frame).expect("Failed to show capture");
+        highgui::wait_key(1).expect("Event loop failed");
 
         Ok(processing.iter().map(|p| self.process(p, &frame)).collect())
     }

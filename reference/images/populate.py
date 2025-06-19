@@ -55,7 +55,16 @@ def diamond_pearl():
     try_get_images("https://www.serebii.net/pokearth/sprites/dp/", destination, last_in_dex, "")
     try_get_images("https://www.serebii.net/Shiny/DP/", destination, last_in_dex, "shiny")
 
+def gif2png():
+    for root, dirs, files in os.walk('.'):
+        for f in files:
+            fullname = os.path.join(root, f)
+            fullname_png = fullname.replace('.gif', '.png')
+            if f.endswith('.gif') and not os.path.exists(fullname_png):
+                os.system(f'convert {fullname} {fullname_png}')
+
 if __name__=="__main__":
     frlg()
     rs()
     diamond_pearl()
+    gif2png()

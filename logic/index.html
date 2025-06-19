@@ -128,6 +128,7 @@
     <button onclick="frlg_bulba()">FRLG Bulbasaur</button>
     <button onclick="frlg_rat()">FRLG Ratatta</button>
     <button onclick="dp_shinx()">DP Cute Charm Shinx</button>
+    <button onclick="rs_oddish()">RS Oddish</button>
   </div>
 
   <script>
@@ -151,6 +152,12 @@
       document.getElementById("arg_species").value = "403";
       document.getElementById("arg_game").value = "DiamondPearl";
       document.getElementById("arg_method").value = "RandomEncounter";
+    }
+    function rs_oddish() {
+      document.getElementById("arg_name").value = "SafariWeek";
+      document.getElementById("arg_species").value = "43";
+      document.getElementById("arg_game").value = "RubySapphire";
+      document.getElementById("arg_method").value = "SafariZone";
     }
 
     function b() {

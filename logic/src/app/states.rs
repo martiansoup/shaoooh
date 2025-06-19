@@ -132,6 +132,7 @@ pub enum Method {
     RandomEncounter,
     SoftResetEncounter,
     SoftResetGift,
+    SafariZone,
 }
 
 // State of application, shared between main thread and API
