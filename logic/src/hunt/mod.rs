@@ -66,12 +66,12 @@ impl HuntBuild {
             }))
         } else if game == Game::RubySapphire && method == Method::SafariZone && (target == 43) {
             // TODO only oddish in safari zone 1
-                        Ok(Box::new(RSSafariEncounter {
+            Ok(Box::new(RSSafariEncounter {
                 base,
                 state: RSSafariEncounterState::TryGetEncounter,
                 next_dir: Button::Down,
                 timer: SystemTime::now(),
-                last_timer_duration: Duration::default()
+                last_timer_duration: Duration::default(),
             }))
         } else if game == Game::DiamondPearl
             && method == Method::RandomEncounter

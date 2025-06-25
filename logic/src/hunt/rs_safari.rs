@@ -2,6 +2,8 @@ use std::fs::File;
 use std::io::Write;
 use std::time::{Duration, SystemTime};
 
+use rand::Rng;
+
 use crate::app::states::{Game, Method, RequestTransition, Transition, TransitionArg};
 use crate::control::{Button, Delay, ShaooohControl};
 use crate::hunt::{BaseHunt, HuntFSM, HuntResult};
@@ -116,7 +118,7 @@ impl HuntFSM for RSSafariEncounter {
                         Button::Right => Button::Left,
                         _ => Button::Up,
                     };
-                    let delay = 200;
+                    let delay = 100;
                     self.create_wait_msecs(delay, RSSafariEncounterState::TryGetEncounter)
                 }
             }
@@ -181,19 +183,21 @@ impl HuntFSM for RSSafariEncounter {
             }
             RSSafariEncounterState::Run1Down => {
                 control.press(Button::Down);
-                self.create_wait_secs(1, RSSafariEncounterState::Run2Right)
+                self.create_wait_msecs(200, RSSafariEncounterState::Run2Right)
             }
             RSSafariEncounterState::Run2Right => {
                 control.press(Button::Right);
-                self.create_wait_secs(1, RSSafariEncounterState::Run3A)
+                self.create_wait_msecs(200, RSSafariEncounterState::Run3A)
             }
             RSSafariEncounterState::Run3A => {
                 control.press(Button::A);
-                self.create_wait_secs(1, RSSafariEncounterState::Run4A)
+                self.create_wait_msecs(500, RSSafariEncounterState::Run4A)
             }
             RSSafariEncounterState::Run4A => {
                 control.press(Button::A);
-                self.create_wait_secs(3, RSSafariEncounterState::TryGetEncounter)
+                let mut rng = rand::rng();
+                let delay = 3000 + rng.random_range(0..2100);
+                self.create_wait_msecs(delay, RSSafariEncounterState::TryGetEncounter)
             }
             RSSafariEncounterState::Done => RSSafariEncounterState::Done,
             RSSafariEncounterState::Wait(duration, next) => {

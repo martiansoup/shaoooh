@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use opencv::{
     core::{NORM_MINMAX, Point, Rect, Size, Vector},
-    highgui,
+    highgui::{self, WINDOW_GUI_NORMAL, WINDOW_KEEPRATIO, WINDOW_NORMAL},
     imgcodecs::{IMREAD_COLOR, IMREAD_UNCHANGED},
     imgproc::{
         COLOR_BGR2HSV, HISTCMP_CORREL, LINE_8, THRESH_BINARY, THRESH_BINARY_INV, TM_CCORR_NORMED,
@@ -167,6 +167,22 @@ impl Vision {
             Vision::HEIGHT.into(),
         )
         .expect("Failed to set property");
+
+        log::info!("Opening windows");
+        opencv::highgui::named_window(
+            "capture",
+            WINDOW_NORMAL | WINDOW_KEEPRATIO | WINDOW_GUI_NORMAL,
+        );
+        opencv::highgui::move_window("capture", 650, 25);
+        opencv::highgui::resize_window("capture", 660, 440);
+        opencv::highgui::named_window(
+            "found",
+            WINDOW_NORMAL | WINDOW_KEEPRATIO | WINDOW_GUI_NORMAL,
+        );
+        opencv::highgui::move_window("found", 650, 598);
+        opencv::highgui::resize_window("found", 660, 440);
+        highgui::wait_key(1).expect("Event loop failed");
+
         Self {
             cam,
             encoded: Vector::default(),
