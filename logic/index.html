@@ -129,6 +129,8 @@
     <button onclick="frlg_rat()">FRLG Ratatta</button>
     <button onclick="dp_shinx()">DP Cute Charm Shinx</button>
     <button onclick="rs_oddish()">RS Oddish</button>
+    <button onclick="frlg_egg()">FRLG Eggs</button>
+    <button onclick="hgss_rat()">HGSS Ratatta</button>
   </div>
 
   <script>
@@ -157,6 +159,18 @@
       document.getElementById("arg_name").value = "SafariWeek";
       document.getElementById("arg_species").value = "43";
       document.getElementById("arg_game").value = "RubySapphire";
+      document.getElementById("arg_method").value = "SafariZone";
+    }
+    function frlg_egg() {
+      document.getElementById("arg_name").value = "SafariWeekFRLG";
+      document.getElementById("arg_species").value = "102";
+      document.getElementById("arg_game").value = "FireRedLeafGreen";
+      document.getElementById("arg_method").value = "SafariZone";
+    }
+    function hgss_rat() {
+      document.getElementById("arg_name").value = "SafariWeekHGSS";
+      document.getElementById("arg_species").value = "19";
+      document.getElementById("arg_game").value = "HeartGoldSoulSilver";
       document.getElementById("arg_method").value = "SafariZone";
     }
 

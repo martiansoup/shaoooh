@@ -55,6 +55,14 @@ def diamond_pearl():
     try_get_images("https://www.serebii.net/pokearth/sprites/dp/", destination, last_in_dex, "")
     try_get_images("https://www.serebii.net/Shiny/DP/", destination, last_in_dex, "shiny")
 
+def hgss():
+    destination = "hgss"
+    last_in_dex = 251 # TBD rest use Pt sprites?
+    if not os.path.exists(destination):
+        os.mkdir(destination)
+    try_get_images("https://www.serebii.net/pokearth/sprites/hgss/", destination, last_in_dex, "")
+    try_get_images("https://www.serebii.net/Shiny/HGSS/", destination, last_in_dex, "shiny")
+
 def gif2png():
     for root, dirs, files in os.walk('.'):
         for f in files:
@@ -67,4 +75,5 @@ if __name__=="__main__":
     frlg()
     rs()
     diamond_pearl()
+    hgss()
     gif2png()

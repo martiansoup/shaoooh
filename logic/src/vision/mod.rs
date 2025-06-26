@@ -75,6 +75,15 @@ impl Processing {
         num_thresh: 1500,
         invert: false,
     });
+    pub const DP_SAFARI_ENCOUNTER_READY: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 150,
+        y: 100,
+        w: 106,
+        h: 35,
+        col_thresh: 195.0,
+        num_thresh: 1500,
+        invert: false,
+    });
     pub const FRLG_SHINY_STAR: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 106,
         y: 52,
@@ -102,15 +111,16 @@ impl Processing {
         num_thresh: 5000,
         invert: false,
     });
+    // TODO FRLG/RS differences
     pub const FRLG_ENCOUNTER_READY: Self = Processing::ChannelDetect(ChannelDetectSettings {
         x: 20,
         y: 140,
         w: 215,
         h: 30,
         h_lo: 0.0,
-        s_lo: 100.0,
-        v_lo: 150.0,
-        h_hi: 20.0,
+        s_lo: 60.0,
+        v_lo: 100.0,
+        h_hi: 40.0,
         s_hi: 255.0,
         v_hi: 255.0,
         num_thresh: 10,
@@ -212,6 +222,7 @@ impl Vision {
                 Game::FireRedLeafGreen => "frlg",
                 Game::DiamondPearl => "dp",
                 Game::RubySapphire => "rs",
+                Game::HeartGoldSoulSilver => "hgss",
                 _ => panic!("Unimplemented game"), // TODO other games
             };
             // TODO check files exist as doesn't error from opencv

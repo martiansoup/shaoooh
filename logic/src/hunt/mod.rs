@@ -11,6 +11,10 @@ mod dp_random;
 use crate::hunt::dp_random::*;
 mod rs_safari;
 use crate::hunt::rs_safari::*;
+mod frlg_safari;
+use crate::hunt::frlg_safari::*;
+mod hgss_safari;
+use crate::hunt::hgss_safari::*;
 
 use crate::{
     app::states::{Game, Method, RequestTransition},
@@ -72,6 +76,31 @@ impl HuntBuild {
                 next_dir: Button::Down,
                 timer: SystemTime::now(),
                 last_timer_duration: Duration::default(),
+            }))
+        } else if game == Game::FireRedLeafGreen && method == Method::SafariZone && (target == 102) {
+            // TODO only Egss in safari zone 3
+            Ok(Box::new(FRLGSafariEncounter {
+                base,
+                state: FRLGSafariEncounterState::TryGetEncounter,
+                next_dir: Button::Down,
+                timer: SystemTime::now(),
+                last_timer_duration: Duration::default(),
+            }))
+        } else if game == Game::HeartGoldSoulSilver
+            && method == Method::SafariZone
+            && target == 19
+        {
+            // TODO only for safari mountain for testing
+            Ok(Box::new(HGSSSafariEncounter {
+                base,
+                state: HGSSSafariEncounterState::Start,
+                next_dir: Button::Up,
+                timer: SystemTime::now(),
+                last_timer_duration: Duration::default(),
+                min_shiny: Duration::from_secs(9999),
+                min_normal: Duration::from_secs(9999),
+                max_shiny: Duration::from_secs(0),
+                max_normal: Duration::from_secs(0),
             }))
         } else if game == Game::DiamondPearl
             && method == Method::RandomEncounter
