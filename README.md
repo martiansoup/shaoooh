@@ -8,6 +8,8 @@ try to catch shinies, but waits for manual input at that stage.
 
 ![Shaoooh Hardware](hardware.jpg)
 
+See the [documentation](docs/README.md) for more info.
+
 ## Credits and References
 
 * DS Lite TV Out Mod from [Digigu Mods](https://dsdigigumods.com/)
