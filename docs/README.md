@@ -138,9 +138,13 @@ finding anything the sequence was updated to add more randomness and set going a
 After 15066 encounters a shiny Girafarig appeared, although it was in the early hours of the morning
 so it wasn't caught until some time later. Luckily, [it was caught with the first ball](https://www.twitch.tv/shaooohbot/clip/JollyBoredPelicanYouDontSay-SevGiibMjVzACiqn).
 
+![Shiny Girafarig](25s.jpg)
+
 The bot was set going again and after another 4773 encounters an Oddish had appeared. Continuing the
 lucky streak, [it was caught first try](https://www.twitch.tv/shaooohbot/clip/AbnegateGlamorousCaribouPlanking-emTn-h-BfploJa_b). And when checking the party afterwards, all
 had Pokérus, which I'd never encountered before.
+
+![Shiny Oddish](odds.jpg)
 
 ...and that's Shaoooh :star2:
 

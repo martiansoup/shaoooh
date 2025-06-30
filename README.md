@@ -8,7 +8,7 @@ try to catch shinies, but waits for manual input at that stage.
 
 ![Shaoooh Hardware](hardware.jpg)
 
-See the [documentation](docs/README.md) for more info.
+See the [documentation](docs/README.md) for more info. Occasionally the progress will be shown on [twitch.tv/shaooohbot](https://www.twitch.tv/shaooohbot).
 
 ## Credits and References
 
