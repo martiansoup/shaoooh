@@ -98,11 +98,15 @@ impl HuntFSM for FRLGStarterGift {
             }
             FRLGStarterGiftState::StartToGetToTitle => {
                 control.press(Button::Start);
-                self.create_wait_msecs(4500, FRLGStarterGiftState::StartToSelectFile)
+                let mut rng = rand::rng();
+                let delay = 4500 + rng.random_range(0..500);
+                self.create_wait_msecs(delay, FRLGStarterGiftState::StartToSelectFile)
             }
             FRLGStarterGiftState::StartToSelectFile => {
                 control.press(Button::Start);
-                self.create_wait_msecs(3000, FRLGStarterGiftState::AToContinue)
+                let mut rng = rand::rng();
+                let delay = 3000 + rng.random_range(0..500);
+                self.create_wait_msecs(delay, FRLGStarterGiftState::AToContinue)
             }
             FRLGStarterGiftState::AToContinue => {
                 control.press(Button::A);
@@ -110,6 +114,8 @@ impl HuntFSM for FRLGStarterGift {
             }
             FRLGStarterGiftState::BToSkipReplay => {
                 control.press(Button::B);
+                let mut rng = rand::rng();
+                let delay = 2500 + rng.random_range(0..500);
                 self.create_wait_msecs(2500, FRLGStarterGiftState::AToGetStarter)
             }
             FRLGStarterGiftState::AToGetStarter => {
@@ -154,8 +160,7 @@ impl HuntFSM for FRLGStarterGift {
             }
             FRLGStarterGiftState::RToSelStats => {
                 control.press(Button::Right);
-                let mut rng = rand::thread_rng();
-                let wait = 1000 + (17 * rng.gen_range(0..10));
+                let wait = 1000;
                 self.create_wait_msecs(wait, FRLGStarterGiftState::Detect)
             }
             FRLGStarterGiftState::Detect => {
