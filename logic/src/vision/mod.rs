@@ -372,6 +372,9 @@ impl Vision {
         }
         // Display current find TODO should this be included?
         highgui::imshow("found", &for_rect).expect("Failed to show rectangle");
+        // TODO how best to handle move/resize
+        opencv::highgui::move_window("found", 650, 598);
+        opencv::highgui::resize_window("found", 660, 440);
 
         let is_shiny = is_shiny_conv;
         let res = ProcessingResult {
@@ -492,6 +495,8 @@ impl Vision {
 
         // TODO show gui or not ?
         highgui::imshow("capture", &frame).expect("Failed to show capture");
+        opencv::highgui::move_window("capture", 650, 25);
+        opencv::highgui::resize_window("capture", 660, 440);
         highgui::wait_key(1).expect("Event loop failed");
 
         Ok(processing.iter().map(|p| self.process(p, &frame)).collect())
