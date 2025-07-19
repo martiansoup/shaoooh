@@ -131,6 +131,7 @@
     <button onclick="rs_oddish()">RS Oddish</button>
     <button onclick="frlg_egg()">FRLG Eggs</button>
     <button onclick="hgss_rat()">HGSS Ratatta</button>
+    <button onclick="hgss_ditto()">HGSS Ditto</button>
   </div>
 
   <script>
@@ -172,6 +173,12 @@
       document.getElementById("arg_species").value = "19";
       document.getElementById("arg_game").value = "HeartGoldSoulSilver";
       document.getElementById("arg_method").value = "SafariZone";
+    }
+    function hgss_ditto() {
+      document.getElementById("arg_name").value = "DittoHGSS";
+      document.getElementById("arg_species").value = "132";
+      document.getElementById("arg_game").value = "HeartGoldSoulSilver";
+      document.getElementById("arg_method").value = "RandomEncounter";
     }
 
     function b() {

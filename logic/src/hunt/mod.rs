@@ -15,6 +15,8 @@ mod frlg_safari;
 use crate::hunt::frlg_safari::*;
 mod hgss_safari;
 use crate::hunt::hgss_safari::*;
+mod hgss_random;
+use crate::hunt::hgss_random::*;
 
 use crate::{
     app::states::{Game, Method, RequestTransition},
@@ -110,6 +112,22 @@ impl HuntBuild {
             Ok(Box::new(DPRandomEncounter {
                 base,
                 state: DPRandomEncounterState::TryGetEncounter,
+                next_dir: Button::Up,
+                timer: SystemTime::now(),
+                last_timer_duration: Duration::default(),
+                min_shiny: Duration::from_secs(9999),
+                min_normal: Duration::from_secs(9999),
+                max_shiny: Duration::from_secs(0),
+                max_normal: Duration::from_secs(0),
+            }))
+        } else if game == Game::HeartGoldSoulSilver
+            && method == Method::RandomEncounter
+            && (target == 132)
+        {
+            // TODO only for route 47 for testing
+            Ok(Box::new(HGSSRandomEncounter {
+                base,
+                state: HGSSRandomEncounterState::TryGetEncounter,
                 next_dir: Button::Up,
                 timer: SystemTime::now(),
                 last_timer_duration: Duration::default(),

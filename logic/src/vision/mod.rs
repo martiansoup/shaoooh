@@ -81,7 +81,7 @@ impl Processing {
         w: 106,
         h: 35,
         col_thresh: 195.0,
-        num_thresh: 1500,
+        num_thresh: 1400,
         invert: false,
     });
     pub const FRLG_SHINY_STAR: Self = Processing::RegionDetect(RegionDetectSettings {
@@ -178,6 +178,7 @@ impl Vision {
         )
         .expect("Failed to set property");
 
+        // TODO allow debug mode without window flags
         log::info!("Opening windows");
         opencv::highgui::named_window(
             "capture",
@@ -410,7 +411,9 @@ impl Vision {
             typ,
         );
 
-        let met = opencv::core::count_non_zero(&thresholded).unwrap() > settings.num_thresh;
+        let count = opencv::core::count_non_zero(&thresholded).unwrap();
+        let met = count > settings.num_thresh;
+        //log::info!("got {} / {}", count, settings.num_thresh);
 
         ProcessingResult {
             process: Processing::RegionDetect(settings.clone()),

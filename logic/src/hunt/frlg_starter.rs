@@ -67,7 +67,7 @@ impl HuntFSM for FRLGStarterGift {
         for r in results {
             match r.process {
                 Processing::Sprite(_, _, _) => shiny_sprite = r.shiny,
-                Processing::FRLG_SHINY_STAR => shiny_star = r.shiny,
+                Processing::FRLG_SHINY_STAR => shiny_star = r.met,
                 _ => {}
             }
         }
