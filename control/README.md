@@ -15,3 +15,9 @@ Buttons match the name (in uppercase, e.g. A=A). Start is 'S', Select is 's' and
 are lowercase 'u'p/'d'own/'l'eft/'r'ight.
 
 E.g. 'qr1qpqr0' is press D-pad Right, wait, unpress
+
+## Display
+
+`display.py` contains a script to use the [Pimoroni GFX Pack](https://shop.pimoroni.com/products/pico-gfx-pack)
+to display the current encounters. This expects to be sent `T<Target Dex No>e` to set the target sprite, and
+`E<Num encounters>e` to set the current number of encounters (or soft resets).
