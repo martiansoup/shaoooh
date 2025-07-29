@@ -14,6 +14,7 @@ use axum::{
     routing::{get, post},
 };
 use serde::{Deserialize, Serialize};
+use serialport::SerialPort;
 use tokio::sync::{mpsc, oneshot, watch};
 use tower_http::services::{ServeDir, ServeFile};
 pub(crate) mod states;
@@ -48,6 +49,8 @@ pub struct Shaoooh {
     rx: mpsc::Receiver<RequestTransition>,
     button_rx: mpsc::Receiver<Button>,
     image: Arc<Mutex<Vec<u8>>>,
+    // TODO split to separate module - have StateConsumer list?
+    serial_disp: Option<Box<dyn SerialPort>>
 }
 
 // Struct to load/save from disc
@@ -91,6 +94,7 @@ impl Shaoooh {
             button_tx,
             image: image_mutex.clone(),
         };
+        let serial_disp = serialport::new("/dev/ttyACM0", 115200).open().ok();
         Self {
             api: Some(api),
             app,
@@ -98,6 +102,7 @@ impl Shaoooh {
             rx: transition_rx,
             button_rx,
             image: image_mutex,
+            serial_disp
         }
     }
 
@@ -146,6 +151,12 @@ impl Shaoooh {
             let mut writer = BufWriter::new(file);
             serde_json::to_writer(&mut writer, &state);
             writer.flush();
+            if let Some(tx) = &mut self.serial_disp {
+                // TODO reset enc count globally
+                let phased = self.app.encounters - self.app.phases.iter().map(|x| x.encounters).max().unwrap_or(0);
+                let enc_str = format!("E{}e", phased);
+                tx.write_all(enc_str.as_bytes());
+            };
         }
         self.tx
             .send(self.app.clone())
@@ -164,6 +175,11 @@ impl Shaoooh {
             let game = self.app.arg.as_ref().unwrap().game.clone();
             let method = self.app.arg.as_ref().unwrap().method.clone();
             let new_hunt = HuntBuild::build(target, game, method);
+            if let Some(tx) = &mut self.serial_disp {
+                let tgt_str = format!("T{}e", target);
+                log::info!("Setting target on display to {}", tgt_str);
+                tx.write_all(tgt_str.as_bytes());
+            };
             match new_hunt {
                 Ok(h) => *hunt = Some(h),
                 Err(_) => return false,
@@ -313,18 +329,20 @@ impl Shaoooh {
                             state_copy = Some((*rx.borrow_and_update()).clone());
                         }
                         if let Some(state) = state_copy {
+                            //. TODO reset enc
+                            let phased = state.encounters - state.phases.iter().map(|x| x.encounters).max().unwrap_or(0);
                             let content = reqwest::multipart::Form::new()
                                 .text(
                                     "message",
                                     format!(
                                         "State = {:?}, No. encounters = {}",
-                                        &state.state, state.encounters
+                                        &state.state, phased
                                     ),
                                 )
                                 .text("token", api_key.clone())
                                 .text("user", user_id.clone());
                             let interesting_encounter =
-                                (state.encounters % 64 == 0) && (state.encounters != 0);
+                                (phased % 64 == 0) && (phased != 0);
                             let interesting_state = (state.state != HuntState::Idle)
                                 && (state.state != HuntState::Hunt);
                             if interesting_encounter || interesting_state {
@@ -352,6 +370,7 @@ impl Shaoooh {
         }
     }
 
+    // TODO move to separate module
     pub fn lights_thread(mut rx: watch::Receiver<AppState>) {
         const NUM_PIXELS: u32 = 7;
         let mut anim = 0;

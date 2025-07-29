@@ -17,6 +17,8 @@ mod hgss_safari;
 use crate::hunt::hgss_safari::*;
 mod hgss_random;
 use crate::hunt::hgss_random::*;
+mod rs_softreset;
+use crate::hunt::rs_softreset::*;
 
 use crate::{
     app::states::{Game, Method, RequestTransition},
@@ -57,6 +59,15 @@ impl HuntBuild {
             Ok(Box::new(FRLGStarterGift {
                 base,
                 state: FRLGStarterGiftState::SoftReset,
+            }))
+        } else if game == Game::RubySapphire &&
+            method == Method::SoftResetEncounter
+        {
+            Ok(Box::new(RSSoftReset {
+                base,
+                state: RSSoftResetState::Init,
+                timer: SystemTime::now(),
+                last_timer_duration: Duration::default()
             }))
         } else if game == Game::FireRedLeafGreen
             && method == Method::RandomEncounter

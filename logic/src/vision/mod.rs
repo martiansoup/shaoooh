@@ -157,7 +157,7 @@ impl Vision {
     const H1: i32 = (Vision::HEIGHT - (Vision::BORDER_TB * 2)) + (Vision::BORDER_KEEP * 2);
     const DS_W: i32 = 256;
     const DS_H: i32 = 192;
-    const MAX_IMAGES: u32 = 16;
+    const MAX_IMAGES: u32 = 256;
 
     pub fn new() -> Self {
         log::info!("Starting video capture");
@@ -365,12 +365,13 @@ impl Vision {
         };
 
         opencv::imgproc::rectangle(&mut for_rect, rect, 0.0.into(), 1, LINE_8, 0);
-        let filename = format!("hunts/{:03}.png", self.img_index);
-        opencv::imgcodecs::imwrite(&filename, &for_rect, &Vector::new());
-        self.img_index += 1;
-        if self.img_index >= Self::MAX_IMAGES {
-            self.img_index = 0; // Reset index after reaching max
-        }
+        // TODO allow controlling enabling/disabling dumping images - also dump without rect for testing
+        //let filename = format!("hunts/{:03}.png", self.img_index);
+        //opencv::imgcodecs::imwrite(&filename, &for_rect, &Vector::new());
+        //self.img_index += 1;
+        //if self.img_index >= Self::MAX_IMAGES {
+        //    self.img_index = 0; // Reset index after reaching max
+        //}
         // Display current find TODO should this be included?
         highgui::imshow("found", &for_rect).expect("Failed to show rectangle");
         // TODO how best to handle move/resize

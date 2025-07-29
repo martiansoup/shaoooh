@@ -125,13 +125,14 @@
     <label for="game">Game</label> <input name="game" id="arg_game" value="FireRedLeafGreen" />
     <label for="method">Method</label> <input name="method" id="arg_method" value="SoftResetGift" />
     <br /><br />
-    <button onclick="frlg_bulba()">FRLG Bulbasaur</button>
+    <!--<button onclick="frlg_bulba()">FRLG Bulbasaur</button>-->
     <button onclick="frlg_rat()">FRLG Ratatta</button>
-    <button onclick="dp_shinx()">DP Cute Charm Shinx</button>
-    <button onclick="rs_oddish()">RS Oddish</button>
+    <!--<button onclick="dp_shinx()">DP Cute Charm Shinx</button>-->
+    <!--<button onclick="rs_oddish()">RS Oddish</button>-->
     <button onclick="frlg_egg()">FRLG Eggs</button>
     <button onclick="hgss_rat()">HGSS Ratatta</button>
     <button onclick="hgss_ditto()">HGSS Ditto</button>
+    <button onclick="rs_registeel()">RS Registeel</button>
   </div>
 
   <script>
@@ -161,6 +162,12 @@
       document.getElementById("arg_species").value = "43";
       document.getElementById("arg_game").value = "RubySapphire";
       document.getElementById("arg_method").value = "SafariZone";
+    }
+    function rs_registeel() {
+      document.getElementById("arg_name").value = "Registeel";
+      document.getElementById("arg_species").value = "379";
+      document.getElementById("arg_game").value = "RubySapphire";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
     }
     function frlg_egg() {
       document.getElementById("arg_name").value = "SafariWeekFRLG";
