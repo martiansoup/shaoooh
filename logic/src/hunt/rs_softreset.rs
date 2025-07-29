@@ -1,11 +1,9 @@
-use std::fs::File;
-use std::io::Write;
 use std::time::{Duration, SystemTime};
 
 use rand::Rng;
 
 use crate::app::states::{Game, Method, RequestTransition, Transition, TransitionArg};
-use crate::control::{Button, Delay, ShaooohControl};
+use crate::control::{Button, ShaooohControl};
 use crate::hunt::{BaseHunt, HuntFSM, HuntResult};
 use crate::vision::{Processing, ProcessingResult};
 
@@ -37,20 +35,12 @@ pub(crate) struct RSSoftReset {
 }
 
 impl RSSoftReset {
-    fn create_wait_secs(
-        &mut self,
-        d: u64,
-        state: RSSoftResetState,
-    ) -> RSSoftResetState {
+    fn create_wait_secs(&mut self, d: u64, state: RSSoftResetState) -> RSSoftResetState {
         self.base.wait_start = SystemTime::now();
         RSSoftResetState::Wait(Duration::from_secs(d), Box::new(state))
     }
 
-    fn create_wait_msecs(
-        &mut self,
-        d: u64,
-        state: RSSoftResetState,
-    ) -> RSSoftResetState {
+    fn create_wait_msecs(&mut self, d: u64, state: RSSoftResetState) -> RSSoftResetState {
         self.base.wait_start = SystemTime::now();
         RSSoftResetState::Wait(Duration::from_millis(d), Box::new(state))
     }
@@ -99,9 +89,7 @@ impl HuntFSM for RSSoftReset {
         let old_state = self.state.clone();
 
         self.state = match &self.state {
-            RSSoftResetState::Init => {
-                RSSoftResetState::SoftReset
-            }
+            RSSoftResetState::Init => RSSoftResetState::SoftReset,
             RSSoftResetState::SoftReset => {
                 control.gen3_soft_reset();
                 let mut rng = rand::rng();
@@ -170,7 +158,11 @@ impl HuntFSM for RSSoftReset {
                     //     )
                     //     .as_bytes(),
                     // );
-                    log::info!("sprite = {}, duration = {:?}", detect.shiny, self.last_timer_duration);
+                    log::info!(
+                        "sprite = {}, duration = {:?}",
+                        detect.shiny,
+                        self.last_timer_duration
+                    );
                     if detect.shiny || (self.last_timer_duration > SHINY_DURATION) {
                         if detect.species == self.base.target {
                             transition = Some(RequestTransition {

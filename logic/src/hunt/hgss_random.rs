@@ -69,7 +69,10 @@ impl HuntFSM for HGSSRandomEncounter {
         } else if self.state == HGSSRandomEncounterState::EnteringEncounter {
             vec![Processing::DP_IN_ENCOUNTER]
         } else if self.state == HGSSRandomEncounterState::WaitEncounterReady {
-            vec![Processing::DP_IN_ENCOUNTER, Processing::DP_SAFARI_ENCOUNTER_READY]
+            vec![
+                Processing::DP_IN_ENCOUNTER,
+                Processing::DP_SAFARI_ENCOUNTER_READY,
+            ]
         } else if self.state == HGSSRandomEncounterState::LeavingEncounter {
             vec![Processing::DP_IN_ENCOUNTER, Processing::DP_START_ENCOUNTER]
         } else {
@@ -148,7 +151,11 @@ impl HuntFSM for HGSSRandomEncounter {
                     self.last_timer_duration
                 );
                 if let Some(detect) = detect_result {
-                    log::info!("Shiny: sprite = {}, duration = {}", detect.shiny, (self.last_timer_duration > SHINY_DURATION));
+                    log::info!(
+                        "Shiny: sprite = {}, duration = {}",
+                        detect.shiny,
+                        (self.last_timer_duration > SHINY_DURATION)
+                    );
                     //if detect.shiny || (self.last_timer_duration > SHINY_DURATION) {
                     if self.last_timer_duration > SHINY_DURATION {
                         if self.last_timer_duration > self.max_shiny {

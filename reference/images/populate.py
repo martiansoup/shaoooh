@@ -63,6 +63,14 @@ def hgss():
     try_get_images("https://www.serebii.net/pokearth/sprites/hgss/", destination, last_in_dex, "")
     try_get_images("https://www.serebii.net/Shiny/HGSS/", destination, last_in_dex, "shiny")
 
+def bw():
+    destination = "bw"
+    last_in_dex = 649 # Genesect
+    if not os.path.exists(destination):
+        os.mkdir(destination)
+    try_get_images("https://www.serebii.net/blackwhite/pokemon/", destination, last_in_dex, "")
+    try_get_images("https://www.serebii.net/Shiny/BW/", destination, last_in_dex, "shiny")
+
 def gif2png():
     for root, dirs, files in os.walk('.'):
         for f in files:
@@ -76,4 +84,5 @@ if __name__=="__main__":
     rs()
     diamond_pearl()
     hgss()
+    bw()
     gif2png()

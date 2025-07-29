@@ -132,7 +132,8 @@
     <button onclick="frlg_egg()">FRLG Eggs</button>
     <button onclick="hgss_rat()">HGSS Ratatta</button>
     <button onclick="hgss_ditto()">HGSS Ditto</button>
-    <button onclick="rs_registeel()">RS Registeel</button>
+    <!--<button onclick="rs_registeel()">RS Registeel</button>-->
+    <button onclick="bw2_latios()">BW2 Latios</button>
   </div>
 
   <script>
@@ -186,6 +187,12 @@
       document.getElementById("arg_species").value = "132";
       document.getElementById("arg_game").value = "HeartGoldSoulSilver";
       document.getElementById("arg_method").value = "RandomEncounter";
+    }
+    function bw2_latios() {
+      document.getElementById("arg_name").value = "DreamLatios";
+      document.getElementById("arg_species").value = "381";
+      document.getElementById("arg_game").value = "Black2White2";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
     }
 
     function b() {

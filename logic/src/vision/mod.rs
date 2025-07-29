@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 
 use opencv::{
-    core::{NORM_MINMAX, Point, Rect, Size, Vector},
+    core::{Point, Rect, Size, Vector},
     highgui::{self, WINDOW_GUI_NORMAL, WINDOW_KEEPRATIO, WINDOW_NORMAL},
     imgcodecs::{IMREAD_COLOR, IMREAD_UNCHANGED},
-    imgproc::{
-        COLOR_BGR2HSV, HISTCMP_CORREL, LINE_8, THRESH_BINARY, THRESH_BINARY_INV, TM_CCORR_NORMED,
-    },
+    imgproc::{LINE_8, THRESH_BINARY, THRESH_BINARY_INV, TM_CCORR_NORMED},
     prelude::*,
     videoio::{CAP_V4L2, VideoCapture},
 };
@@ -48,6 +46,42 @@ pub enum Processing {
 }
 
 impl Processing {
+    pub const BW2_BLACK_SCREEN: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 0,
+        y: 0,
+        w: 256,
+        h: 192,
+        col_thresh: 15.0,
+        num_thresh: 45000,
+        invert: true,
+    });
+    pub const BW2_WHITE_SCREEN: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 0,
+        y: 0,
+        w: 256,
+        h: 192,
+        col_thresh: 210.0,
+        num_thresh: 45000,
+        invert: false,
+    });
+    pub const BW2_BAR_PRESENT: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 0,
+        y: 150,
+        w: 256,
+        h: 40,
+        col_thresh: 70.0,
+        num_thresh: 7000,
+        invert: true,
+    });
+    pub const BW2_BAR_NEGATE_CONFIRM: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 0,
+        y: 0,
+        w: 256,
+        h: 40,
+        col_thresh: 70.0,
+        num_thresh: 7000,
+        invert: true,
+    });
     pub const DP_START_ENCOUNTER: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 0,
         y: 145,
@@ -224,6 +258,8 @@ impl Vision {
                 Game::DiamondPearl => "dp",
                 Game::RubySapphire => "rs",
                 Game::HeartGoldSoulSilver => "hgss",
+                Game::Black2White2 => "bw",
+                Game::BlackWhite => "bw",
                 _ => panic!("Unimplemented game"), // TODO other games
             };
             // TODO check files exist as doesn't error from opencv

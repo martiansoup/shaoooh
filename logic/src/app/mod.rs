@@ -50,7 +50,7 @@ pub struct Shaoooh {
     button_rx: mpsc::Receiver<Button>,
     image: Arc<Mutex<Vec<u8>>>,
     // TODO split to separate module - have StateConsumer list?
-    serial_disp: Option<Box<dyn SerialPort>>
+    serial_disp: Option<Box<dyn SerialPort>>,
 }
 
 // Struct to load/save from disc
@@ -102,7 +102,7 @@ impl Shaoooh {
             rx: transition_rx,
             button_rx,
             image: image_mutex,
-            serial_disp
+            serial_disp,
         }
     }
 
@@ -147,13 +147,20 @@ impl Shaoooh {
                 phases: self.app.phases.clone(),
                 complete: self.app.state == HuntState::FoundTarget,
             };
-            let mut file = std::fs::File::create(Self::filename_from_name(&name)).unwrap();
+            let file = std::fs::File::create(Self::filename_from_name(&name)).unwrap();
             let mut writer = BufWriter::new(file);
             serde_json::to_writer(&mut writer, &state);
             writer.flush();
             if let Some(tx) = &mut self.serial_disp {
                 // TODO reset enc count globally
-                let phased = self.app.encounters - self.app.phases.iter().map(|x| x.encounters).max().unwrap_or(0);
+                let phased = self.app.encounters
+                    - self
+                        .app
+                        .phases
+                        .iter()
+                        .map(|x| x.encounters)
+                        .max()
+                        .unwrap_or(0);
                 let enc_str = format!("E{}e", phased);
                 tx.write_all(enc_str.as_bytes());
             };
@@ -324,13 +331,11 @@ impl Shaoooh {
 
                 if let (Some(api_key), Some(user_id)) = (cfg.api_key, cfg.user_id) {
                     loop {
-                        let mut state_copy = None;
-                        {
-                            state_copy = Some((*rx.borrow_and_update()).clone());
-                        }
+                        let state_copy = { Some((*rx.borrow_and_update()).clone()) };
                         if let Some(state) = state_copy {
                             //. TODO reset enc
-                            let phased = state.encounters - state.phases.iter().map(|x| x.encounters).max().unwrap_or(0);
+                            let phased = state.encounters
+                                - state.phases.iter().map(|x| x.encounters).max().unwrap_or(0);
                             let content = reqwest::multipart::Form::new()
                                 .text(
                                     "message",
@@ -341,8 +346,7 @@ impl Shaoooh {
                                 )
                                 .text("token", api_key.clone())
                                 .text("user", user_id.clone());
-                            let interesting_encounter =
-                                (phased % 64 == 0) && (phased != 0);
+                            let interesting_encounter = (phased % 64 == 0) && (phased != 0);
                             let interesting_state = (state.state != HuntState::Idle)
                                 && (state.state != HuntState::Hunt);
                             if interesting_encounter || interesting_state {
@@ -418,7 +422,7 @@ impl Shaoooh {
                 }
                 anim += 1;
             } else if state_copy.state == HuntState::Idle {
-                for n in 0..num {
+                for _n in 0..num {
                     data.push(PixelData {
                         r: 0,
                         g: 0,

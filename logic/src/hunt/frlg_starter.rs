@@ -114,8 +114,6 @@ impl HuntFSM for FRLGStarterGift {
             }
             FRLGStarterGiftState::BToSkipReplay => {
                 control.press(Button::B);
-                let mut rng = rand::rng();
-                let delay = 2500 + rng.random_range(0..500);
                 self.create_wait_msecs(2500, FRLGStarterGiftState::AToGetStarter)
             }
             FRLGStarterGiftState::AToGetStarter => {

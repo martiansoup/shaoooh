@@ -19,6 +19,8 @@ mod hgss_random;
 use crate::hunt::hgss_random::*;
 mod rs_softreset;
 use crate::hunt::rs_softreset::*;
+mod bw2_softreset;
+use crate::hunt::bw2_softreset::*;
 
 use crate::{
     app::states::{Game, Method, RequestTransition},
@@ -60,14 +62,20 @@ impl HuntBuild {
                 base,
                 state: FRLGStarterGiftState::SoftReset,
             }))
-        } else if game == Game::RubySapphire &&
-            method == Method::SoftResetEncounter
-        {
+        } else if game == Game::RubySapphire && method == Method::SoftResetEncounter {
             Ok(Box::new(RSSoftReset {
                 base,
                 state: RSSoftResetState::Init,
                 timer: SystemTime::now(),
-                last_timer_duration: Duration::default()
+                last_timer_duration: Duration::default(),
+            }))
+        } else if game == Game::Black2White2 && method == Method::SoftResetEncounter {
+            Ok(Box::new(BW2SoftReset {
+                base,
+                state: BW2SoftResetState::Init,
+                timer: SystemTime::now(),
+                last_timer_duration: Duration::default(),
+                last_dbg_string: "".to_string(),
             }))
         } else if game == Game::FireRedLeafGreen
             && method == Method::RandomEncounter
@@ -90,7 +98,8 @@ impl HuntBuild {
                 timer: SystemTime::now(),
                 last_timer_duration: Duration::default(),
             }))
-        } else if game == Game::FireRedLeafGreen && method == Method::SafariZone && (target == 102) {
+        } else if game == Game::FireRedLeafGreen && method == Method::SafariZone && (target == 102)
+        {
             // TODO only Egss in safari zone 3
             Ok(Box::new(FRLGSafariEncounter {
                 base,
@@ -99,9 +108,7 @@ impl HuntBuild {
                 timer: SystemTime::now(),
                 last_timer_duration: Duration::default(),
             }))
-        } else if game == Game::HeartGoldSoulSilver
-            && method == Method::SafariZone
-            && target == 19
+        } else if game == Game::HeartGoldSoulSilver && method == Method::SafariZone && target == 19
         {
             // TODO only for safari mountain for testing
             Ok(Box::new(HGSSSafariEncounter {

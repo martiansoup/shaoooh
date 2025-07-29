@@ -74,7 +74,10 @@ impl HuntFSM for HGSSSafariEncounter {
         } else if self.state == HGSSSafariEncounterState::EnteringEncounter {
             vec![Processing::DP_IN_ENCOUNTER]
         } else if self.state == HGSSSafariEncounterState::WaitEncounterReady {
-            vec![Processing::DP_IN_ENCOUNTER, Processing::DP_SAFARI_ENCOUNTER_READY]
+            vec![
+                Processing::DP_IN_ENCOUNTER,
+                Processing::DP_SAFARI_ENCOUNTER_READY,
+            ]
         } else if self.state == HGSSSafariEncounterState::LeavingEncounter {
             vec![Processing::DP_IN_ENCOUNTER, Processing::DP_START_ENCOUNTER]
         } else {
@@ -103,9 +106,7 @@ impl HuntFSM for HGSSSafariEncounter {
         let old_state = self.state.clone();
 
         self.state = match &self.state {
-            HGSSSafariEncounterState::Start => {
-                HGSSSafariEncounterState::Sweet1PressX
-            }
+            HGSSSafariEncounterState::Start => HGSSSafariEncounterState::Sweet1PressX,
             HGSSSafariEncounterState::Sweet1PressX => {
                 // Open menu
                 control.press(Button::X);
@@ -165,7 +166,11 @@ impl HuntFSM for HGSSSafariEncounter {
                 );
                 if let Some(detect) = detect_result {
                     log::info!("duration = {:?}", self.last_timer_duration);
-                    log::info!("Shiny: sprite = {}, duration = {}", detect.shiny, (self.last_timer_duration > SHINY_DURATION));
+                    log::info!(
+                        "Shiny: sprite = {}, duration = {}",
+                        detect.shiny,
+                        (self.last_timer_duration > SHINY_DURATION)
+                    );
                     if detect.shiny || (self.last_timer_duration > SHINY_DURATION) {
                         if self.last_timer_duration > self.max_shiny {
                             self.max_shiny = self.last_timer_duration;

@@ -139,7 +139,11 @@ impl HuntFSM for DPRandomEncounter {
                     self.max_shiny
                 );
                 if let Some(detect) = detect_result {
-                    log::info!("Shiny: sprite = {}, duration = {}", detect.shiny, (self.last_timer_duration > SHINY_DURATION));
+                    log::info!(
+                        "Shiny: sprite = {}, duration = {}",
+                        detect.shiny,
+                        (self.last_timer_duration > SHINY_DURATION)
+                    );
                     if detect.shiny || (self.last_timer_duration > SHINY_DURATION) {
                         if self.last_timer_duration > self.max_shiny {
                             self.max_shiny = self.last_timer_duration;

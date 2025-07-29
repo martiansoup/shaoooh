@@ -76,4 +76,10 @@ impl ShaooohControl {
             .write_all(control_string.as_bytes())
             .expect("Couldn't write");
     }
+    pub fn gen5_soft_reset(&mut self) {
+        let control_string = "qL1qR1qS1qs1qpqL0qR0qS0qs0";
+        self.port
+            .write_all(control_string.as_bytes())
+            .expect("Couldn't write");
+    }
 }
