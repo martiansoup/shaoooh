@@ -57,10 +57,10 @@ impl FRLGSafariEncounter {
 impl HuntFSM for FRLGSafariEncounter {
     fn processing(&self) -> Vec<Processing> {
         if self.state == FRLGSafariEncounterState::Detect {
-            // TODO hardcoded list for safari zone 1
+            // TODO hardcoded list for safari zone area 3
             vec![Processing::Sprite(
                 Game::FireRedLeafGreen,
-                vec![32, 102, 111, 046, 33, 30, 49, 113, 128],
+                vec![32, 102, 111, 46, 33, 30, 49, 113, 128],
                 false,
             )]
         } else if self.state == FRLGSafariEncounterState::TryGetEncounter {

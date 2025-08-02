@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use opencv::{
-    core::{Point, Rect, Size, Vector},
+    core::{Point, Rect, Size, ToInputArray, Vector},
     highgui::{self, WINDOW_GUI_NORMAL, WINDOW_KEEPRATIO, WINDOW_NORMAL},
     imgcodecs::{IMREAD_COLOR, IMREAD_UNCHANGED},
     imgproc::{LINE_8, THRESH_BINARY, THRESH_BINARY_INV, TM_CCORR_NORMED},
@@ -177,6 +177,13 @@ pub struct Vision {
     // Reference, Shiny, Mask
     reference: HashMap<u32, (Mat, Mat, Mat)>,
     img_index: u32,
+    enable_debug: bool, // TODO control image/window debug separately
+}
+
+struct WinInfo {
+    name: &'static str,
+    x: i32,
+    y: i32,
 }
 
 impl Vision {
@@ -192,6 +199,39 @@ impl Vision {
     const DS_W: i32 = 256;
     const DS_H: i32 = 192;
     const MAX_IMAGES: u32 = 256;
+    const CAPTURE_WIN: WinInfo = WinInfo {
+        name: "capture",
+        x: 650,
+        y: 25,
+    };
+    const FOUND_WIN: WinInfo = WinInfo {
+        name: "found",
+        x: 650,
+        y: 598,
+    };
+
+    fn show_window(win: WinInfo, mat: &impl ToInputArray) {
+        highgui::imshow(win.name, mat)
+            .unwrap_or_else(|_| panic!("Failed to show '{}' window", win.name));
+    }
+
+    fn transform_window(win: WinInfo) {
+        opencv::highgui::move_window(win.name, win.x, win.y)
+            .unwrap_or_else(|_| panic!("Failed to move '{}' window", win.name));
+        opencv::highgui::resize_window(win.name, Self::WIDTH * 2, Self::HEIGHT * 2)
+            .unwrap_or_else(|_| panic!("Failed to resize '{}' window", win.name));
+    }
+
+    fn create_window(win: WinInfo, en_dbg: bool) {
+        let flags = if en_dbg {
+            0
+        } else {
+            WINDOW_NORMAL | WINDOW_KEEPRATIO | WINDOW_GUI_NORMAL
+        };
+        opencv::highgui::named_window(win.name, flags)
+            .unwrap_or_else(|_| panic!("Failed to create '{}' window", win.name));
+        Self::transform_window(win);
+    }
 
     pub fn new() -> Self {
         log::info!("Starting video capture");
@@ -214,18 +254,8 @@ impl Vision {
 
         // TODO allow debug mode without window flags
         log::info!("Opening windows");
-        opencv::highgui::named_window(
-            "capture",
-            WINDOW_NORMAL | WINDOW_KEEPRATIO | WINDOW_GUI_NORMAL,
-        );
-        opencv::highgui::move_window("capture", 650, 25);
-        opencv::highgui::resize_window("capture", 660, 440);
-        opencv::highgui::named_window(
-            "found",
-            WINDOW_NORMAL | WINDOW_KEEPRATIO | WINDOW_GUI_NORMAL,
-        );
-        opencv::highgui::move_window("found", 650, 598);
-        opencv::highgui::resize_window("found", 660, 440);
+        Self::create_window(Self::CAPTURE_WIN, false);
+        Self::create_window(Self::FOUND_WIN, false);
         highgui::wait_key(1).expect("Event loop failed");
 
         Self {
@@ -235,7 +265,65 @@ impl Vision {
             game: Game::None,
             flipped: false,
             img_index: 0,
+            enable_debug: false,
         }
+    }
+
+    fn create_reference(game: &Game, flipped: &bool, species: u32) -> (Mat, Mat, Mat) {
+        let dir = match game {
+            Game::FireRedLeafGreen => "frlg",
+            Game::DiamondPearl => "dp",
+            Game::RubySapphire => "rs",
+            Game::HeartGoldSoulSilver => "hgss",
+            Game::Black2White2 => "bw",
+            Game::BlackWhite => "bw",
+            _ => panic!("Unimplemented game"), // TODO other games
+        };
+        // TODO check files exist as doesn't error from opencv
+        let path_png = format!("../reference/images/{}/{:03}.png", dir, species);
+        let path = if std::fs::exists(&path_png).unwrap() {
+            path_png
+        } else {
+            panic!("Couldn't get reference image {}", path_png)
+        };
+        let shiny_path_png = format!("../reference/images/{}/{:03}_shiny.png", dir, species);
+        let shiny_path = if std::fs::exists(&shiny_path_png).unwrap() {
+            shiny_path_png
+        } else {
+            panic!("Couldn't get reference image {}", shiny_path_png)
+        };
+
+        let ref_img_raw_in =
+            opencv::imgcodecs::imread(&path, IMREAD_UNCHANGED).expect("Couldn't read image");
+        let ref_img_in =
+            opencv::imgcodecs::imread(&path, IMREAD_COLOR).expect("Couldn't read image");
+        let shi_img_in =
+            opencv::imgcodecs::imread(&shiny_path, IMREAD_COLOR).expect("Couldn't read image");
+
+        let mut ref_img_raw = Mat::default();
+        let mut ref_img = Mat::default();
+        let mut shi_img = Mat::default();
+
+        if *flipped {
+            opencv::core::flip(&ref_img_raw_in, &mut ref_img_raw, 1).expect("Failed to flip image");
+            opencv::core::flip(&ref_img_in, &mut ref_img, 1).expect("Failed to flip image");
+            opencv::core::flip(&shi_img_in, &mut shi_img, 1).expect("Failed to flip image");
+        } else {
+            ref_img_raw = ref_img_raw_in;
+            ref_img = ref_img_in;
+            shi_img = shi_img_in;
+        }
+
+        let mut channels: Vector<Mat> = Default::default();
+        opencv::core::split(&ref_img_raw, &mut channels).expect("Failed to split channels");
+        let alpha = channels.get(3).unwrap();
+
+        let mut mask = Mat::default();
+
+        opencv::imgproc::threshold(&alpha, &mut mask, 0.0, 255.0, THRESH_BINARY)
+            .expect("Failed to create mask");
+
+        (ref_img, shi_img, mask)
     }
 
     fn get_or_create_references(
@@ -250,64 +338,11 @@ impl Vision {
         }
         if *flipped != self.flipped {
             self.reference.clear();
-            self.flipped = flipped.clone();
+            self.flipped = *flipped;
         }
-        if !self.reference.contains_key(&species) {
-            let dir = match game {
-                Game::FireRedLeafGreen => "frlg",
-                Game::DiamondPearl => "dp",
-                Game::RubySapphire => "rs",
-                Game::HeartGoldSoulSilver => "hgss",
-                Game::Black2White2 => "bw",
-                Game::BlackWhite => "bw",
-                _ => panic!("Unimplemented game"), // TODO other games
-            };
-            // TODO check files exist as doesn't error from opencv
-            let path_png = format!("../reference/images/{}/{:03}.png", dir, species);
-            let path = if std::fs::exists(&path_png).unwrap() {
-                path_png
-            } else {
-                panic!("Couldn't get reference image {}", path_png)
-            };
-            let shiny_path_png = format!("../reference/images/{}/{:03}_shiny.png", dir, species);
-            let shiny_path = if std::fs::exists(&shiny_path_png).unwrap() {
-                shiny_path_png
-            } else {
-                panic!("Couldn't get reference image {}", shiny_path_png)
-            };
-
-            let ref_img_raw_in =
-                opencv::imgcodecs::imread(&path, IMREAD_UNCHANGED).expect("Couldn't read image");
-            let ref_img_in =
-                opencv::imgcodecs::imread(&path, IMREAD_COLOR).expect("Couldn't read image");
-            let shi_img_in =
-                opencv::imgcodecs::imread(&shiny_path, IMREAD_COLOR).expect("Couldn't read image");
-
-            let mut ref_img_raw = Mat::default();
-            let mut ref_img = Mat::default();
-            let mut shi_img = Mat::default();
-
-            if *flipped {
-                opencv::core::flip(&ref_img_raw_in, &mut ref_img_raw, 1);
-                opencv::core::flip(&ref_img_in, &mut ref_img, 1);
-                opencv::core::flip(&shi_img_in, &mut shi_img, 1);
-            } else {
-                ref_img_raw = ref_img_raw_in;
-                ref_img = ref_img_in;
-                shi_img = shi_img_in;
-            }
-
-            let mut channels: Vector<Mat> = Default::default();
-            opencv::core::split(&ref_img_raw, &mut channels);
-            let alpha = channels.get(3).unwrap();
-
-            let mut mask = Mat::default();
-
-            opencv::imgproc::threshold(&alpha, &mut mask, 0.0, 255.0, THRESH_BINARY)
-                .expect("Failed to create mask");
-
-            self.reference.insert(species, (ref_img, shi_img, mask));
-        }
+        self.reference
+            .entry(species)
+            .or_insert_with(|| Self::create_reference(game, flipped, species));
         self.reference.get(&species).expect("Must be present")
     }
 
@@ -401,19 +436,21 @@ impl Vision {
             height: tpl_h,
         };
 
-        opencv::imgproc::rectangle(&mut for_rect, rect, 0.0.into(), 1, LINE_8, 0);
+        opencv::imgproc::rectangle(&mut for_rect, rect, 0.0.into(), 1, LINE_8, 0)
+            .expect("Failed to select rectangle");
         // TODO allow controlling enabling/disabling dumping images - also dump without rect for testing
-        //let filename = format!("hunts/{:03}.png", self.img_index);
-        //opencv::imgcodecs::imwrite(&filename, &for_rect, &Vector::new());
-        //self.img_index += 1;
-        //if self.img_index >= Self::MAX_IMAGES {
-        //    self.img_index = 0; // Reset index after reaching max
-        //}
+        if self.enable_debug {
+            let filename = format!("hunts/{:03}.png", self.img_index);
+            opencv::imgcodecs::imwrite(&filename, &for_rect, &Vector::new())
+                .expect("Failed to write debug image");
+            self.img_index += 1;
+            if self.img_index >= Self::MAX_IMAGES {
+                self.img_index = 0; // Reset index after reaching max
+            }
+        }
         // Display current find TODO should this be included?
-        highgui::imshow("found", &for_rect).expect("Failed to show rectangle");
-        // TODO how best to handle move/resize
-        opencv::highgui::move_window("found", 650, 598);
-        opencv::highgui::resize_window("found", 660, 440);
+        Self::show_window(Self::FOUND_WIN, &for_rect);
+        Self::transform_window(Self::FOUND_WIN);
 
         let is_shiny = is_shiny_conv;
         let res = ProcessingResult {
@@ -434,7 +471,8 @@ impl Vision {
             .expect("Failed to crop to region of interest")
             .clone_pointee();
         let mut greyscale = Mat::default();
-        opencv::imgproc::cvt_color(&region, &mut greyscale, opencv::imgproc::COLOR_BGR2GRAY, 0);
+        opencv::imgproc::cvt_color(&region, &mut greyscale, opencv::imgproc::COLOR_BGR2GRAY, 0)
+            .expect("Failed to convert colour");
         let mut thresholded = Mat::default();
         let typ = if settings.invert {
             THRESH_BINARY_INV
@@ -447,7 +485,8 @@ impl Vision {
             settings.col_thresh,
             255.0,
             typ,
-        );
+        )
+        .expect("Failed to apply threshold");
 
         let count = opencv::core::count_non_zero(&thresholded).unwrap();
         let met = count > settings.num_thresh;
@@ -473,13 +512,15 @@ impl Vision {
             .expect("Failed to crop to region of interest")
             .clone_pointee();
         let mut hsv = Mat::default();
-        opencv::imgproc::cvt_color(&region, &mut hsv, opencv::imgproc::COLOR_BGR2HSV, 0);
+        opencv::imgproc::cvt_color(&region, &mut hsv, opencv::imgproc::COLOR_BGR2HSV, 0)
+            .expect("Failed to convert colour");
         let mut thresholded = Mat::default();
-        let lower = Vector::from_slice(&vec![settings.h_lo, settings.s_lo, settings.v_lo]);
-        let upper = Vector::from_slice(&vec![settings.h_hi, settings.s_hi, settings.v_hi]);
-        opencv::core::in_range(&hsv, &lower, &upper, &mut thresholded);
+        let lower = Vector::from_slice(&[settings.h_lo, settings.s_lo, settings.v_lo]);
+        let upper = Vector::from_slice(&[settings.h_hi, settings.s_hi, settings.v_hi]);
+        opencv::core::in_range(&hsv, &lower, &upper, &mut thresholded)
+            .expect("Failed to apply range");
 
-        let count = opencv::core::count_non_zero(&thresholded).unwrap();
+        let count = opencv::core::count_non_zero(&thresholded).expect("Failed to count");
         let met = count > settings.num_thresh;
 
         ProcessingResult {
@@ -528,16 +569,15 @@ impl Vision {
             0.0,
             0.0,
             0,
-        );
+        )
+        .expect("Failed to resize image");
 
         // Save to encoded frame
         opencv::imgcodecs::imencode(".png", &frame, &mut self.encoded, &Vector::new())
             .expect("Failed to encode frame");
 
-        // TODO show gui or not ?
-        highgui::imshow("capture", &frame).expect("Failed to show capture");
-        opencv::highgui::move_window("capture", 650, 25);
-        opencv::highgui::resize_window("capture", 660, 440);
+        Self::show_window(Self::CAPTURE_WIN, &frame);
+        Self::transform_window(Self::CAPTURE_WIN);
         highgui::wait_key(1).expect("Event loop failed");
 
         Ok(processing.iter().map(|p| self.process(p, &frame)).collect())

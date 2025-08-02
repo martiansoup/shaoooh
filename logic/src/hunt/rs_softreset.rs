@@ -35,11 +35,6 @@ pub(crate) struct RSSoftReset {
 }
 
 impl RSSoftReset {
-    fn create_wait_secs(&mut self, d: u64, state: RSSoftResetState) -> RSSoftResetState {
-        self.base.wait_start = SystemTime::now();
-        RSSoftResetState::Wait(Duration::from_secs(d), Box::new(state))
-    }
-
     fn create_wait_msecs(&mut self, d: u64, state: RSSoftResetState) -> RSSoftResetState {
         self.base.wait_start = SystemTime::now();
         RSSoftResetState::Wait(Duration::from_millis(d), Box::new(state))

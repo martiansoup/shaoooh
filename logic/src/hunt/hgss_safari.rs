@@ -31,7 +31,6 @@ const SHINY_DURATION: Duration = Duration::from_millis(4650);
 pub(crate) struct HGSSSafariEncounter {
     pub(crate) base: BaseHunt,
     pub(crate) state: HGSSSafariEncounterState,
-    pub(crate) next_dir: Button,
     pub(crate) timer: SystemTime,
     pub(crate) last_timer_duration: Duration,
     pub(crate) min_shiny: Duration,

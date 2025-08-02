@@ -136,6 +136,7 @@ pub enum Method {
 }
 
 // State of application, shared between main thread and API
+// TODO add dates
 #[derive(Clone, Serialize)]
 pub(crate) struct AppState {
     pub(crate) state: HuntState,

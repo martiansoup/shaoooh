@@ -114,7 +114,6 @@ impl HuntBuild {
             Ok(Box::new(HGSSSafariEncounter {
                 base,
                 state: HGSSSafariEncounterState::Start,
-                next_dir: Button::Up,
                 timer: SystemTime::now(),
                 last_timer_duration: Duration::default(),
                 min_shiny: Duration::from_secs(9999),

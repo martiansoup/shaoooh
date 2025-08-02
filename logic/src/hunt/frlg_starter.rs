@@ -36,11 +36,6 @@ pub(crate) struct FRLGStarterGift {
 }
 
 impl FRLGStarterGift {
-    fn create_wait_secs(&mut self, d: u64, state: FRLGStarterGiftState) -> FRLGStarterGiftState {
-        self.base.wait_start = SystemTime::now();
-        FRLGStarterGiftState::Wait(Duration::from_secs(d), Box::new(state))
-    }
-
     fn create_wait_msecs(&mut self, d: u64, state: FRLGStarterGiftState) -> FRLGStarterGiftState {
         self.base.wait_start = SystemTime::now();
         FRLGStarterGiftState::Wait(Duration::from_millis(d), Box::new(state))

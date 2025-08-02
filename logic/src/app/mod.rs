@@ -1,9 +1,7 @@
 use std::{
-    fs::read_to_string,
     io::{BufWriter, Write},
     sync::{Arc, Mutex},
-    thread,
-    time::Duration,
+    thread::JoinHandle,
 };
 
 use axum::{
@@ -14,14 +12,13 @@ use axum::{
     routing::{get, post},
 };
 use serde::{Deserialize, Serialize};
-use serialport::SerialPort;
 use tokio::sync::{mpsc, oneshot, watch};
 use tower_http::services::{ServeDir, ServeFile};
 pub(crate) mod states;
 use crate::{
     control::{Button, ShaooohControl},
+    displays::{DisplayWrapper, LightsDisplay, StateReceiver},
     hunt::{HuntBuild, HuntFSM},
-    lights::{Lights, PixelData},
     vision::Vision,
 };
 use states::*;
@@ -49,8 +46,6 @@ pub struct Shaoooh {
     rx: mpsc::Receiver<RequestTransition>,
     button_rx: mpsc::Receiver<Button>,
     image: Arc<Mutex<Vec<u8>>>,
-    // TODO split to separate module - have StateConsumer list?
-    serial_disp: Option<Box<dyn SerialPort>>,
 }
 
 // Struct to load/save from disc
@@ -72,7 +67,6 @@ struct UserConfig {
 }
 
 impl Shaoooh {
-    pub const VIDEO_NUM: u32 = 0;
     pub const VIDEO_DEV: &str = "/dev/video0";
 
     pub fn new() -> Self {
@@ -94,7 +88,6 @@ impl Shaoooh {
             button_tx,
             image: image_mutex.clone(),
         };
-        let serial_disp = serialport::new("/dev/ttyACM0", 115200).open().ok();
         Self {
             api: Some(api),
             app,
@@ -102,11 +95,10 @@ impl Shaoooh {
             rx: transition_rx,
             button_rx,
             image: image_mutex,
-            serial_disp,
         }
     }
 
-    pub fn routes(state: ApiState) -> Router {
+    fn routes(state: ApiState) -> Router {
         let static_dir = ServeDir::new("./static");
         let index = ServeFile::new("index.html");
 
@@ -149,21 +141,8 @@ impl Shaoooh {
             };
             let file = std::fs::File::create(Self::filename_from_name(&name)).unwrap();
             let mut writer = BufWriter::new(file);
-            serde_json::to_writer(&mut writer, &state);
-            writer.flush();
-            if let Some(tx) = &mut self.serial_disp {
-                // TODO reset enc count globally
-                let phased = self.app.encounters
-                    - self
-                        .app
-                        .phases
-                        .iter()
-                        .map(|x| x.encounters)
-                        .max()
-                        .unwrap_or(0);
-                let enc_str = format!("E{}e", phased);
-                tx.write_all(enc_str.as_bytes());
-            };
+            serde_json::to_writer(&mut writer, &state).expect("Failed to serialise state");
+            writer.flush().expect("Failed to flush to file");
         }
         self.tx
             .send(self.app.clone())
@@ -182,11 +161,6 @@ impl Shaoooh {
             let game = self.app.arg.as_ref().unwrap().game.clone();
             let method = self.app.arg.as_ref().unwrap().method.clone();
             let new_hunt = HuntBuild::build(target, game, method);
-            if let Some(tx) = &mut self.serial_disp {
-                let tgt_str = format!("T{}e", target);
-                log::info!("Setting target on display to {}", tgt_str);
-                tx.write_all(tgt_str.as_bytes());
-            };
             match new_hunt {
                 Ok(h) => *hunt = Some(h),
                 Err(_) => return false,
@@ -202,6 +176,8 @@ impl Shaoooh {
                 encounters: self.app.encounters,
             };
             self.app.phases.push(phase);
+            // Reset the encounters after a phase
+            self.app.encounters = 0;
         }
         if self.app.state == HuntState::Idle {
             if let Some(h) = hunt {
@@ -295,10 +271,8 @@ impl Shaoooh {
                     img_wr.clear();
                     img_wr.extend(vision.read_frame());
                 }
-            } else {
-                if !self.rx.is_closed() {
-                    log::warn!("Failed to process frame");
-                }
+            } else if !self.rx.is_closed() {
+                log::warn!("Failed to process frame");
             }
 
             // Manual transition requests from API
@@ -333,9 +307,7 @@ impl Shaoooh {
                     loop {
                         let state_copy = { Some((*rx.borrow_and_update()).clone()) };
                         if let Some(state) = state_copy {
-                            //. TODO reset enc
-                            let phased = state.encounters
-                                - state.phases.iter().map(|x| x.encounters).max().unwrap_or(0);
+                            let phased = state.encounters;
                             let content = reqwest::multipart::Form::new()
                                 .text(
                                     "message",
@@ -374,97 +346,6 @@ impl Shaoooh {
         }
     }
 
-    // TODO move to separate module
-    pub fn lights_thread(mut rx: watch::Receiver<AppState>) {
-        const NUM_PIXELS: u32 = 7;
-        let mut anim = 0;
-        let mut lights = Lights::new(NUM_PIXELS, 18);
-        while let Ok(_) = rx.has_changed() {
-            let state_copy = { (*rx.borrow_and_update()).clone() };
-
-            let mut data = Vec::new();
-
-            let interesting_state =
-                (state_copy.state != HuntState::Idle) && (state_copy.state != HuntState::Hunt);
-
-            let num: u64 = NUM_PIXELS.into();
-            let num_circle = num - 1;
-            if interesting_state {
-                let r = 0;
-                let (g, b) = if state_copy.state == HuntState::FoundTarget {
-                    (50, 0)
-                } else {
-                    (0, 50)
-                };
-                let w = 0;
-                data.push(PixelData { r, g, b, w });
-                for n in 1..num {
-                    let highlight_pixel = (anim + num_circle) % num_circle == (n - 1);
-                    let highlight_pixel_m1 = (anim + num_circle - 1) % num_circle == (n - 1);
-                    let highlight_pixel_m2 = (anim + num_circle - 2) % num_circle == (n - 1);
-                    let c = if highlight_pixel {
-                        60
-                    } else if highlight_pixel_m1 {
-                        10
-                    } else if highlight_pixel_m2 {
-                        5
-                    } else {
-                        0
-                    };
-                    let r = 0;
-                    let (g, b) = if state_copy.state == HuntState::FoundTarget {
-                        (c, 0)
-                    } else {
-                        (0, c)
-                    };
-                    let w = 0;
-                    data.push(PixelData { r, g, b, w });
-                }
-                anim += 1;
-            } else if state_copy.state == HuntState::Idle {
-                for _n in 0..num {
-                    data.push(PixelData {
-                        r: 0,
-                        g: 0,
-                        b: 0,
-                        w: 0,
-                    });
-                }
-            } else {
-                data.push(PixelData {
-                    r: 0,
-                    g: 0,
-                    b: 0,
-                    w: 0,
-                });
-                for n in 1..num {
-                    let highlight_pixel =
-                        (state_copy.encounters + num_circle) % num_circle == (n - 1);
-                    let highlight_pixel_m1 =
-                        (state_copy.encounters + num_circle - 1) % num_circle == (n - 1);
-                    let highlight_pixel_m2 =
-                        (state_copy.encounters + num_circle - 2) % num_circle == (n - 1);
-                    let r = if highlight_pixel {
-                        60
-                    } else if highlight_pixel_m1 {
-                        25
-                    } else if highlight_pixel_m2 {
-                        10
-                    } else {
-                        0
-                    };
-                    let g = 0;
-                    let b = 0;
-                    let w = 0;
-                    data.push(PixelData { r, g, b, w });
-                }
-            }
-
-            lights.draw(data);
-            thread::sleep(Duration::from_millis(100));
-        }
-    }
-
     pub async fn serve(mut self) -> Result<(), String> {
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
 
@@ -474,11 +355,21 @@ impl Shaoooh {
 
         tokio::spawn(Self::call_webhook(rx_clone));
 
-        let rx_light_clone = state.rx.clone();
-        let light_thread = std::thread::spawn(|| {
-            Self::lights_thread(rx_light_clone);
-            log::info!("Light thread complete");
-        });
+        // TODO better way of instantiating displays
+        let mut displays: Vec<DisplayWrapper> = Vec::new();
+        let mut handles: Vec<(String, JoinHandle<()>)> = Vec::new();
+
+        let func = || -> Box<(dyn StateReceiver + 'static)> { Box::new(LightsDisplay::default()) };
+        displays.push(DisplayWrapper::new("Neopixel display".to_string(), func));
+
+        for mut display in displays {
+            let rx_clone = state.rx.clone();
+            let name = display.name();
+            let handle = std::thread::spawn(move || {
+                display.thread(rx_clone);
+            });
+            handles.push((name, handle));
+        }
 
         let main_thread = std::thread::spawn(|| {
             self.main_thread(shutdown_rx);
@@ -492,7 +383,13 @@ impl Shaoooh {
             .unwrap();
 
         main_thread.join().expect("Error from main thread");
-        light_thread.join().expect("Error from light thread");
+
+        for handle in handles {
+            handle
+                .1
+                .join()
+                .unwrap_or_else(|_| panic!("Error from thread: {}", handle.0))
+        }
 
         Ok(())
     }

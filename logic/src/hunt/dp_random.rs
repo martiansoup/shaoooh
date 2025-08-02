@@ -1,6 +1,6 @@
 use std::time::{Duration, SystemTime};
 
-use crate::app::states::{Game, Method, RequestTransition, Transition, TransitionArg};
+use crate::app::states::{Game, RequestTransition, Transition, TransitionArg};
 use crate::control::{Button, ShaooohControl};
 use crate::hunt::{BaseHunt, HuntFSM, HuntResult};
 use crate::vision::{Processing, ProcessingResult};
@@ -162,8 +162,8 @@ impl HuntFSM for DPRandomEncounter {
                                 arg: Some(TransitionArg {
                                     name: String::from(""),
                                     species: detect.species,
-                                    game: Game::DiamondPearl,
-                                    method: Method::RandomEncounter,
+                                    game: self.base.game.clone(),
+                                    method: self.base.method.clone(),
                                 }),
                             });
                         }

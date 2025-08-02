@@ -17,6 +17,7 @@ pub enum Button {
     Down,
 }
 
+#[allow(dead_code)] // TODO are Half/Sec needed?
 pub enum Delay {
     Twentieth,
     Tenth,

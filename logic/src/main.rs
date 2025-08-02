@@ -1,8 +1,7 @@
-use std::{process::Command, thread, time::Duration};
-
 use simple_logger::SimpleLogger;
 mod app;
 mod control;
+mod displays;
 mod hunt;
 mod lights;
 mod vision;

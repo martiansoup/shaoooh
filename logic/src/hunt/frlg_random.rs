@@ -134,15 +134,17 @@ impl HuntFSM for FRLGRandomEncounter {
             }
             FRLGRandomEncounterState::Detect => {
                 if let Some(detect) = detect_result {
-                    self.stats_file.write_all(
-                        format!(
-                            "species={},time={},shiny={}\n",
-                            detect.species,
-                            self.last_timer_duration.as_millis(),
-                            detect.shiny
+                    self.stats_file
+                        .write_all(
+                            format!(
+                                "species={},time={},shiny={}\n",
+                                detect.species,
+                                self.last_timer_duration.as_millis(),
+                                detect.shiny
+                            )
+                            .as_bytes(),
                         )
-                        .as_bytes(),
-                    );
+                        .expect("Failed to write to stats file");
                     if detect.shiny || (self.last_timer_duration > SHINY_DURATION) {
                         if detect.species == self.base.target {
                             transition = Some(RequestTransition {

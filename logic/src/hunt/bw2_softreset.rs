@@ -40,11 +40,6 @@ pub(crate) struct BW2SoftReset {
 }
 
 impl BW2SoftReset {
-    fn create_wait_secs(&mut self, d: u64, state: BW2SoftResetState) -> BW2SoftResetState {
-        self.base.wait_start = SystemTime::now();
-        BW2SoftResetState::Wait(Duration::from_secs(d), Box::new(state))
-    }
-
     fn create_wait_msecs(&mut self, d: u64, state: BW2SoftResetState) -> BW2SoftResetState {
         self.base.wait_start = SystemTime::now();
         BW2SoftResetState::Wait(Duration::from_millis(d), Box::new(state))
@@ -59,14 +54,9 @@ impl HuntFSM for BW2SoftReset {
                 vec![self.base.target],
                 false,
             )]
-        } else if self.state == BW2SoftResetState::StartEncounter {
-            vec![
-                Processing::BW2_BAR_PRESENT,
-                Processing::BW2_BLACK_SCREEN,
-                Processing::BW2_WHITE_SCREEN,
-                Processing::BW2_BAR_NEGATE_CONFIRM,
-            ]
-        } else if self.state == BW2SoftResetState::WaitInfoBar {
+        } else if self.state == BW2SoftResetState::WaitInfoBar
+            || self.state == BW2SoftResetState::StartEncounter
+        {
             vec![
                 Processing::BW2_BAR_PRESENT,
                 Processing::BW2_BLACK_SCREEN,
