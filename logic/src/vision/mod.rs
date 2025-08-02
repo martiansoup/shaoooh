@@ -69,7 +69,7 @@ impl Processing {
         y: 150,
         w: 256,
         h: 40,
-        col_thresh: 70.0,
+        col_thresh: 75.0,
         num_thresh: 7000,
         invert: true,
     });
@@ -78,8 +78,8 @@ impl Processing {
         y: 0,
         w: 256,
         h: 40,
-        col_thresh: 70.0,
-        num_thresh: 7000,
+        col_thresh: 50.0,
+        num_thresh: 5000,
         invert: true,
     });
     pub const DP_START_ENCOUNTER: Self = Processing::RegionDetect(RegionDetectSettings {
@@ -311,6 +311,7 @@ impl Vision {
         self.reference.get(&species).expect("Must be present")
     }
 
+    // TODO add a dummy "Detect" processing that just updates found sprite
     fn match_sprite(
         &mut self,
         game: &Game,

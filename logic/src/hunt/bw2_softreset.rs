@@ -184,9 +184,7 @@ impl HuntFSM for BW2SoftReset {
             BW2SoftResetState::WaitInfoBar => {
                 if seen_real_bar {
                     self.last_timer_duration = self.timer.elapsed().unwrap();
-                    let mut rng = rand::rng();
-                    let delay = rng.random_range(0..600);
-                    self.create_wait_msecs(delay, BW2SoftResetState::Detect)
+                    BW2SoftResetState::Detect
                 } else {
                     BW2SoftResetState::WaitInfoBar
                 }
