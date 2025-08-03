@@ -17,7 +17,7 @@ use tower_http::services::{ServeDir, ServeFile};
 pub(crate) mod states;
 use crate::{
     control::{Button, ShaooohControl},
-    displays::{DisplayWrapper, LightsDisplay, StateReceiver},
+    displays::{DisplayWrapper, GfxDisplay, LightsDisplay},
     hunt::{HuntBuild, HuntFSM},
     vision::Vision,
 };
@@ -359,12 +359,17 @@ impl Shaoooh {
         let mut displays: Vec<DisplayWrapper> = Vec::new();
         let mut handles: Vec<(String, JoinHandle<()>)> = Vec::new();
 
-        let func = || -> Box<(dyn StateReceiver + 'static)> { Box::new(LightsDisplay::default()) };
-        displays.push(DisplayWrapper::new("Neopixel display".to_string(), func));
+        displays.push(DisplayWrapper::new("Neopixel display".to_string(), || {
+            Box::new(LightsDisplay::default())
+        }));
+        displays.push(DisplayWrapper::new("Gfx Screen".to_string(), || {
+            Box::new(GfxDisplay::default())
+        }));
 
         for mut display in displays {
             let rx_clone = state.rx.clone();
             let name = display.name();
+            log::info!("Creating thread for display: '{}'", name);
             let handle = std::thread::spawn(move || {
                 display.thread(rx_clone);
             });

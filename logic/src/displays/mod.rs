@@ -5,6 +5,7 @@ use crate::app::states::AppState;
 mod gfx;
 mod lights;
 
+pub use gfx::GfxDisplay;
 pub use lights::LightsDisplay;
 
 pub struct DisplayWrapper {
