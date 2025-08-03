@@ -18,6 +18,7 @@ pub enum Button {
 }
 
 #[allow(dead_code)] // TODO are Half/Sec needed?
+#[derive(PartialEq, Debug)]
 pub enum Delay {
     Twentieth,
     Tenth,
@@ -39,12 +40,11 @@ impl ShaooohControl {
         }
     }
 
-    // TODO add delay
-    pub fn press(&mut self, button: Button) {
-        self.press_delay(button, Delay::Tenth);
+    pub fn press(&mut self, button: &Button) {
+        self.press_delay(button, &Delay::Tenth);
     }
 
-    pub fn press_delay(&mut self, button: Button, delay: Delay) {
+    fn get_button_str(button: &Button, down: bool) -> String {
         let cchar = match button {
             Button::A => 'A',
             Button::B => 'B',
@@ -59,28 +59,61 @@ impl ShaooohControl {
             Button::Up => 'u',
             Button::Down => 'd',
         };
+        let val_char = if down { "1" } else { "0" };
+        format!("q{}{}", cchar, val_char)
+    }
+
+    fn get_delay_str(delay: &Delay) -> String {
         let pchar = match delay {
             Delay::Half => 'P',
             Delay::Sec => 'M',
             Delay::Tenth => 'p',
             Delay::Twentieth => 'm',
         };
-        let control_string = format!("q{}1q{}q{}0", cchar, pchar, cchar);
+        format!("q{}", pchar)
+    }
+
+    pub fn presses_delay(&mut self, buttons: &[&Button], delay: &Delay) {
+        let mut control_string = "".to_string();
+        for b in buttons {
+            control_string += &Self::get_button_str(b, true);
+        }
+        control_string += &Self::get_delay_str(delay);
+        for b in buttons {
+            control_string += &Self::get_button_str(b, false);
+        }
+        self.port
+            .write_all(control_string.as_bytes())
+            .expect("Couldn't write");
+    }
+
+    pub fn press_delay(&mut self, button: &Button, delay: &Delay) {
+        let down = Self::get_button_str(button, true);
+        let pause = Self::get_delay_str(delay);
+        let up = Self::get_button_str(button, false);
+        let control_string = format!("{}{}{}", down, pause, up);
         self.port
             .write_all(control_string.as_bytes())
             .expect("Couldn't write");
     }
 
     pub fn gen3_soft_reset(&mut self) {
-        let control_string = "qA1qB1qS1qs1qpqA0qB0qS0qs0";
-        self.port
-            .write_all(control_string.as_bytes())
-            .expect("Couldn't write");
+        self.presses_delay(
+            &[&Button::A, &Button::B, &Button::Start, &Button::Select],
+            &Delay::Tenth,
+        );
     }
+
     pub fn gen5_soft_reset(&mut self) {
-        let control_string = "qL1qR1qS1qs1qpqL0qR0qS0qs0";
-        self.port
-            .write_all(control_string.as_bytes())
-            .expect("Couldn't write");
+        self.presses_delay(
+            &[&Button::L, &Button::R, &Button::Start, &Button::Select],
+            &Delay::Tenth,
+        );
+    }
+}
+
+impl Default for ShaooohControl {
+    fn default() -> Self {
+        Self::new()
     }
 }

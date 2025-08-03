@@ -1,11 +1,6 @@
 use simple_logger::SimpleLogger;
-mod app;
-mod control;
-mod displays;
-mod hunt;
-mod lights;
-mod vision;
-use crate::app::Shaoooh;
+
+use shaoooh::app::Shaoooh;
 
 #[tokio::main]
 async fn main() {
@@ -15,7 +10,7 @@ async fn main() {
         .init()
         .unwrap();
 
-    log::info!("Starting Shaooh");
+    log::info!("Starting Shaoooh");
 
     // build our application with a single route
     let app = Shaoooh::new();

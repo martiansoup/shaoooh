@@ -23,6 +23,7 @@ impl DisplayWrapper {
             let state_copy = { (*rx.borrow_and_update()).clone() };
             inner.display(state_copy);
         }
+        inner.cleanup();
     }
 
     pub fn name(&self) -> String {
@@ -32,4 +33,5 @@ impl DisplayWrapper {
 
 pub trait StateReceiver {
     fn display(&mut self, state: AppState);
+    fn cleanup(&mut self);
 }

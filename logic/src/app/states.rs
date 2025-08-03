@@ -138,7 +138,7 @@ pub enum Method {
 // State of application, shared between main thread and API
 // TODO add dates
 #[derive(Clone, Serialize)]
-pub(crate) struct AppState {
+pub struct AppState {
     pub(crate) state: HuntState,
     pub(crate) arg: Option<TransitionArg>,
     pub(crate) encounters: u64,

@@ -21,7 +21,7 @@ use crate::{
     hunt::{HuntBuild, HuntFSM},
     vision::Vision,
 };
-use states::*;
+pub use states::*;
 use tokio::signal;
 
 // Response to any requests for the current state, also includes possible transitions
@@ -152,7 +152,7 @@ impl Shaoooh {
     fn transition_logic(
         &mut self,
         from: HuntState,
-        hunt: &mut Option<Box<dyn HuntFSM>>,
+        hunt: &mut Option<HuntFSM>,
         transition: &Transition,
     ) -> bool {
         if self.app.state == HuntState::Hunt && from != HuntState::Hunt {
@@ -162,8 +162,8 @@ impl Shaoooh {
             let method = self.app.arg.as_ref().unwrap().method.clone();
             let new_hunt = HuntBuild::build(target, game, method);
             match new_hunt {
-                Ok(h) => *hunt = Some(h),
-                Err(_) => return false,
+                Some(h) => *hunt = Some(h),
+                None => return false,
             };
         }
         if self.app.state != HuntState::FoundNonTarget
@@ -191,7 +191,7 @@ impl Shaoooh {
     fn do_transition(
         &mut self,
         transition_req: RequestTransition,
-        hunt: &mut Option<Box<dyn HuntFSM>>,
+        hunt: &mut Option<HuntFSM>,
         automatic: bool,
     ) {
         let possible_transitions = self.app.state.possible_transitions();
@@ -243,17 +243,17 @@ impl Shaoooh {
     fn main_thread(mut self, mut shutdown_rx: oneshot::Receiver<()>) {
         let mut control = ShaooohControl::new();
         let mut vision = Vision::new();
-        let mut hunt: Option<Box<dyn HuntFSM>> = None;
+        let mut hunt: Option<HuntFSM> = None;
 
         while shutdown_rx.try_recv().is_err() {
             // What processing is needed
             let processing = if let Some(h) = &mut hunt {
                 h.processing()
             } else {
-                Vec::new()
+                &Vec::new()
             };
             // Frame processing
-            if let Ok(results) = vision.process_next_frame(processing) {
+            if let Some(results) = vision.process_next_frame(processing) {
                 // Step state machines
                 if let Some(h) = &mut hunt {
                     let result = h.step(&mut control, results);
@@ -284,7 +284,7 @@ impl Shaoooh {
 
             if !self.button_rx.is_empty() {
                 if let Some(button) = self.button_rx.blocking_recv() {
-                    control.press(button);
+                    control.press(&button);
                 }
             }
 
@@ -296,6 +296,7 @@ impl Shaoooh {
         }
     }
 
+    // TODO move to async display wrapper
     async fn call_webhook(mut rx: watch::Receiver<AppState>) {
         let path = "user_config.json";
         if std::fs::exists(path).unwrap_or(false) {
@@ -397,6 +398,12 @@ impl Shaoooh {
         }
 
         Ok(())
+    }
+}
+
+impl Default for Shaoooh {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

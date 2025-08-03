@@ -37,7 +37,7 @@ pub struct ChannelDetectSettings {
     pub num_thresh: i32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Processing {
     // List of sprites to check, and should it be flipped
     Sprite(Game, Vec<u32>, bool),
@@ -163,10 +163,10 @@ impl Processing {
 
 #[derive(Debug)]
 pub struct ProcessingResult {
-    pub(crate) process: Processing,
-    pub(crate) met: bool,
-    pub(crate) species: u32,
-    pub(crate) shiny: bool,
+    pub process: Processing,
+    pub met: bool,
+    pub species: u32,
+    pub shiny: bool,
 }
 
 pub struct Vision {
@@ -543,14 +543,14 @@ impl Vision {
 
     pub fn process_next_frame(
         &mut self,
-        processing: Vec<Processing>,
-    ) -> Result<Vec<ProcessingResult>, ()> {
+        processing: &[Processing],
+    ) -> Option<Vec<ProcessingResult>> {
         let mut input_frame = Mat::default();
         self.cam
             .read(&mut input_frame)
             .expect("Failed to read frame");
         if input_frame.empty() {
-            return Err(());
+            return None;
         }
         let unsized_frame = input_frame
             .roi(opencv::core::Rect::new(
@@ -580,7 +580,7 @@ impl Vision {
         Self::transform_window(Self::CAPTURE_WIN);
         highgui::wait_key(1).expect("Event loop failed");
 
-        Ok(processing.iter().map(|p| self.process(p, &frame)).collect())
+        Some(processing.iter().map(|p| self.process(p, &frame)).collect())
     }
 
     pub fn read_frame(&self) -> &[u8] {

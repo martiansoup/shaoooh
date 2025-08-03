@@ -96,6 +96,8 @@ impl super::StateReceiver for LightsDisplay {
         self.lights.draw(data);
         thread::sleep(Duration::from_millis(100));
     }
+
+    fn cleanup(&mut self) {}
 }
 
 impl Default for LightsDisplay {

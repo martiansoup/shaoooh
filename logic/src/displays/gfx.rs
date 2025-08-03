@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use serialport::SerialPort;
 
 use crate::app::states::AppState;
@@ -33,11 +35,27 @@ impl super::StateReceiver for GfxDisplay {
             }
         }
     }
+
+    fn cleanup(&mut self) {
+        if let Some(serial) = &self.serial_disp {
+            serial
+                .clear(serialport::ClearBuffer::All)
+                .expect("Failed to clear buffers");
+        }
+    }
 }
 
 impl Default for GfxDisplay {
     fn default() -> Self {
-        let serial_disp = serialport::new("/dev/ttyACM0", 115200).open().ok();
+        let mut serial_disp = serialport::new("/dev/ttyACM0", 115200).open().ok();
+        if let Some(serial) = &mut serial_disp {
+            serial
+                .clear(serialport::ClearBuffer::All)
+                .expect("Failed to clear buffers");
+            serial
+                .set_timeout(Duration::from_millis(100))
+                .expect("Failed to set timeout");
+        };
         let last_target = 0;
         let last_encounters = 0;
         Self {
