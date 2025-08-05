@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -136,7 +137,6 @@ pub enum Method {
 }
 
 // State of application, shared between main thread and API
-// TODO add dates
 #[derive(Clone, Serialize)]
 pub struct AppState {
     pub(crate) state: HuntState,
@@ -146,9 +146,10 @@ pub struct AppState {
     pub(crate) last_phase: u32,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub(crate) struct Phase {
-    pub(crate) species: u32,
-    pub(crate) encounters: u64,
-    pub(crate) caught: bool,
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct Phase {
+    pub species: u32,
+    pub encounters: u64,
+    pub caught: bool,
+    pub date: DateTime<Utc>,
 }

@@ -1,10 +1,9 @@
-// use std::thread;
-// use std::time::Duration;
+use chrono::Datelike;
+use shaoooh::context::PkContext;
 
-// use shaoooh::vision::{Processing, ProcessingResult};
 use simple_logger::SimpleLogger;
 
-use shaoooh::app::{Game, Method};
+use shaoooh::app::{Game, Method, Shaoooh};
 use shaoooh::hunt::HuntBuild;
 
 #[tokio::main]
@@ -20,42 +19,41 @@ async fn main() {
     if let Some(fsm) = HuntBuild::build(19, Game::FireRedLeafGreen, Method::RandomEncounter) {
         log::info!("Created state machine");
         log::info!("{:#?}", fsm);
-
-        // log::info!(
-        //     "Current state {} - {}",
-        //     fsm.current_name(),
-        //     fsm.debug_name()
-        // );
-        // let results = vec![ProcessingResult {
-        //     process: Processing::FRLG_START_ENCOUNTER,
-        //     met: true,
-        //     species: 0,
-        //     shiny: false,
-        // }];
-        // fsm.step_no_output(results);
-        // thread::sleep(Duration::from_secs(1));
-        // log::info!(
-        //     "Current state {} - {}",
-        //     fsm.current_name(),
-        //     fsm.debug_name()
-        // );
-        // let results = vec![ProcessingResult {
-        //     process: Processing::FRLG_START_ENCOUNTER,
-        //     met: true,
-        //     species: 0,
-        //     shiny: false,
-        // }];
-        // fsm.step_no_output(results);
-        // for _ in 0..100 {
-        //     log::info!(
-        //         "Loop Current state {} - {}",
-        //         fsm.current_name(),
-        //         fsm.debug_name()
-        //     );
-        //     fsm.step_no_output(Vec::new());
-        //     thread::sleep(Duration::from_millis(50));
-        // }
     } else {
         log::error!("Failed to build state machine");
+    }
+
+    let hunts = Shaoooh::get_all_hunts();
+    let mut mons = Vec::new();
+
+    for h in hunts {
+        for p in h.phases {
+            mons.push((
+                p.date,
+                p.species,
+                h.game.clone(),
+                h.method.clone(),
+                p.encounters,
+            ))
+        }
+        if let Some(date) = h.date {
+            if h.complete {
+                mons.push((date, h.species, h.game, h.method, h.encounters))
+            }
+        }
+    }
+    mons.sort_by_key(|f| f.0);
+    for m in mons {
+        let name = PkContext::get().species().name(m.1);
+        log::info!(
+            "Caught {} #{} on {}-{}-{} in {:?} in {} encounters",
+            name,
+            m.1,
+            m.0.year(),
+            m.0.month(),
+            m.0.day(),
+            m.2,
+            m.4
+        );
     }
 }

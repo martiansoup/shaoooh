@@ -1,5 +1,6 @@
 use std::{
     io::{BufWriter, Write},
+    path::PathBuf,
     sync::{Arc, Mutex},
     thread::JoinHandle,
 };
@@ -11,6 +12,7 @@ use axum::{
     response::IntoResponse,
     routing::{get, post},
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, oneshot, watch};
 use tower_http::services::{ServeDir, ServeFile};
@@ -49,15 +51,16 @@ pub struct Shaoooh {
 }
 
 // Struct to load/save from disc
-#[derive(Clone, Serialize, Deserialize)]
-struct HuntInformation {
-    name: String,
-    species: u32,
-    game: Game,
-    method: Method,
-    encounters: u64,
-    phases: Vec<Phase>,
-    complete: bool,
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct HuntInformation {
+    pub name: String,
+    pub species: u32,
+    pub game: Game,
+    pub method: Method,
+    pub encounters: u64,
+    pub phases: Vec<Phase>,
+    pub complete: bool,
+    pub date: Option<DateTime<Utc>>,
 }
 
 #[derive(Deserialize)]
@@ -115,6 +118,35 @@ impl Shaoooh {
         format!("hunts/hunt_{}.json", name)
     }
 
+    pub fn get_all_hunt_files() -> Vec<PathBuf> {
+        std::fs::read_dir("hunts/")
+            .expect("Failed to read hunts")
+            .filter_map(|p| {
+                if let Ok(d) = p {
+                    if let Ok(f) = d.file_type() {
+                        if f.is_file() && d.path().extension().map_or(false, |x| x == "json") {
+                            return Some(d.path());
+                        }
+                    }
+                }
+                None
+            })
+            .collect()
+    }
+
+    pub fn get_all_hunts() -> Vec<HuntInformation> {
+        let files = Self::get_all_hunt_files();
+        let mut res = Vec::new();
+
+        for f in files {
+            let data = std::fs::read_to_string(f).expect("Couldn't read file");
+            let hunt: HuntInformation = serde_json::from_str(&data).expect("Failed to parse json");
+            res.push(hunt);
+        }
+
+        res
+    }
+
     fn try_get_encounters(name: &str) -> (Vec<Phase>, u64) {
         if std::fs::exists(Self::filename_from_name(name)).unwrap_or(false) {
             // TODO error check information? And check if already complete?
@@ -138,10 +170,15 @@ impl Shaoooh {
                 encounters: self.app.encounters,
                 phases: self.app.phases.clone(),
                 complete: self.app.state == HuntState::FoundTarget,
+                date: if self.app.state == HuntState::FoundTarget {
+                    Some(Utc::now())
+                } else {
+                    None
+                },
             };
             let file = std::fs::File::create(Self::filename_from_name(&name)).unwrap();
             let mut writer = BufWriter::new(file);
-            serde_json::to_writer(&mut writer, &state).expect("Failed to serialise state");
+            serde_json::to_writer_pretty(&mut writer, &state).expect("Failed to serialise state");
             writer.flush().expect("Failed to flush to file");
         }
         self.tx
@@ -166,14 +203,19 @@ impl Shaoooh {
                 None => return false,
             };
         }
-        if self.app.state != HuntState::FoundNonTarget
+        let phased = (self.app.state != HuntState::FoundNonTarget
             && from == HuntState::FoundNonTarget
-            && *transition != Transition::FalseDetect
-        {
+            && *transition != Transition::FalseDetect)
+            || (self.app.state != HuntState::FoundTarget
+                && from == HuntState::FoundTarget
+                && *transition != Transition::Fail
+                && *transition != Transition::FalseDetect);
+        if phased {
             let phase = Phase {
                 caught: *transition == Transition::Caught,
                 species: self.app.last_phase,
                 encounters: self.app.encounters,
+                date: Utc::now(),
             };
             self.app.phases.push(phase);
             // Reset the encounters after a phase

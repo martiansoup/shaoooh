@@ -163,7 +163,7 @@ impl DetectionResolver {
             StateDescription::linear_state(
                 Detection::Run4,
                 vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
-                3000..3000,
+                3000..5100,
             ),
         ];
 
