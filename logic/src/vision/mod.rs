@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use opencv::{
     core::{Point, Rect, Size, ToInputArray, Vector},
@@ -172,6 +175,7 @@ pub struct ProcessingResult {
 pub struct Vision {
     cam: VideoCapture,
     encoded: Vector<u8>,
+    raw_frame: Arc<Mutex<Mat>>,
     game: Game,
     flipped: bool,
     // Reference, Shiny, Mask
@@ -233,7 +237,7 @@ impl Vision {
         Self::transform_window(win);
     }
 
-    pub fn new() -> Self {
+    pub fn new(raw_frame_mutex: Arc<Mutex<Mat>>) -> Self {
         log::info!("Starting video capture");
         let mut cam =
             VideoCapture::from_file(Shaoooh::VIDEO_DEV, CAP_V4L2).expect("Couldn't open video");
@@ -261,6 +265,7 @@ impl Vision {
         Self {
             cam,
             encoded: Vector::default(),
+            raw_frame: raw_frame_mutex,
             reference: HashMap::new(),
             game: Game::None,
             flipped: false,
@@ -448,6 +453,10 @@ impl Vision {
                 self.img_index = 0; // Reset index after reaching max
             }
         }
+
+        if let Ok(mut f) = self.raw_frame.lock() {
+            *f = for_rect.clone();
+        }
         // Display current find TODO should this be included?
         Self::show_window(Self::FOUND_WIN, &for_rect);
         Self::transform_window(Self::FOUND_WIN);
@@ -585,5 +594,9 @@ impl Vision {
 
     pub fn read_frame(&self) -> &[u8] {
         self.encoded.as_slice()
+    }
+
+    pub fn get_raw_frame_mutex(&self) -> Arc<Mutex<Mat>> {
+        self.raw_frame.clone()
     }
 }

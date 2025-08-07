@@ -43,6 +43,8 @@ async fn main() {
         }
     }
     mons.sort_by_key(|f| f.0);
+    let mut total_enc = 0;
+    let mut num_shiny = 0;
     for m in mons {
         let name = PkContext::get().species().name(m.1);
         log::info!(
@@ -55,5 +57,13 @@ async fn main() {
             m.2,
             m.4
         );
+        total_enc += m.4;
+        num_shiny += 1;
     }
+    log::info!(
+        "Total encounters = {}, {} shinies. Avg. = {}",
+        total_enc,
+        num_shiny,
+        total_enc / num_shiny
+    );
 }

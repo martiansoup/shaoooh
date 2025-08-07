@@ -13,13 +13,14 @@ use axum::{
     routing::{get, post},
 };
 use chrono::{DateTime, Utc};
+use opencv::core::Mat;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, oneshot, watch};
 use tower_http::services::{ServeDir, ServeFile};
 pub(crate) mod states;
 use crate::{
     control::{Button, ShaooohControl},
-    displays::{DisplayWrapper, GfxDisplay, LightsDisplay},
+    displays::{DisplayWrapper, GfxDisplay, LightsDisplay, ScreenDisplay},
     hunt::{HuntBuild, HuntFSM},
     vision::Vision,
 };
@@ -282,9 +283,13 @@ impl Shaoooh {
         }
     }
 
-    fn main_thread(mut self, mut shutdown_rx: oneshot::Receiver<()>) {
+    fn main_thread(
+        mut self,
+        mut shutdown_rx: oneshot::Receiver<()>,
+        raw_frame_mutex: Arc<Mutex<Mat>>,
+    ) {
         let mut control = ShaooohControl::new();
-        let mut vision = Vision::new();
+        let mut vision = Vision::new(raw_frame_mutex);
         let mut hunt: Option<HuntFSM> = None;
 
         while shutdown_rx.try_recv().is_err() {
@@ -418,9 +423,20 @@ impl Shaoooh {
             });
             handles.push((name, handle));
         }
+        let raw_frame_mutex = Arc::new(Mutex::new(Mat::default()));
+        // TODO how to use display
+        // let mutex_copy = raw_frame_mutex.clone();
+        // std::thread::spawn(move || {
+        //     let mut screen_display = ScreenDisplay::new(mutex_copy);
+
+        //     // TODO shutdown and move to a DisplayWrapper
+        //     loop {
+        //         screen_display.display();
+        //     }
+        // });
 
         let main_thread = std::thread::spawn(|| {
-            self.main_thread(shutdown_rx);
+            self.main_thread(shutdown_rx, raw_frame_mutex);
             log::info!("Main thread complete");
         });
         // run our app with hyper, listening globally on port 3000

@@ -2,9 +2,11 @@ use tokio::sync::watch;
 
 use crate::app::states::AppState;
 
+mod display;
 mod gfx;
 mod lights;
 
+pub use display::ScreenDisplay;
 pub use gfx::GfxDisplay;
 pub use lights::LightsDisplay;
 
