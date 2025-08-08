@@ -41,6 +41,8 @@ impl DetectionResolver {
         }
     }
 
+    const RUN_DELAY : u64 = 500;
+
     pub fn frlg_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
         // TODO detection state builder
         let shiny_threshold = Duration::from_millis(3250);
@@ -138,7 +140,7 @@ impl DetectionResolver {
             StateDescription::linear_state(
                 Detection::PressA,
                 vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
-                5000..5000,
+                3000..3000,
             ),
             // Detect
             StateDescription::new(Detection::Detect, vec![detect], vec![], 0..0, detect_checks),
@@ -148,17 +150,17 @@ impl DetectionResolver {
             StateDescription::linear_state(
                 Detection::Run1,
                 vec![HuntStateOutput::new(Button::Down, Delay::Tenth)],
-                1000..1000,
+                Self::RUN_DELAY..Self::RUN_DELAY,
             ),
             StateDescription::linear_state(
                 Detection::Run2,
                 vec![HuntStateOutput::new(Button::Right, Delay::Tenth)],
-                1000..1000,
+                Self::RUN_DELAY..Self::RUN_DELAY,
             ),
             StateDescription::linear_state(
                 Detection::Run3,
                 vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
-                1000..1000,
+                Self::RUN_DELAY..Self::RUN_DELAY,
             ),
             StateDescription::linear_state(
                 Detection::Run4,

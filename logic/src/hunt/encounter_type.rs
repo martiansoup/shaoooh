@@ -20,6 +20,8 @@ enum TryGetEncounter {
 pub struct EncounterTypeResolver {}
 
 impl EncounterTypeResolver {
+    const MOVE_DELAY : u64 = 75;
+
     pub fn add_states(builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
         let game = builder.game();
         let method = builder.method();
@@ -45,7 +47,7 @@ impl EncounterTypeResolver {
                 TryGetEncounter::Down,
                 Processing::FRLG_START_ENCOUNTER,
                 HuntStateOutput::new(Button::Up, Delay::Tenth),
-                200..200,
+                Self::MOVE_DELAY..Self::MOVE_DELAY,
             ),
             StateDescription::simple_process_state(
                 TryGetEncounter::Down,
@@ -53,7 +55,7 @@ impl EncounterTypeResolver {
                 TryGetEncounter::Up,
                 Processing::FRLG_START_ENCOUNTER,
                 HuntStateOutput::new(Button::Down, Delay::Tenth),
-                200..200,
+                Self::MOVE_DELAY..Self::MOVE_DELAY,
             ),
             StateDescription::simple_process_state(
                 TryGetEncounter::Left,
@@ -61,7 +63,7 @@ impl EncounterTypeResolver {
                 TryGetEncounter::Right,
                 Processing::FRLG_START_ENCOUNTER,
                 HuntStateOutput::new(Button::Left, Delay::Tenth),
-                200..200,
+                Self::MOVE_DELAY..Self::MOVE_DELAY,
             ),
             StateDescription::simple_process_state(
                 TryGetEncounter::Right,
@@ -69,7 +71,7 @@ impl EncounterTypeResolver {
                 TryGetEncounter::Left,
                 Processing::FRLG_START_ENCOUNTER,
                 HuntStateOutput::new(Button::Right, Delay::Tenth),
-                200..200,
+                Self::MOVE_DELAY..Self::MOVE_DELAY,
             ),
             StateDescription::linear_state_no_delay(TryGetEncounter::Entering, vec![]),
         ];
