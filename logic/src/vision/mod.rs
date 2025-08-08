@@ -12,7 +12,10 @@ use opencv::{
     videoio::{CAP_V4L2, VideoCapture},
 };
 
-use crate::app::{Shaoooh, states::Game};
+use crate::{
+    app::{Shaoooh, states::Game},
+    context::PkContext,
+};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct RegionDetectSettings {
@@ -275,23 +278,13 @@ impl Vision {
     }
 
     fn create_reference(game: &Game, flipped: &bool, species: u32) -> (Mat, Mat, Mat) {
-        let dir = match game {
-            Game::FireRedLeafGreen => "frlg",
-            Game::DiamondPearl => "dp",
-            Game::RubySapphire => "rs",
-            Game::HeartGoldSoulSilver => "hgss",
-            Game::Black2White2 => "bw",
-            Game::BlackWhite => "bw",
-            _ => panic!("Unimplemented game"), // TODO other games
-        };
-        // TODO check files exist as doesn't error from opencv
-        let path_png = format!("../reference/images/{}/{:03}.png", dir, species);
+        let path_png = PkContext::get().sprite_path(game, species, false);
         let path = if std::fs::exists(&path_png).unwrap() {
             path_png
         } else {
             panic!("Couldn't get reference image {}", path_png)
         };
-        let shiny_path_png = format!("../reference/images/{}/{:03}_shiny.png", dir, species);
+        let shiny_path_png = PkContext::get().sprite_path(game, species, true);
         let shiny_path = if std::fs::exists(&shiny_path_png).unwrap() {
             shiny_path_png
         } else {

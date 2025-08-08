@@ -41,7 +41,7 @@ impl DetectionResolver {
         }
     }
 
-    const RUN_DELAY : u64 = 500;
+    const RUN_DELAY: u64 = 500;
 
     pub fn frlg_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
         // TODO detection state builder

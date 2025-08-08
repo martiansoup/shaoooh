@@ -4,6 +4,8 @@ use std::sync::OnceLock;
 
 use species::SpeciesProvider;
 
+use crate::app::Game;
+
 const PKMN: &str = include_str!("../../../reference/pokeapi/data/v2/csv/pokemon_species.csv");
 const PKMN_NAMES: &str =
     include_str!("../../../reference/pokeapi/data/v2/csv/pokemon_species_names.csv");
@@ -29,5 +31,22 @@ impl PkContext {
 
     pub fn species(&self) -> &species::SpeciesProvider {
         &self.species
+    }
+
+    pub fn sprite_path(&self, game: &Game, species: u32, shiny: bool) -> String {
+        let dir = match game {
+            Game::FireRedLeafGreen => "frlg",
+            Game::DiamondPearl => "dp",
+            Game::RubySapphire => "rs",
+            Game::HeartGoldSoulSilver => "hgss",
+            Game::Black2White2 => "bw",
+            Game::BlackWhite => "bw",
+            _ => panic!("Unimplemented game"), // TODO other games
+        };
+        if shiny {
+            format!("../reference/images/{}/{:03}_shiny.png", dir, species)
+        } else {
+            format!("../reference/images/{}/{:03}.png", dir, species)
+        }
     }
 }

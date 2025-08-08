@@ -20,7 +20,7 @@ use tower_http::services::{ServeDir, ServeFile};
 pub(crate) mod states;
 use crate::{
     control::{Button, ShaooohControl},
-    displays::{DisplayWrapper, GfxDisplay, LightsDisplay, ScreenDisplay},
+    displays::{DisplayWrapper, GfxDisplay, LightsDisplay, ScreenDisplay, Webhook},
     hunt::{HuntBuild, HuntFSM},
     vision::Vision,
 };
@@ -62,12 +62,6 @@ pub struct HuntInformation {
     pub phases: Vec<Phase>,
     pub complete: bool,
     pub date: Option<DateTime<Utc>>,
-}
-
-#[derive(Deserialize)]
-struct UserConfig {
-    api_key: Option<String>,
-    user_id: Option<String>,
 }
 
 impl Shaoooh {
@@ -343,84 +337,6 @@ impl Shaoooh {
         }
     }
 
-    // TODO move to async display wrapper
-    async fn call_webhook(mut rx: watch::Receiver<AppState>) {
-        let path = "user_config.json";
-        if std::fs::exists(path).unwrap_or(false) {
-            let data = std::fs::read_to_string(path).expect("Couldn't read file");
-            if let Ok(cfg) = serde_json::from_str::<UserConfig>(&data) {
-                log::info!("Loaded user configuration");
-
-                if let (Some(api_key), Some(user_id)) = (cfg.api_key, cfg.user_id) {
-                    loop {
-                        let state_copy = { Some((*rx.borrow_and_update()).clone()) };
-                        if let Some(state) = state_copy {
-                            if let Some(arg) = state.arg {
-                                // TODO merge with vision
-                                let dir = match arg.game {
-                                    Game::FireRedLeafGreen => "frlg",
-                                    Game::DiamondPearl => "dp",
-                                    Game::RubySapphire => "rs",
-                                    Game::HeartGoldSoulSilver => "hgss",
-                                    Game::Black2White2 => "bw",
-                                    Game::BlackWhite => "bw",
-                                    _ => panic!("Unimplemented game"), // TODO other games
-                                };
-                                // TODO last found result
-                                let path_png = format!("../reference/images/{}/{:03}.png", dir, arg.species);
-                                let path = if std::fs::exists(&path_png).unwrap() {
-                                    path_png
-                                } else {
-                                    panic!("Couldn't get reference image {}", path_png)
-                                };
-                                let phased = state.encounters;
-                                let interesting_encounter = (phased % 64 == 0) && (phased != 0);
-                                let interesting_state = (state.state != HuntState::Idle)
-                                    && (state.state != HuntState::Hunt);
-                                let title = if interesting_state {
-                                    "Shaoooh Alert"
-                                } else {
-                                    "Shaoooh Status"
-                                };
-                                let content = reqwest::multipart::Form::new()
-                                    .text(
-                                        "message",
-                                        format!(
-                                            "State = {:?}, No. encounters = {}",
-                                            &state.state, phased
-                                        ),
-                                    )
-                                    .text("token", api_key.clone())
-                                    .text("user", user_id.clone())
-                                    .text("title", title)
-                                    .text("attachment_type", "image/png")
-                                    .file("attachment", path).await.unwrap();
-                                if interesting_encounter || interesting_state {
-                                    log::info!("Calling webhook with {:?}", content);
-                                    let client = reqwest::Client::new();
-                                    match client
-                                        .post("https://api.pushover.net/1/messages.json")
-                                        .multipart(content)
-                                        .send()
-                                        .await
-                                    {
-                                        Ok(_) => {}
-                                        Err(e) => {
-                                            log::error!("Failed to send webhook {:?}", e);
-                                        }
-                                    };
-                                }
-                            }
-                        }
-                        if rx.changed().await.is_err() {
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     pub async fn serve(mut self) -> Result<(), String> {
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
 
@@ -428,18 +344,26 @@ impl Shaoooh {
 
         let rx_clone = state.rx.clone();
 
-        tokio::spawn(Self::call_webhook(rx_clone));
+        tokio::spawn(Webhook::call(rx_clone));
 
-        // TODO better way of instantiating displays
         let mut displays: Vec<DisplayWrapper> = Vec::new();
         let mut handles: Vec<(String, JoinHandle<()>)> = Vec::new();
 
-        displays.push(DisplayWrapper::new("Neopixel display".to_string(), || {
-            Box::new(LightsDisplay::default())
-        }));
-        displays.push(DisplayWrapper::new("Gfx Screen".to_string(), || {
-            Box::new(GfxDisplay::default())
-        }));
+        displays.push(DisplayWrapper::new(
+            "Neopixel display".to_string(),
+            Box::new(|| Box::new(LightsDisplay::default())),
+        ));
+        displays.push(DisplayWrapper::new(
+            "Gfx Screen".to_string(),
+            Box::new(|| Box::new(GfxDisplay::default())),
+        ));
+
+        let raw_frame_mutex = Arc::new(Mutex::new(Mat::default()));
+        let mutex_copy = raw_frame_mutex.clone();
+        displays.push(DisplayWrapper::new(
+            "Screen display".to_string(),
+            Box::new(move || Box::new(ScreenDisplay::new(mutex_copy))),
+        ));
 
         for mut display in displays {
             let rx_clone = state.rx.clone();
@@ -450,17 +374,6 @@ impl Shaoooh {
             });
             handles.push((name, handle));
         }
-        let raw_frame_mutex = Arc::new(Mutex::new(Mat::default()));
-        // TODO how to use display
-        let mutex_copy = raw_frame_mutex.clone();
-        std::thread::spawn(move || {
-            let mut screen_display = ScreenDisplay::new(mutex_copy);
-
-            // TODO shutdown and move to a DisplayWrapper
-            loop {
-                screen_display.display();
-            }
-        });
 
         let main_thread = std::thread::spawn(|| {
             self.main_thread(shutdown_rx, raw_frame_mutex);

@@ -5,27 +5,41 @@ use crate::app::states::AppState;
 mod display;
 mod gfx;
 mod lights;
+mod webhook;
 
 pub use display::ScreenDisplay;
 pub use gfx::GfxDisplay;
 pub use lights::LightsDisplay;
+pub use webhook::Webhook;
 
 pub struct DisplayWrapper {
-    func: fn() -> Box<dyn StateReceiver>,
+    func: Option<Box<dyn FnOnce() -> Box<dyn StateReceiver> + Send>>,
     name: String,
 }
 
 impl DisplayWrapper {
-    pub fn new(name: String, func: fn() -> Box<dyn StateReceiver>) -> Self {
-        DisplayWrapper { func, name }
+    pub fn new(name: String, func: Box<dyn FnOnce() -> Box<dyn StateReceiver> + Send>) -> Self {
+        DisplayWrapper {
+            func: Some(func),
+            name,
+        }
     }
     pub fn thread(&mut self, mut rx: watch::Receiver<AppState>) {
-        let mut inner = (self.func)();
-        while rx.has_changed().is_ok() {
-            let state_copy = { (*rx.borrow_and_update()).clone() };
-            inner.display(state_copy);
+        if let Some(func) = self.func.take() {
+            let mut inner = func();
+            if inner.always_run() {
+                while rx.has_changed().is_ok() {
+                    let state_copy = { rx.borrow().clone() };
+                    inner.display(state_copy);
+                }
+            } else {
+                while rx.has_changed().is_ok() {
+                    let state_copy = { (*rx.borrow_and_update()).clone() };
+                    inner.display(state_copy);
+                }
+            }
+            inner.cleanup();
         }
-        inner.cleanup();
     }
 
     pub fn name(&self) -> String {
@@ -36,4 +50,7 @@ impl DisplayWrapper {
 pub trait StateReceiver {
     fn display(&mut self, state: AppState);
     fn cleanup(&mut self);
+    fn always_run(&self) -> bool {
+        false
+    }
 }

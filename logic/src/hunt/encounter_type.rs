@@ -20,7 +20,7 @@ enum TryGetEncounter {
 pub struct EncounterTypeResolver {}
 
 impl EncounterTypeResolver {
-    const MOVE_DELAY : u64 = 75;
+    const MOVE_DELAY: u64 = 75;
 
     pub fn add_states(builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
         let game = builder.game();

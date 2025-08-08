@@ -16,7 +16,7 @@ pub struct ScreenDisplay {
 
 impl ScreenDisplay {
     //const FRAME_TIME : Duration = Duration::from_millis(1000 / 20);
-    const FRAME_TIME: Duration = Duration::from_millis(1000/3);
+    const FRAME_TIME: Duration = Duration::from_millis(1000 / 3);
     const WIDTH: i32 = 256;
     const HEIGHT: i32 = 192;
     const CHUNK_SIZE: i32 = 32;
@@ -31,18 +31,22 @@ impl ScreenDisplay {
             serial
                 .set_timeout(Duration::from_millis(1000))
                 .expect("Failed to set timeout");
-        };
+        } else {
+            log::warn!("Failed to get serial port for display");
+        }
         let frame_copy = Mat::default();
         ScreenDisplay {
             frame_copy,
             frame_mutex: mutex,
             serial_disp,
             frame_timer: SystemTime::now(),
-            modulo: 0
+            modulo: 0,
         }
     }
+}
 
-    pub fn display(&mut self) {
+impl super::StateReceiver for ScreenDisplay {
+    fn display(&mut self, _state: crate::app::AppState) {
         if self.frame_timer.elapsed().expect("Failed to get time") > Self::FRAME_TIME {
             if let Ok(mat) = self.frame_mutex.lock() {
                 self.frame_copy = mat.clone();
@@ -81,65 +85,15 @@ impl ScreenDisplay {
                 }
                 self.modulo += 1;
             }
-            //log::info!("DISPLAY {}x{}", self.frame_copy.size().unwrap().width, self.frame_copy.size().unwrap().height);
+
             self.frame_timer = SystemTime::now();
         }
         std::thread::sleep(Duration::from_millis(1));
     }
+
+    fn cleanup(&mut self) {}
+
+    fn always_run(&self) -> bool {
+        true
+    }
 }
-
-// impl super::StateReceiver for GfxDisplay {
-//     fn display(&mut self, state: AppState) {
-//         if state.encounters != self.last_encounters {
-//             if let Some(tx) = &mut self.serial_disp {
-//                 let phased = state.encounters;
-//                 let enc_str = format!("E{}e", phased);
-//                 tx.write_all(enc_str.as_bytes())
-//                     .expect("Failed to write encounters to display");
-//             };
-//             self.last_encounters = state.encounters;
-//         }
-
-//         if let Some(arg) = state.arg {
-//             if arg.species != self.last_target {
-//                 let target = arg.species;
-//                 if let Some(tx) = &mut self.serial_disp {
-//                     let tgt_str = format!("T{}e", target);
-//                     log::info!("Setting target on display to {}", tgt_str);
-//                     tx.write_all(tgt_str.as_bytes())
-//                         .expect("Failed to write target to display");
-//                 };
-//                 self.last_target = target;
-//             }
-//         }
-//     }
-
-//     fn cleanup(&mut self) {
-//         if let Some(serial) = &self.serial_disp {
-//             serial
-//                 .clear(serialport::ClearBuffer::All)
-//                 .expect("Failed to clear buffers");
-//         }
-//     }
-// }
-
-// impl Default for GfxDisplay {
-//     fn default() -> Self {
-//         let mut serial_disp = serialport::new("/dev/ttyACM1", 921600).open().ok();
-//         if let Some(serial) = &mut serial_disp {
-//             serial
-//                 .clear(serialport::ClearBuffer::All)
-//                 .expect("Failed to clear buffers");
-//             serial
-//                 .set_timeout(Duration::from_millis(100))
-//                 .expect("Failed to set timeout");
-//         };
-//         let last_target = 0;
-//         let last_encounters = 0;
-//         Self {
-//             last_target,
-//             last_encounters,
-//             serial_disp,
-//         }
-//     }
-// }
