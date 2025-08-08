@@ -355,34 +355,61 @@ impl Shaoooh {
                     loop {
                         let state_copy = { Some((*rx.borrow_and_update()).clone()) };
                         if let Some(state) = state_copy {
-                            let phased = state.encounters;
-                            let content = reqwest::multipart::Form::new()
-                                .text(
-                                    "message",
-                                    format!(
-                                        "State = {:?}, No. encounters = {}",
-                                        &state.state, phased
-                                    ),
-                                )
-                                .text("token", api_key.clone())
-                                .text("user", user_id.clone());
-                            let interesting_encounter = (phased % 64 == 0) && (phased != 0);
-                            let interesting_state = (state.state != HuntState::Idle)
-                                && (state.state != HuntState::Hunt);
-                            if interesting_encounter || interesting_state {
-                                log::info!("Calling webhook with {:?}", content);
-                                let client = reqwest::Client::new();
-                                match client
-                                    .post("https://api.pushover.net/1/messages.json")
-                                    .multipart(content)
-                                    .send()
-                                    .await
-                                {
-                                    Ok(_) => {}
-                                    Err(e) => {
-                                        log::error!("Failed to send webhook {:?}", e);
-                                    }
+                            if let Some(arg) = state.arg {
+                                // TODO merge with vision
+                                let dir = match arg.game {
+                                    Game::FireRedLeafGreen => "frlg",
+                                    Game::DiamondPearl => "dp",
+                                    Game::RubySapphire => "rs",
+                                    Game::HeartGoldSoulSilver => "hgss",
+                                    Game::Black2White2 => "bw",
+                                    Game::BlackWhite => "bw",
+                                    _ => panic!("Unimplemented game"), // TODO other games
                                 };
+                                // TODO last found result
+                                let path_png = format!("../reference/images/{}/{:03}.png", dir, arg.species);
+                                let path = if std::fs::exists(&path_png).unwrap() {
+                                    path_png
+                                } else {
+                                    panic!("Couldn't get reference image {}", path_png)
+                                };
+                                let phased = state.encounters;
+                                let interesting_encounter = (phased % 64 == 0) && (phased != 0);
+                                let interesting_state = (state.state != HuntState::Idle)
+                                    && (state.state != HuntState::Hunt);
+                                let title = if interesting_state {
+                                    "Shaoooh Alert"
+                                } else {
+                                    "Shaoooh Status"
+                                };
+                                let content = reqwest::multipart::Form::new()
+                                    .text(
+                                        "message",
+                                        format!(
+                                            "State = {:?}, No. encounters = {}",
+                                            &state.state, phased
+                                        ),
+                                    )
+                                    .text("token", api_key.clone())
+                                    .text("user", user_id.clone())
+                                    .text("title", title)
+                                    .text("attachment_type", "image/png")
+                                    .file("attachment", path).await.unwrap();
+                                if interesting_encounter || interesting_state {
+                                    log::info!("Calling webhook with {:?}", content);
+                                    let client = reqwest::Client::new();
+                                    match client
+                                        .post("https://api.pushover.net/1/messages.json")
+                                        .multipart(content)
+                                        .send()
+                                        .await
+                                    {
+                                        Ok(_) => {}
+                                        Err(e) => {
+                                            log::error!("Failed to send webhook {:?}", e);
+                                        }
+                                    };
+                                }
                             }
                         }
                         if rx.changed().await.is_err() {
@@ -425,15 +452,15 @@ impl Shaoooh {
         }
         let raw_frame_mutex = Arc::new(Mutex::new(Mat::default()));
         // TODO how to use display
-        // let mutex_copy = raw_frame_mutex.clone();
-        // std::thread::spawn(move || {
-        //     let mut screen_display = ScreenDisplay::new(mutex_copy);
+        let mutex_copy = raw_frame_mutex.clone();
+        std::thread::spawn(move || {
+            let mut screen_display = ScreenDisplay::new(mutex_copy);
 
-        //     // TODO shutdown and move to a DisplayWrapper
-        //     loop {
-        //         screen_display.display();
-        //     }
-        // });
+            // TODO shutdown and move to a DisplayWrapper
+            loop {
+                screen_display.display();
+            }
+        });
 
         let main_thread = std::thread::spawn(|| {
             self.main_thread(shutdown_rx, raw_frame_mutex);

@@ -454,9 +454,6 @@ impl Vision {
             }
         }
 
-        if let Ok(mut f) = self.raw_frame.lock() {
-            *f = for_rect.clone();
-        }
         // Display current find TODO should this be included?
         Self::show_window(Self::FOUND_WIN, &for_rect);
         Self::transform_window(Self::FOUND_WIN);
@@ -580,6 +577,10 @@ impl Vision {
             0,
         )
         .expect("Failed to resize image");
+
+        if let Ok(mut f) = self.raw_frame.lock() {
+            *f = frame.clone();
+        }
 
         // Save to encoded frame
         opencv::imgcodecs::imencode(".png", &frame, &mut self.encoded, &Vector::new())

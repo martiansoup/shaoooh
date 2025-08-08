@@ -16,7 +16,7 @@ pub struct ScreenDisplay {
 
 impl ScreenDisplay {
     //const FRAME_TIME : Duration = Duration::from_millis(1000 / 20);
-    const FRAME_TIME: Duration = Duration::from_millis(5000);
+    const FRAME_TIME: Duration = Duration::from_millis(1000/3);
     const WIDTH: i32 = 256;
     const HEIGHT: i32 = 192;
     const CHUNK_SIZE: i32 = 32;
@@ -53,7 +53,7 @@ impl ScreenDisplay {
                     for chkx in 0..(Self::WIDTH / Self::CHUNK_SIZE) {
                         let chunk_num = (chky * (Self::WIDTH / Self::CHUNK_SIZE)) + chkx;
                         let num_to_draw = 2;
-                        if true { //self.modulo % (48 / num_to_draw) == (chunk_num / num_to_draw) {
+                        if self.modulo % (48 / num_to_draw) == (chunk_num / num_to_draw) {
                             let mut bytes = Vec::new();
                             bytes.push(0x44);
                             let coord = (chkx & 0xf) | ((chky & 0xf) << 4);
