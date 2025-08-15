@@ -298,6 +298,7 @@ impl Shaoooh {
                 // Step state machines
                 if let Some(h) = &mut hunt {
                     let result = h.step(&mut control, results);
+                    h.display();
                     // Automatic transition requests
                     if result.incr_encounters {
                         self.app.encounters += 1;
@@ -359,11 +360,12 @@ impl Shaoooh {
         ));
 
         let raw_frame_mutex = Arc::new(Mutex::new(Mat::default()));
-        let mutex_copy = raw_frame_mutex.clone();
-        displays.push(DisplayWrapper::new(
-            "Screen display".to_string(),
-            Box::new(move || Box::new(ScreenDisplay::new(mutex_copy))),
-        ));
+        // TODO allow enabling display
+        //let mutex_copy = raw_frame_mutex.clone();
+        //displays.push(DisplayWrapper::new(
+        //    "Screen display".to_string(),
+        //    Box::new(move || Box::new(ScreenDisplay::new(mutex_copy))),
+        //));
 
         for mut display in displays {
             let rx_clone = state.rx.clone();

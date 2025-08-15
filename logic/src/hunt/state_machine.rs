@@ -1,5 +1,7 @@
 use std::time::{Duration, SystemTime};
 
+use opencv::highgui::{WINDOW_GUI_NORMAL, WINDOW_KEEPRATIO, WINDOW_AUTOSIZE};
+
 use crate::{
     control::{Button, Delay, ShaooohControl},
     fsm::StateMachine,
@@ -16,6 +18,10 @@ pub struct HuntStateOutput {
 impl HuntStateOutput {
     pub fn new(button: Button, delay: Delay) -> Self {
         HuntStateOutput { button, delay }
+    }
+
+    pub fn button(button: Button) -> Self {
+        HuntStateOutput { button, delay: Delay::Tenth }
     }
 }
 
@@ -43,7 +49,7 @@ pub struct HuntFSM {
 
 impl HuntFSM {
     pub fn new(
-        fsm: StateMachine<
+        mut fsm: StateMachine<
             Processing,
             ProcessingResult,
             HuntStateOutput,
@@ -51,6 +57,12 @@ impl HuntFSM {
             InternalHuntState,
         >,
     ) -> Self {
+        // TODO temporary file
+        fsm.graph_file("current_fsm").expect("Failed to draw graph");
+        opencv::highgui::named_window("fsm", WINDOW_AUTOSIZE | WINDOW_KEEPRATIO | WINDOW_GUI_NORMAL)
+            .unwrap_or_else(|_| panic!("Failed to create 'fsm' window"));
+        opencv::highgui::move_window("fsm", 576, 32)
+            .unwrap_or_else(|_| panic!("Failed to move 'fsm' window"));
         HuntFSM { fsm }
     }
 
@@ -99,6 +111,24 @@ impl HuntFSM {
                 transition: None,
                 incr_encounters: false,
             }
+        }
+    }
+
+    pub fn graph_file(&mut self, file_root: &str) -> Result<(), Box<dyn std::error::Error>> {
+        self.fsm.graph_file(file_root)
+    }
+
+    pub fn graph(&self) -> Option<opencv::core::Mat> {
+        self.fsm.graph_with_state()
+    }
+
+    pub fn display(&self) {
+        if let Some(m) = self.graph() {
+            // TODO combine window drawing code with vision
+            opencv::highgui::imshow("fsm", &m)
+            .unwrap_or_else(|_| panic!("Failed to show 'fsm' window"));
+            opencv::highgui::move_window("fsm", 576, 32)
+            .unwrap_or_else(|_| panic!("Failed to move 'fsm' window"));
         }
     }
 }

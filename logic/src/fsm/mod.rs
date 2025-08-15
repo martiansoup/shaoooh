@@ -1,8 +1,8 @@
 use std::{
-    collections::HashMap,
-    ops::Range,
-    time::{Duration, SystemTime},
+    collections::HashMap, fs::File, io::Write, ops::Range, time::{Duration, SystemTime}
 };
+
+mod draw;
 
 use rand::Rng;
 
@@ -35,6 +35,7 @@ pub struct StateMachine<InputKind, InputValue, StateOutput, StateTransition, Int
     internal: InternalState,
     empty_input: Vec<InputKind>,
     empty_output: Vec<StateOutput>,
+    graph: Option<draw::Graph>
 }
 
 impl<InputKind, InputValue, StateOutput, StateTransition, InternalState>
@@ -51,6 +52,7 @@ where
             internal: InternalState::default(),
             empty_input: Vec::new(),
             empty_output: Vec::new(),
+            graph: None
         }
     }
 
@@ -156,12 +158,12 @@ where
                 .check;
             let chk_fn = &check.check;
             if let Some(next_state) = chk_fn(&inputs, &mut self.internal) {
-                assert!(
+                debug_assert!(
                     self.states.contains_key(&next_state.0),
                     "Next state ({:?}) not valid",
                     next_state.0
                 );
-                assert!(
+                debug_assert!(
                     check.next_states.contains(&next_state.0),
                     "Next state ({:?}) not in list of output states",
                     next_state.0
@@ -205,12 +207,91 @@ where
                     }
                     self.delay = Some((duration, next_state.0))
                 }
-                //self.current = next_state.0;
 
                 Some(next_state.1)
             } else {
                 None
             }
+        }
+    }
+
+    pub fn graph_str(&self) -> String {
+        let graph_config = "ranksep=0.1; bgcolor=\"#7A151B\"; dpi=72; size=\"4.6,7!\";";
+        let node_config = "shape=rect,height=0.1,style=filled,color=\"#D48735\",fillcolor=\"#FBCF9D\",fontcolor=\"#7A151B\",fontsize=8,fontname=\"DejaVu Sans Mono\"";
+        let edge_config = "arrowsize=0.5,color=\"#D48735\"";
+        let mut graph = format!("digraph {{\n  {}\n", graph_config);
+
+        let mut state_list : Vec<&usize> = self.states.keys().collect();
+        state_list.sort();
+
+        for state in state_list {
+            graph.push_str(&format!("  {} [label=\"{}\",id=\"shaoooh_{}\",{}];\n", state, self.states.get(state).unwrap().name, state, node_config));
+        }
+
+        for state in &self.states {
+            for next in &state.1.check.next_states {
+                graph.push_str(&format!("  {} -> {} [{}];\n", state.0, next, edge_config));
+            }
+        }
+
+        graph.push_str("}");
+        graph
+    }
+
+    pub fn graph_file(&mut self, file_root: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let dot_file_name = format!("{}.dot", file_root);
+        let svg_file_name = format!("{}.svg", file_root);
+        let png_file_name = format!("{}.png", file_root);
+        let mut sorted_keys : Vec<&usize> = self.states.keys().collect();
+        sorted_keys.sort();
+        let state_ids : Vec<String> = sorted_keys.into_iter().map(|f| { format!("shaoooh_{}", f) }).collect();
+
+        let mut file = File::create(&dot_file_name)?;
+        file.write_all(self.graph_str().as_bytes())?;
+        file.flush()?;
+
+        let svg = std::process::Command::new("dot")
+        .arg("-Tsvg")
+        .arg(&dot_file_name)
+        .output()?;
+
+        let mut file = File::create(&svg_file_name).unwrap();
+        file.write_all(&svg.stdout).unwrap();
+        file.flush().unwrap();
+
+        std::process::Command::new("inkscape")
+        .arg(&svg_file_name)
+        .arg("-o")
+        .arg(&png_file_name)
+        .status()?;
+
+        let svg_info = std::process::Command::new("inkscape")
+        .arg(svg_file_name)
+        .arg("-I")
+        .arg(state_ids.join(","))
+        .arg("-X")
+        .arg("-Y")
+        .arg("-W")
+        .arg("-H")
+        .output()?;
+
+        let stdout = String::from_utf8(svg_info.stdout)?;
+        let svg_info_arrays : Vec<&str> = stdout.split('\n').collect();
+        let x_array = svg_info_arrays[0].split(',').map(|f| { f.parse::<f32>().unwrap().round() as i32 }).collect();
+        let y_array = svg_info_arrays[1].split(',').map(|f| { f.parse::<f32>().unwrap().round() as i32 }).collect();
+        let w_array = svg_info_arrays[2].split(',').map(|f| { f.parse::<f32>().unwrap().round() as i32 }).collect();
+        let h_array = svg_info_arrays[3].split(',').map(|f| { f.parse::<f32>().unwrap().round() as i32 }).collect();
+
+        self.graph = Some(draw::Graph::new(png_file_name.as_str(), x_array, y_array, w_array, h_array));
+
+        Ok(())
+    }
+
+    pub fn graph_with_state(&self) -> Option<opencv::core::Mat> {
+        if let Some(g) = &self.graph {
+            Some(g.with_state(self.current))
+        } else {
+            None
         }
     }
 }

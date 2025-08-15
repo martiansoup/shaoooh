@@ -1,3 +1,8 @@
+use std::fs::File;
+use std::io::Write;
+use std::thread;
+use std::time::Duration;
+
 use chrono::Datelike;
 use shaoooh::context::PkContext;
 
@@ -16,9 +21,32 @@ async fn main() {
 
     log::info!("Starting Shaoooh Test");
 
-    if let Some(fsm) = HuntBuild::build(19, Game::FireRedLeafGreen, Method::RandomEncounter) {
+    if let Some(mut fsm) = HuntBuild::build(19, Game::FireRedLeafGreen, Method::RandomEncounter) {
         log::info!("Created state machine");
-        log::info!("{:#?}", fsm);
+        // TODO needs to be a temp file
+        fsm.graph_file("graph").expect("Failed to create graph file");
+        
+        if let Some(m) = fsm.graph() {
+            log::info!("Got graph");
+            opencv::imgcodecs::imwrite("graph_out1.png", &m, &opencv::core::Vector::new()).expect("Failed to write image");
+        }
+        fsm.step_no_output(Vec::new());
+        if let Some(m) = fsm.graph() {
+            log::info!("Got graph");
+            opencv::imgcodecs::imwrite("graph_out2.png", &m, &opencv::core::Vector::new()).expect("Failed to write image");
+        }
+        thread::sleep(Duration::from_millis(100));
+        fsm.step_no_output(Vec::new());
+        if let Some(m) = fsm.graph() {
+            log::info!("Got graph");
+            opencv::imgcodecs::imwrite("graph_out3.png", &m, &opencv::core::Vector::new()).expect("Failed to write image");
+        }
+        thread::sleep(Duration::from_millis(100));
+        fsm.step_no_output(Vec::new());
+        if let Some(m) = fsm.graph() {
+            log::info!("Got graph");
+            opencv::imgcodecs::imwrite("graph_out4.png", &m, &opencv::core::Vector::new()).expect("Failed to write image");
+        }
     } else {
         log::error!("Failed to build state machine");
     }

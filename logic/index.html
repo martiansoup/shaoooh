@@ -4,10 +4,18 @@
   <meta charset="UTF-8">
   <title>Shaoooh - Shiny Hunting Automaton Operating On Original Hardware</title>
   <style>
+    :root {
+      --falu-red: #7a151b;
+      --viridian: #277c5e;
+      --celadon: #a0cfa6;
+      --sunset: #fbcf9d;
+      --bronze: #d48735;
+    }
+
     body {
       font-family: Arial, sans-serif;
-      background-color: #1e1e2f;
-      color: #ffffff;
+      background-color: var(--falu-red);
+      color: var(--celadon);
       margin: 0;
       padding: 20px;
     }
@@ -16,10 +24,11 @@
       margin-bottom: 30px;
     }
     h1 {
-      color: #00ffd0;
+      color: var(--sunset);
     }
     .status-panel {
-      background-color: #2c2c3e;
+      background-color: var(--viridian);
+      border: 5px solid var(--celadon);
       padding: 20px;
       border-radius: 10px;
       display: flex;
@@ -35,8 +44,8 @@
       margin-top: 20px;
     }
     .controls button {
-      background-color: #00ffd0;
-      color: #000;
+      background-color: var(--sunset);
+      color: var(--falu-red);
       border: none;
       padding: 10px 20px;
       font-size: 1em;
@@ -45,14 +54,15 @@
       cursor: pointer;
     }
     .controls button:hover {
-      background-color: #00c8a2;
+      background-color: var(--viridian);
+      color: var(--celadon);
     }
     .game-output {
       width: 100%;
       max-width: 512px;
       height: 384px;
       background-color: #111;
-      border: 2px solid #00ffd0;
+      border: 5px solid var(--celadon);
       border-radius: 10px;
       margin: 0 auto;
       display: flex;
@@ -62,15 +72,15 @@
       color: #888;
     }
     .ds-controls {
-      border: 2px solid #b10000;
-      background-color: #220000;
+      border: 5px solid var(--sunset);
+      background-color: var(--bronze);
       border-radius: 10px;
       width: fit-content;
       height: fit-content;
     }
     .ds-controls button {
-      background-color: #b10000;
-      color: #fff;
+      background-color: var(--sunset);
+      color: var(--falu-red);
       border: none;
       padding: 5px 5px;
       font-size: 1em;
@@ -79,6 +89,10 @@
       margin: 0 10px;
       cursor: pointer;
       min-width: 70px;
+    }
+    .ds-controls button:hover {
+      background-color: var(--falu-red);
+      color: var(--sunset);
     }
     .game-and-control {
       display: flex
@@ -126,20 +140,34 @@
     <label for="method">Method</label> <input name="method" id="arg_method" value="SoftResetGift" />
     <br /><br />
     <!--<button onclick="frlg_bulba()">FRLG Bulbasaur</button>-->
-    <button onclick="frlg_rat()">FRLG Ratatta</button>
+    <!--<button onclick="frlg_rat()">FRLG Ratatta</button>-->
+    <button onclick="frlg_snorlax()">FRLG Snorlax</button>
+    <button onclick="hgss_start()">HGSS Starter</button>
     <!--<button onclick="dp_shinx()">DP Cute Charm Shinx</button>-->
     <!--<button onclick="rs_oddish()">RS Oddish</button>-->
     <button onclick="frlg_egg()">FRLG Eggs</button>
     <button onclick="hgss_rat()">HGSS Ratatta</button>
-    <button onclick="hgss_ditto()">HGSS Ditto</button>
+    <!--<button onclick="hgss_ditto()">HGSS Ditto</button>-->
     <!--<button onclick="rs_registeel()">RS Registeel</button>-->
-    <button onclick="bw2_latios()">BW2 Latios</button>
+    <!--<button onclick="bw2_latios()">BW2 Latios</button>-->
   </div>
 
   <script>
     let state = "/api/state";
     let button = "/api/button";
 
+    function frlg_snorlax() {
+      document.getElementById("arg_name").value = "KantoSnorlax";
+      document.getElementById("arg_species").value = "143";
+      document.getElementById("arg_game").value = "FireRedLeafGreen";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function hgss_start() {
+      document.getElementById("arg_name").value = "FireStarterHGSS";
+      document.getElementById("arg_species").value = "155";
+      document.getElementById("arg_game").value = "HeartGoldSoulSilver";
+      document.getElementById("arg_method").value = "SoftResetGift";
+    }
     function frlg_bulba() {
       document.getElementById("arg_name").value = "Fushigidane";
       document.getElementById("arg_species").value = "1";

@@ -43,6 +43,7 @@ display.set_backlight(0.1)  # turn down the white component of the backlight
 display.clear()
 gp.set_backlight(0, 25, 0)
 
+
 # Starting values
 encounters = 19290
 prob = 100 - (100 * (1.0 - ((8191.0/8192.0)**encounters)))
@@ -93,7 +94,7 @@ while True:
     display.set_font("bitmap6")
     display.text("Attempts", 0, 20, scale=0.5)
     display.text(str(encounters), 5, 27)
-    
+
     display.text("Probability", 0, 42, scale=0.5)
     display.text("{:0.4}%".format(prob), 5, 49)
     display.set_pen(4)

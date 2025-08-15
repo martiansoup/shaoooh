@@ -26,19 +26,89 @@ enum Detection {
     Toggle,
 }
 
+#[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
+enum HGSSStarter {
+    Left1,
+    Detect155,
+    Left2,
+    Detect158,
+    Left3,
+    Detect152,
+    Done,
+    NextAttempt,
+}
+
 pub struct DetectionResolver {}
 
 impl DetectionResolver {
     pub fn add_states(builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
         let game = builder.game();
         let method = builder.method();
-        log::info!("Adding Encounter Type states for '{:?}/{:?}'", game, method);
+        log::info!("Adding Detection states for '{:?}/{:?}'", game, method);
 
         if *game == Game::FireRedLeafGreen && *method == Method::RandomEncounter {
             Some(Self::frlg_random(builder))
+        } else if *game == Game::FireRedLeafGreen && *method == Method::SoftResetEncounter {
+            Some(Self::frlg_softreset(builder))
+        } else if *game == Game::HeartGoldSoulSilver && *method == Method::SoftResetGift {
+            if [152, 155, 158].contains(&builder.target()) {
+                Some(Self::hgss_starter(builder))
+            } else {
+                None
+            }
         } else {
             None
         }
+    }
+    
+    pub fn hgss_starter (mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        let game = builder.game();
+        let method = builder.method();
+
+        let states = vec![
+            StateDescription::linear_state(HGSSStarter::Left1, vec![HuntStateOutput::button(Button::Left)], 1000..1500),
+            StateDescription::simple_sprite_state(HGSSStarter::Detect155, HGSSStarter::Done, HGSSStarter::Left2, game, method, 155, builder.target()),
+            StateDescription::linear_state(HGSSStarter::Left2, vec![HuntStateOutput::button(Button::Left)], 1000..1500),
+            StateDescription::simple_sprite_state(HGSSStarter::Detect158, HGSSStarter::Done, HGSSStarter::Left3, game, method, 158, builder.target()),
+            StateDescription::linear_state(HGSSStarter::Left3, vec![HuntStateOutput::button(Button::Left)], 1000..1500),
+            StateDescription::simple_sprite_state(HGSSStarter::Detect152, HGSSStarter::Done, HGSSStarter::NextAttempt, game, method, 152, builder.target()),
+            StateDescription::deadend_state(HGSSStarter::Done),
+            StateDescription::linear_state(HGSSStarter::NextAttempt, vec![], 0..2000),
+        ];
+
+        builder.add_states(states);
+        builder
+    }
+
+    pub fn frlg_softreset(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        let shiny_threshold = Duration::from_millis(2400);
+        let target = builder.target();
+        let game = builder.game().clone();
+        let method = builder.method().clone();
+
+        let states = vec![
+            StateDescription::simple_process_state_no_output_start_timer(
+                Detection::EnterEncounter,
+                Detection::WaitEncounterReady,
+                Processing::FRLG_IN_ENCOUNTER,
+            ),
+            StateDescription::simple_process_state_no_output_end_timer(
+                Detection::WaitEncounterReady,
+                Detection::PressA,
+                Processing::FRLG_ENCOUNTER_READY,
+            ),
+            StateDescription::linear_state(
+                Detection::PressA,
+                vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
+                3000..3000,
+            ),
+            StateDescription::sprite_state_delay(Detection::Detect, Detection::Done, Detection::Run1, &game, &method, target, target, shiny_threshold),
+            StateDescription::deadend_state(Detection::Done),
+            StateDescription::linear_state(Detection::Run1, vec![], 0..2000),
+        ];
+
+        builder.add_states(states);
+        builder
     }
 
     const RUN_DELAY: u64 = 500;
@@ -57,7 +127,7 @@ impl DetectionResolver {
                 .iter()
                 .filter(|r| matches!(r.process, Processing::Sprite(_, _, _)))
                 .collect();
-            assert_eq!(sprite_results.len(), 1, "Must have a single sprite result");
+            debug_assert_eq!(sprite_results.len(), 1, "Must have a single sprite result");
             let sprite_result = *sprite_results
                 .first()
                 .expect("Must have a single sprite result");
@@ -165,7 +235,7 @@ impl DetectionResolver {
             StateDescription::linear_state(
                 Detection::Run4,
                 vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
-                3000..5100,
+                3000..7200,
             ),
         ];
 
