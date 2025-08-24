@@ -1,5 +1,9 @@
 use std::{
-    collections::HashMap, fs::File, io::Write, ops::Range, time::{Duration, SystemTime}
+    collections::HashMap,
+    fs::File,
+    io::Write,
+    ops::Range,
+    time::{Duration, SystemTime},
 };
 
 mod draw;
@@ -35,7 +39,7 @@ pub struct StateMachine<InputKind, InputValue, StateOutput, StateTransition, Int
     internal: InternalState,
     empty_input: Vec<InputKind>,
     empty_output: Vec<StateOutput>,
-    graph: Option<draw::Graph>
+    graph: Option<draw::Graph>,
 }
 
 impl<InputKind, InputValue, StateOutput, StateTransition, InternalState>
@@ -52,7 +56,7 @@ where
             internal: InternalState::default(),
             empty_input: Vec::new(),
             empty_output: Vec::new(),
-            graph: None
+            graph: None,
         }
     }
 
@@ -221,11 +225,17 @@ where
         let edge_config = "arrowsize=0.5,color=\"#D48735\"";
         let mut graph = format!("digraph {{\n  {}\n", graph_config);
 
-        let mut state_list : Vec<&usize> = self.states.keys().collect();
+        let mut state_list: Vec<&usize> = self.states.keys().collect();
         state_list.sort();
 
         for state in state_list {
-            graph.push_str(&format!("  {} [label=\"{}\",id=\"shaoooh_{}\",{}];\n", state, self.states.get(state).unwrap().name, state, node_config));
+            graph.push_str(&format!(
+                "  {} [label=\"{}\",id=\"shaoooh_{}\",{}];\n",
+                state,
+                self.states.get(state).unwrap().name,
+                state,
+                node_config
+            ));
         }
 
         for state in &self.states {
@@ -242,47 +252,68 @@ where
         let dot_file_name = format!("{}.dot", file_root);
         let svg_file_name = format!("{}.svg", file_root);
         let png_file_name = format!("{}.png", file_root);
-        let mut sorted_keys : Vec<&usize> = self.states.keys().collect();
+        let mut sorted_keys: Vec<&usize> = self.states.keys().collect();
         sorted_keys.sort();
-        let state_ids : Vec<String> = sorted_keys.into_iter().map(|f| { format!("shaoooh_{}", f) }).collect();
+        let state_ids: Vec<String> = sorted_keys
+            .into_iter()
+            .map(|f| format!("shaoooh_{}", f))
+            .collect();
 
         let mut file = File::create(&dot_file_name)?;
         file.write_all(self.graph_str().as_bytes())?;
         file.flush()?;
 
         let svg = std::process::Command::new("dot")
-        .arg("-Tsvg")
-        .arg(&dot_file_name)
-        .output()?;
+            .arg("-Tsvg")
+            .arg(&dot_file_name)
+            .output()?;
 
         let mut file = File::create(&svg_file_name).unwrap();
         file.write_all(&svg.stdout).unwrap();
         file.flush().unwrap();
 
         std::process::Command::new("inkscape")
-        .arg(&svg_file_name)
-        .arg("-o")
-        .arg(&png_file_name)
-        .status()?;
+            .arg(&svg_file_name)
+            .arg("-o")
+            .arg(&png_file_name)
+            .status()?;
 
         let svg_info = std::process::Command::new("inkscape")
-        .arg(svg_file_name)
-        .arg("-I")
-        .arg(state_ids.join(","))
-        .arg("-X")
-        .arg("-Y")
-        .arg("-W")
-        .arg("-H")
-        .output()?;
+            .arg(svg_file_name)
+            .arg("-I")
+            .arg(state_ids.join(","))
+            .arg("-X")
+            .arg("-Y")
+            .arg("-W")
+            .arg("-H")
+            .output()?;
 
         let stdout = String::from_utf8(svg_info.stdout)?;
-        let svg_info_arrays : Vec<&str> = stdout.split('\n').collect();
-        let x_array = svg_info_arrays[0].split(',').map(|f| { f.parse::<f32>().unwrap().round() as i32 }).collect();
-        let y_array = svg_info_arrays[1].split(',').map(|f| { f.parse::<f32>().unwrap().round() as i32 }).collect();
-        let w_array = svg_info_arrays[2].split(',').map(|f| { f.parse::<f32>().unwrap().round() as i32 }).collect();
-        let h_array = svg_info_arrays[3].split(',').map(|f| { f.parse::<f32>().unwrap().round() as i32 }).collect();
+        let svg_info_arrays: Vec<&str> = stdout.split('\n').collect();
+        let x_array = svg_info_arrays[0]
+            .split(',')
+            .map(|f| f.parse::<f32>().unwrap().round() as i32)
+            .collect();
+        let y_array = svg_info_arrays[1]
+            .split(',')
+            .map(|f| f.parse::<f32>().unwrap().round() as i32)
+            .collect();
+        let w_array = svg_info_arrays[2]
+            .split(',')
+            .map(|f| f.parse::<f32>().unwrap().round() as i32)
+            .collect();
+        let h_array = svg_info_arrays[3]
+            .split(',')
+            .map(|f| f.parse::<f32>().unwrap().round() as i32)
+            .collect();
 
-        self.graph = Some(draw::Graph::new(png_file_name.as_str(), x_array, y_array, w_array, h_array));
+        self.graph = Some(draw::Graph::new(
+            png_file_name.as_str(),
+            x_array,
+            y_array,
+            w_array,
+            h_array,
+        ));
 
         Ok(())
     }

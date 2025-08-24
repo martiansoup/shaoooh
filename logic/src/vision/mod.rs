@@ -88,6 +88,15 @@ impl Processing {
         num_thresh: 5000,
         invert: true,
     });
+    pub const DP_START_ENCOUNTER_WHITE: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 0,
+        y: 0,
+        w: 256,
+        h: 192,
+        col_thresh: 210.0,
+        num_thresh: 20000,
+        invert: false,
+    });
     pub const DP_START_ENCOUNTER: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 0,
         y: 145,
@@ -191,7 +200,7 @@ struct WinInfo {
     name: &'static str,
     x: i32,
     y: i32,
-    scale: i32
+    scale: i32,
 }
 
 impl Vision {
@@ -211,14 +220,13 @@ impl Vision {
         name: "capture",
         x: 32,
         y: 32,
-        scale: 2
-
+        scale: 2,
     };
     const FOUND_WIN: WinInfo = WinInfo {
         name: "found",
-        x: 160,
+        x: 32,
         y: 464,
-        scale: 1
+        scale: 1,
     };
 
     fn show_window(win: WinInfo, mat: &impl ToInputArray) {
@@ -229,7 +237,7 @@ impl Vision {
     fn transform_window(win: WinInfo) {
         opencv::highgui::move_window(win.name, win.x, win.y)
             .unwrap_or_else(|_| panic!("Failed to move '{}' window", win.name));
-        opencv::highgui::resize_window(win.name, Self::DS_W*win.scale, Self::DS_H*win.scale)
+        opencv::highgui::resize_window(win.name, Self::DS_W * win.scale, Self::DS_H * win.scale)
             .unwrap_or_else(|_| panic!("Failed to resize '{}' window", win.name));
     }
 
@@ -410,7 +418,12 @@ impl Vision {
             )
             .expect("min max failed");
 
-            log::info!("species = {}, val = {} (shiny = {})", s, max_val, max_val_shiny);
+            log::info!(
+                "species = {}, val = {} (shiny = {})",
+                s,
+                max_val,
+                max_val_shiny
+            );
 
             if max_val > max {
                 max = max_val;

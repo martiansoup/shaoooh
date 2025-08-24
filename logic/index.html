@@ -141,6 +141,7 @@
     <br /><br />
     <!--<button onclick="frlg_bulba()">FRLG Bulbasaur</button>-->
     <!--<button onclick="frlg_rat()">FRLG Ratatta</button>-->
+    <button onclick="dp_giratina()">DP Giratina</button>
     <button onclick="frlg_snorlax()">FRLG Snorlax</button>
     <button onclick="hgss_start()">HGSS Starter</button>
     <!--<button onclick="dp_shinx()">DP Cute Charm Shinx</button>-->
@@ -156,6 +157,18 @@
     let state = "/api/state";
     let button = "/api/button";
 
+    function dp_giratina() {
+      document.getElementById("arg_name").value = "Giratina";
+      document.getElementById("arg_species").value = "487";
+      document.getElementById("arg_game").value = "DiamondPearl";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function dp_regi() {
+      document.getElementById("arg_name").value = "Regigigas";
+      document.getElementById("arg_species").value = "486";
+      document.getElementById("arg_game").value = "DiamondPearl";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
     function frlg_snorlax() {
       document.getElementById("arg_name").value = "KantoSnorlax";
       document.getElementById("arg_species").value = "143";

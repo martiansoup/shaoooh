@@ -1,6 +1,6 @@
 use std::time::{Duration, SystemTime};
 
-use opencv::highgui::{WINDOW_GUI_NORMAL, WINDOW_KEEPRATIO, WINDOW_AUTOSIZE};
+use opencv::highgui::{WINDOW_AUTOSIZE, WINDOW_GUI_NORMAL, WINDOW_KEEPRATIO};
 
 use crate::{
     control::{Button, Delay, ShaooohControl},
@@ -21,7 +21,10 @@ impl HuntStateOutput {
     }
 
     pub fn button(button: Button) -> Self {
-        HuntStateOutput { button, delay: Delay::Tenth }
+        HuntStateOutput {
+            button,
+            delay: Delay::Tenth,
+        }
     }
 }
 
@@ -30,6 +33,7 @@ pub struct InternalHuntState {
     pub toggle: bool,
     pub time: SystemTime,
     pub last_duration: Duration,
+    pub counter: usize,
 }
 
 impl Default for InternalHuntState {
@@ -38,6 +42,7 @@ impl Default for InternalHuntState {
             toggle: Default::default(),
             time: SystemTime::now(),
             last_duration: Duration::default(),
+            counter: 0,
         }
     }
 }
@@ -59,8 +64,11 @@ impl HuntFSM {
     ) -> Self {
         // TODO temporary file
         fsm.graph_file("current_fsm").expect("Failed to draw graph");
-        opencv::highgui::named_window("fsm", WINDOW_AUTOSIZE | WINDOW_KEEPRATIO | WINDOW_GUI_NORMAL)
-            .unwrap_or_else(|_| panic!("Failed to create 'fsm' window"));
+        opencv::highgui::named_window(
+            "fsm",
+            WINDOW_AUTOSIZE | WINDOW_KEEPRATIO | WINDOW_GUI_NORMAL,
+        )
+        .unwrap_or_else(|_| panic!("Failed to create 'fsm' window"));
         opencv::highgui::move_window("fsm", 576, 32)
             .unwrap_or_else(|_| panic!("Failed to move 'fsm' window"));
         HuntFSM { fsm }
@@ -126,9 +134,9 @@ impl HuntFSM {
         if let Some(m) = self.graph() {
             // TODO combine window drawing code with vision
             opencv::highgui::imshow("fsm", &m)
-            .unwrap_or_else(|_| panic!("Failed to show 'fsm' window"));
-            opencv::highgui::move_window("fsm", 576, 32)
-            .unwrap_or_else(|_| panic!("Failed to move 'fsm' window"));
+                .unwrap_or_else(|_| panic!("Failed to show 'fsm' window"));
+            opencv::highgui::move_window("fsm", 632, 32)
+                .unwrap_or_else(|_| panic!("Failed to move 'fsm' window"));
         }
     }
 }

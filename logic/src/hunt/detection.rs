@@ -51,29 +51,109 @@ impl DetectionResolver {
         } else if *game == Game::FireRedLeafGreen && *method == Method::SoftResetEncounter {
             Some(Self::frlg_softreset(builder))
         } else if *game == Game::HeartGoldSoulSilver && *method == Method::SoftResetGift {
-            if [152, 155, 158].contains(&builder.target()) {
-                Some(Self::hgss_starter(builder))
-            } else {
-                None
+            match builder.target() {
+                152 | 155 | 158 => Some(Self::hgss_starter(builder)),
+                _ => None,
+            }
+        } else if *game == Game::DiamondPearl && *method == Method::SoftResetEncounter {
+            match builder.target() {
+                486 | 487 => Some(Self::gen4_legend(builder)),
+                _ => None,
             }
         } else {
             None
         }
     }
-    
-    pub fn hgss_starter (mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+
+    pub fn hgss_starter(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
         let game = builder.game();
         let method = builder.method();
 
         let states = vec![
-            StateDescription::linear_state(HGSSStarter::Left1, vec![HuntStateOutput::button(Button::Left)], 1000..1500),
-            StateDescription::simple_sprite_state(HGSSStarter::Detect155, HGSSStarter::Done, HGSSStarter::Left2, game, method, 155, builder.target()),
-            StateDescription::linear_state(HGSSStarter::Left2, vec![HuntStateOutput::button(Button::Left)], 1000..1500),
-            StateDescription::simple_sprite_state(HGSSStarter::Detect158, HGSSStarter::Done, HGSSStarter::Left3, game, method, 158, builder.target()),
-            StateDescription::linear_state(HGSSStarter::Left3, vec![HuntStateOutput::button(Button::Left)], 1000..1500),
-            StateDescription::simple_sprite_state(HGSSStarter::Detect152, HGSSStarter::Done, HGSSStarter::NextAttempt, game, method, 152, builder.target()),
+            StateDescription::linear_state(
+                HGSSStarter::Left1,
+                vec![HuntStateOutput::button(Button::Left)],
+                1000..1500,
+            ),
+            StateDescription::simple_sprite_state(
+                HGSSStarter::Detect155,
+                HGSSStarter::Done,
+                HGSSStarter::Left2,
+                game,
+                method,
+                155,
+                builder.target(),
+            ),
+            StateDescription::linear_state(
+                HGSSStarter::Left2,
+                vec![HuntStateOutput::button(Button::Left)],
+                1000..1500,
+            ),
+            StateDescription::simple_sprite_state(
+                HGSSStarter::Detect158,
+                HGSSStarter::Done,
+                HGSSStarter::Left3,
+                game,
+                method,
+                158,
+                builder.target(),
+            ),
+            StateDescription::linear_state(
+                HGSSStarter::Left3,
+                vec![HuntStateOutput::button(Button::Left)],
+                1000..1500,
+            ),
+            StateDescription::simple_sprite_state(
+                HGSSStarter::Detect152,
+                HGSSStarter::Done,
+                HGSSStarter::NextAttempt,
+                game,
+                method,
+                152,
+                builder.target(),
+            ),
             StateDescription::deadend_state(HGSSStarter::Done),
             StateDescription::linear_state(HGSSStarter::NextAttempt, vec![], 0..2000),
+        ];
+
+        builder.add_states(states);
+        builder
+    }
+
+    pub fn gen4_legend(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        let duration = match builder.target() {
+            486 => 7750, // Regigigas
+            487 => 6600, // Giratina
+            _ => 5000,
+        };
+        let shiny_threshold = Duration::from_millis(duration);
+        let game = builder.game();
+        let method = builder.method();
+        let species = builder.target();
+
+        let states = vec![
+            StateDescription::simple_process_state_no_output_start_timer(
+                Detection::EnterEncounter,
+                Detection::WaitEncounterReady,
+                Processing::DP_IN_ENCOUNTER,
+            ),
+            StateDescription::simple_process_state_no_output_end_timer(
+                Detection::WaitEncounterReady,
+                Detection::Detect,
+                Processing::DP_ENCOUNTER_READY,
+            ),
+            StateDescription::sprite_state_delay(
+                Detection::Detect,
+                Detection::Done,
+                Detection::Run1,
+                game,
+                method,
+                species,
+                species,
+                shiny_threshold,
+            ),
+            StateDescription::deadend_state(Detection::Done),
+            StateDescription::linear_state(Detection::Run1, vec![], 1000..3000),
         ];
 
         builder.add_states(states);
@@ -102,9 +182,18 @@ impl DetectionResolver {
                 vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
                 3000..3000,
             ),
-            StateDescription::sprite_state_delay(Detection::Detect, Detection::Done, Detection::Run1, &game, &method, target, target, shiny_threshold),
+            StateDescription::sprite_state_delay(
+                Detection::Detect,
+                Detection::Done,
+                Detection::Run1,
+                &game,
+                &method,
+                target,
+                target,
+                shiny_threshold,
+            ),
             StateDescription::deadend_state(Detection::Done),
-            StateDescription::linear_state(Detection::Run1, vec![], 0..2000),
+            StateDescription::linear_state(Detection::Run1, vec![], 1000..3000),
         ];
 
         builder.add_states(states);

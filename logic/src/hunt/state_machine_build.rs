@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::convert::AsRef;
 use std::hash::Hash;
 use std::ops::Range;
-use std::time::{SystemTime, Duration};
+use std::time::{Duration, SystemTime};
 
 pub type BoxedProcessFn =
     Box<dyn Fn(&Vec<ProcessingResult>, &mut InternalHuntState) -> Option<HuntResult>>;
@@ -131,14 +131,20 @@ impl HuntFSMBuilder {
                             // Vec of InputValue -> (usize, HuntResult)
                             // e.g. Vec<ProcessingResult> -> (usize, StateTransition)
                             let checks = &state.checks;
+                            // Mutable result to guarantee all checks run
+                            let mut result = None;
 
                             for (target, func) in checks {
                                 if let Some(res) = func(x, int) {
-                                    return Some((*target + fragment_first, res));
+                                    debug_assert!(
+                                        result.is_none(),
+                                        "Only one state check should match"
+                                    );
+                                    result = Some((*target + fragment_first, res));
                                 }
                             }
 
-                            None
+                            result
                         },
                     );
                     (next_states, check)
@@ -190,6 +196,61 @@ where
             delay_msecs,
             check,
         }
+    }
+
+    pub fn set_counter_state(tag: K, to: K, value: usize) -> Self {
+        let mut set_count_check: HashMap<K, BoxedProcessFn> = HashMap::new();
+
+        set_count_check.insert(
+            to,
+            Box::new(move |_, int| {
+                int.counter = value;
+                Some(HuntResult::default())
+            }),
+        );
+
+        Self::new(tag, vec![], vec![], 0..0, set_count_check)
+    }
+
+    pub fn choose_counter_state(tag: K, zero: K, nonzero: K) -> Self {
+        let mut count_check: HashMap<K, BoxedProcessFn> = HashMap::new();
+
+        count_check.insert(
+            zero,
+            Box::new(|_, int| {
+                if int.counter == 0 {
+                    Some(HuntResult::default())
+                } else {
+                    None
+                }
+            }),
+        );
+        count_check.insert(
+            nonzero,
+            Box::new(|_, int| {
+                if int.counter != 0 {
+                    Some(HuntResult::default())
+                } else {
+                    None
+                }
+            }),
+        );
+
+        Self::new(tag, vec![], vec![], 0..0, count_check)
+    }
+
+    pub fn decr_counter_state(tag: K, to: K) -> Self {
+        let mut count_check: HashMap<K, BoxedProcessFn> = HashMap::new();
+        count_check.insert(
+            to,
+            Box::new(|_: &Vec<ProcessingResult>, int: &mut InternalHuntState| {
+                int.counter -= 1;
+
+                Some(HuntResult::default())
+            }),
+        );
+
+        Self::new(tag, vec![], vec![], 0..0, count_check)
     }
 
     pub fn choose_toggle_state(tag: K, set: K, clear: K) -> Self {
@@ -380,7 +441,7 @@ where
         game: &Game,
         method: &Method,
         species: u32,
-        target: u32
+        target: u32,
     ) -> Self {
         let mut detect_checks: HashMap<K, BoxedProcessFn> = HashMap::new();
         let detect = Processing::Sprite(game.clone(), vec![species], false);
@@ -397,10 +458,7 @@ where
 
             let shiny_sprite = sprite_result.shiny;
 
-            log::info!(
-                "Detect results: shiny_sprite = {}",
-                shiny_sprite
-            );
+            log::info!("Detect results: shiny_sprite = {}", shiny_sprite);
 
             (shiny_sprite, sprite_result.species)
         };
@@ -456,7 +514,6 @@ where
             }),
         );
 
-
         StateDescription::new(tag, vec![detect], vec![], 0..0, detect_checks)
     }
 
@@ -468,7 +525,7 @@ where
         method: &Method,
         species: u32,
         target: u32,
-        threshold: Duration
+        threshold: Duration,
     ) -> Self {
         let mut detect_checks: HashMap<K, BoxedProcessFn> = HashMap::new();
         let detect = Processing::Sprite(game.clone(), vec![species], false);
@@ -548,8 +605,6 @@ where
             }),
         );
 
-
         StateDescription::new(tag, vec![detect], vec![], 0..0, detect_checks)
     }
-
 }
