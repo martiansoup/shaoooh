@@ -153,3 +153,61 @@ pub struct Phase {
     pub caught: bool,
     pub date: DateTime<Utc>,
 }
+
+pub struct CaptureControlPaths {
+    video: String,
+    control: String,
+}
+
+impl CaptureControlPaths {
+    pub fn new(video: String, control: String) -> Self {
+        Self { video, control }
+    }
+
+    pub fn video(&self) -> &str {
+        &self.video
+    }
+
+    pub fn control(&self) -> &str {
+        &self.control
+    }
+}
+
+pub enum Config {
+    // RaspberryPi - DS Lite - V4L2 Capture, Serial Control (Pico)
+    Shaoooh(CaptureControlPaths),
+    // Any - 3DS - NTR Stream, InputRedirection
+    Bishaan(core::net::Ipv4Addr),
+    // Dummy config for testing
+    Ditto, // TODO
+           // Any? - DS Lite - V4L2 Capture, Serial Control (Wireless)
+           //Gyaaas(CaptureControlPaths),
+           // Any? - GC/Wii - V4L2 Capture, Serial Control (?)
+           //ZutZutt(CaptureControlPaths),
+}
+
+impl Config {
+    pub fn info(&self) -> String {
+        match self {
+            Self::Shaoooh(cfg) => {
+                format!(
+                    "Shaoooh ショオーッ : Video({}) Control({})",
+                    cfg.video(),
+                    cfg.control()
+                )
+            }
+            Self::Bishaan(ip) => {
+                format!("Bishaan ビシアーン : IP({})", ip)
+            }
+            Self::Ditto => "Ditto メタモン : Metamon".to_string(),
+        }
+    }
+
+    pub fn description(&self) -> String {
+        match self {
+            Self::Shaoooh(_) => "DS-Lite with video mod".to_string(),
+            Self::Bishaan(_) => "New 2DS XL".to_string(),
+            Self::Ditto => "Test configuration".to_string(),
+        }
+    }
+}

@@ -19,10 +19,10 @@ use tokio::sync::{mpsc, oneshot, watch};
 use tower_http::services::{ServeDir, ServeFile};
 pub(crate) mod states;
 use crate::{
-    control::{Button, ShaooohControl},
+    control::{BotControl, Button, NopControl, ShaooohControl},
     displays::{DisplayWrapper, GfxDisplay, Webhook},
     hunt::{HuntBuild, HuntFSM},
-    vision::Vision,
+    vision::{BotVision, NopVision, Vision},
 };
 pub use states::*;
 use tokio::signal;
@@ -52,6 +52,7 @@ pub struct Shaoooh {
     rx: mpsc::Receiver<RequestTransition>,
     button_rx: mpsc::Receiver<Button>,
     image: Arc<Mutex<Vec<u8>>>,
+    config: Config,
 }
 
 // Struct to load/save from disc
@@ -68,9 +69,7 @@ pub struct HuntInformation {
 }
 
 impl Shaoooh {
-    pub const VIDEO_DEV: &str = "/dev/video0";
-
-    pub fn new() -> Self {
+    pub fn new(config: Config) -> Self {
         let app = AppState {
             state: HuntState::Idle,
             arg: None,
@@ -96,6 +95,7 @@ impl Shaoooh {
             rx: transition_rx,
             button_rx,
             image: image_mutex,
+            config,
         }
     }
 
@@ -285,8 +285,17 @@ impl Shaoooh {
         mut shutdown_rx: oneshot::Receiver<()>,
         raw_frame_mutex: Arc<Mutex<Mat>>,
     ) {
-        let mut control = ShaooohControl::new();
-        let mut vision = Vision::new(raw_frame_mutex);
+        let (mut control, mut vision): (Box<dyn BotControl>, Box<dyn BotVision>) = match self.config
+        {
+            Config::Shaoooh(ref cfg) => (
+                Box::new(ShaooohControl::new(cfg.control())),
+                Box::new(Vision::new(cfg.video(), raw_frame_mutex)),
+            ),
+            Config::Bishaan(_) => {
+                unimplemented!("3DS not implemented")
+            }
+            Config::Ditto => (Box::new(NopControl::new()), Box::new(NopVision::new())),
+        };
         let mut hunt: Option<HuntFSM> = None;
 
         while shutdown_rx.try_recv().is_err() {
@@ -353,6 +362,8 @@ impl Shaoooh {
     fn add_lights_display(_: &mut Vec<DisplayWrapper>) {}
 
     pub async fn serve(mut self) -> Result<(), String> {
+        log::info!("Selected configuration: {}", self.config.info());
+        log::info!("  {}", self.config.description());
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
 
         let state = self.api.take().expect("Couldn't get API state");
@@ -364,12 +375,24 @@ impl Shaoooh {
         let mut displays: Vec<DisplayWrapper> = Vec::new();
         let mut handles: Vec<(String, JoinHandle<()>)> = Vec::new();
 
-        Self::add_lights_display(&mut displays);
-
-        displays.push(DisplayWrapper::new(
-            "Gfx Screen".to_string(),
-            Box::new(|| Box::new(GfxDisplay::default())),
-        ));
+        log::info!("Adding state listeners");
+        match self.config {
+            Config::Shaoooh(_) => {
+                log::info!("- Neopixels");
+                Self::add_lights_display(&mut displays);
+                log::info!("- Counter screen");
+                displays.push(DisplayWrapper::new(
+                    "Gfx Screen".to_string(),
+                    Box::new(|| Box::new(GfxDisplay::default())),
+                ));
+            }
+            Config::Bishaan(_) => {
+                log::info!("- No listeners");
+            }
+            Config::Ditto => {
+                log::info!("- No listeners");
+            }
+        };
 
         let raw_frame_mutex = Arc::new(Mutex::new(Mat::default()));
         // TODO allow enabling display
@@ -410,12 +433,6 @@ impl Shaoooh {
         }
 
         Ok(())
-    }
-}
-
-impl Default for Shaoooh {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

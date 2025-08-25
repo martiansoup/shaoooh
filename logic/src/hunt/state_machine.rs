@@ -3,7 +3,7 @@ use std::time::{Duration, SystemTime};
 use opencv::highgui::{WINDOW_AUTOSIZE, WINDOW_GUI_NORMAL, WINDOW_KEEPRATIO};
 
 use crate::{
-    control::{Button, Delay, ShaooohControl},
+    control::{BotControl, Button, Delay},
     fsm::StateMachine,
     hunt::HuntResult,
     vision::{Processing, ProcessingResult},
@@ -80,7 +80,7 @@ impl HuntFSM {
 
     pub fn step(
         &mut self,
-        control: &mut ShaooohControl,
+        control: &mut Box<dyn BotControl>,
         results: Vec<ProcessingResult>,
     ) -> HuntResult {
         let outputs = self.fsm.outputs();
