@@ -4,13 +4,17 @@ use crate::app::states::AppState;
 
 mod display;
 mod gfx;
-mod lights;
 mod webhook;
+
+#[cfg(target_arch = "aarch64")]
+mod lights;
 
 pub use display::ScreenDisplay;
 pub use gfx::GfxDisplay;
-pub use lights::LightsDisplay;
 pub use webhook::Webhook;
+
+#[cfg(target_arch = "aarch64")]
+pub use lights::LightsDisplay;
 
 pub struct DisplayWrapper {
     func: Option<Box<dyn FnOnce() -> Box<dyn StateReceiver> + Send>>,

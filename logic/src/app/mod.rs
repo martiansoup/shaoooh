@@ -20,12 +20,15 @@ use tower_http::services::{ServeDir, ServeFile};
 pub(crate) mod states;
 use crate::{
     control::{Button, ShaooohControl},
-    displays::{DisplayWrapper, GfxDisplay, LightsDisplay, Webhook},
+    displays::{DisplayWrapper, GfxDisplay, Webhook},
     hunt::{HuntBuild, HuntFSM},
     vision::Vision,
 };
 pub use states::*;
 use tokio::signal;
+
+#[cfg(target_arch = "aarch64")]
+use crate::displays::LightsDisplay;
 
 // Response to any requests for the current state, also includes possible transitions
 #[derive(Clone, Serialize)]
@@ -338,6 +341,17 @@ impl Shaoooh {
         }
     }
 
+    #[cfg(target_arch = "aarch64")]
+    fn add_lights_display(displays: &mut Vec<DisplayWrapper>) {
+        displays.push(DisplayWrapper::new(
+            "Neopixel display".to_string(),
+            Box::new(|| Box::new(LightsDisplay::default())),
+        ));
+    }
+
+    #[cfg(not(target_arch = "aarch64"))]
+    fn add_lights_display(_: &mut Vec<DisplayWrapper>) {}
+
     pub async fn serve(mut self) -> Result<(), String> {
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
 
@@ -350,10 +364,8 @@ impl Shaoooh {
         let mut displays: Vec<DisplayWrapper> = Vec::new();
         let mut handles: Vec<(String, JoinHandle<()>)> = Vec::new();
 
-        displays.push(DisplayWrapper::new(
-            "Neopixel display".to_string(),
-            Box::new(|| Box::new(LightsDisplay::default())),
-        ));
+        Self::add_lights_display(&mut displays);
+
         displays.push(DisplayWrapper::new(
             "Gfx Screen".to_string(),
             Box::new(|| Box::new(GfxDisplay::default())),

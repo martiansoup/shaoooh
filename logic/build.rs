@@ -1,7 +1,10 @@
+#[cfg(target_arch = "aarch64")]
 use std::env;
+#[cfg(target_arch = "aarch64")]
 use std::path::PathBuf;
 
-fn main() {
+#[cfg(target_arch = "aarch64")]
+fn build() {
     let libdir_path = PathBuf::from("ws2812")
         .canonicalize()
         .expect("Cannot get absolute path");
@@ -85,4 +88,11 @@ fn main() {
     bindings
         .write_to_file(out_path)
         .expect("Couldn't write bindings!");
+}
+
+#[cfg(not(target_arch = "aarch64"))]
+fn build() {}
+
+fn main() {
+    build();
 }
