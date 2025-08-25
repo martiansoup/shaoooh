@@ -6,12 +6,13 @@ use species::SpeciesProvider;
 
 use crate::app::Game;
 
-const PKMN: &str = include_str!("../../../reference/pokeapi/data/v2/csv/pokemon_species.csv");
 const PKMN_NAMES: &str =
     include_str!("../../../reference/pokeapi/data/v2/csv/pokemon_species_names.csv");
-const EXP: &str = include_str!("../../../reference/pokeapi/data/v2/csv/experience.csv");
-const TYPES: &str = include_str!("../../../reference/pokeapi/data/v2/csv/type_names.csv");
-const MOVES: &str = include_str!("../../../reference/pokeapi/data/v2/csv/moves.csv");
+
+//const PKMN: &str = include_str!("../../../reference/pokeapi/data/v2/csv/pokemon_species.csv");
+//const EXP: &str = include_str!("../../../reference/pokeapi/data/v2/csv/experience.csv");
+//const TYPES: &str = include_str!("../../../reference/pokeapi/data/v2/csv/type_names.csv");
+//const MOVES: &str = include_str!("../../../reference/pokeapi/data/v2/csv/moves.csv");
 
 pub struct PkContext {
     species: species::SpeciesProvider,

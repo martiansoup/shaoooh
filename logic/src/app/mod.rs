@@ -20,7 +20,7 @@ use tower_http::services::{ServeDir, ServeFile};
 pub(crate) mod states;
 use crate::{
     control::{Button, ShaooohControl},
-    displays::{DisplayWrapper, GfxDisplay, LightsDisplay, ScreenDisplay, Webhook},
+    displays::{DisplayWrapper, GfxDisplay, LightsDisplay, Webhook},
     hunt::{HuntBuild, HuntFSM},
     vision::Vision,
 };
@@ -117,12 +117,12 @@ impl Shaoooh {
         std::fs::read_dir("hunts/")
             .expect("Failed to read hunts")
             .filter_map(|p| {
-                if let Ok(d) = p {
-                    if let Ok(f) = d.file_type() {
-                        if f.is_file() && d.path().extension().map_or(false, |x| x == "json") {
-                            return Some(d.path());
-                        }
-                    }
+                if let Ok(d) = p
+                    && let Ok(f) = d.file_type()
+                    && f.is_file()
+                    && d.path().extension().is_some_and(|x| x == "json")
+                {
+                    return Some(d.path());
                 }
                 None
             })
@@ -318,16 +318,16 @@ impl Shaoooh {
             }
 
             // Manual transition requests from API
-            if !self.rx.is_empty() {
-                if let Some(transition_req) = self.rx.blocking_recv() {
-                    self.do_transition(transition_req, &mut hunt, false);
-                }
+            if !self.rx.is_empty()
+                && let Some(transition_req) = self.rx.blocking_recv()
+            {
+                self.do_transition(transition_req, &mut hunt, false);
             }
 
-            if !self.button_rx.is_empty() {
-                if let Some(button) = self.button_rx.blocking_recv() {
-                    control.press(&button);
-                }
+            if !self.button_rx.is_empty()
+                && let Some(button) = self.button_rx.blocking_recv()
+            {
+                control.press(&button);
             }
 
             if self.rx.is_closed() {

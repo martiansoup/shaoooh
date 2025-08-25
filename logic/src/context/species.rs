@@ -31,3 +31,9 @@ impl SpeciesProvider {
         self.mapping.get(&id).unwrap_or(&"".to_string()).to_string()
     }
 }
+
+impl Default for SpeciesProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}

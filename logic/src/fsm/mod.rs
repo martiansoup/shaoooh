@@ -13,6 +13,22 @@ use rand::Rng;
 pub type BoxedStateCheck<InputValue, StateTransition, InternalState> =
     Box<dyn Fn(&Vec<InputValue>, &mut InternalState) -> Option<(usize, StateTransition)>>;
 
+pub struct StateId {
+    tag: usize,
+    name: String,
+    debug_name: String,
+}
+
+impl StateId {
+    pub fn new(tag: usize, name: String, debug_name: String) -> Self {
+        StateId {
+            tag,
+            name,
+            debug_name,
+        }
+    }
+}
+
 struct StateCheck<InputKind, InputValue, StateTransition, InternalState> {
     inputs: Vec<InputKind>,
     // List of possible output states
@@ -97,15 +113,18 @@ where
 
     pub fn add_state(
         &mut self,
-        tag: usize,
-        name: String,
-        debug_name: String,
+        id: StateId,
         outputs: Vec<StateOutput>,
         delay_msec: Range<u64>,
         inputs: Vec<InputKind>,
         next_states: Vec<usize>,
         check: BoxedStateCheck<InputValue, StateTransition, InternalState>,
     ) {
+        let StateId {
+            tag,
+            name,
+            debug_name,
+        } = id;
         let state = State {
             name,
             debug_name,
@@ -244,7 +263,7 @@ where
             }
         }
 
-        graph.push_str("}");
+        graph.push('}');
         graph
     }
 
@@ -319,11 +338,7 @@ where
     }
 
     pub fn graph_with_state(&self) -> Option<opencv::core::Mat> {
-        if let Some(g) = &self.graph {
-            Some(g.with_state(self.current))
-        } else {
-            None
-        }
+        self.graph.as_ref().map(|g| g.with_state(self.current))
     }
 }
 

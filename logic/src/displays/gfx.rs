@@ -22,17 +22,17 @@ impl super::StateReceiver for GfxDisplay {
             self.last_encounters = state.encounters;
         }
 
-        if let Some(arg) = state.arg {
-            if arg.species != self.last_target {
-                let target = arg.species;
-                if let Some(tx) = &mut self.serial_disp {
-                    let tgt_str = format!("T{}e", target);
-                    log::info!("Setting target on display to {}", tgt_str);
-                    tx.write_all(tgt_str.as_bytes())
-                        .expect("Failed to write target to display");
-                };
-                self.last_target = target;
-            }
+        if let Some(arg) = state.arg
+            && arg.species != self.last_target
+        {
+            let target = arg.species;
+            if let Some(tx) = &mut self.serial_disp {
+                let tgt_str = format!("T{}e", target);
+                log::info!("Setting target on display to {}", tgt_str);
+                tx.write_all(tgt_str.as_bytes())
+                    .expect("Failed to write target to display");
+            };
+            self.last_target = target;
         }
     }
 

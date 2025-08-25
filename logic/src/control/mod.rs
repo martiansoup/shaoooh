@@ -18,7 +18,7 @@ pub enum Button {
 }
 
 #[allow(dead_code)] // TODO are Half/Sec needed?
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Delay {
     Twentieth,
     Tenth,

@@ -9,7 +9,7 @@ use crate::{
     vision::{Processing, ProcessingResult},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HuntStateOutput {
     pub button: Button,
     pub delay: Delay,

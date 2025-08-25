@@ -1,6 +1,5 @@
 use crate::app::{Game, Method, RequestTransition, Transition, TransitionArg};
-use crate::context::species;
-use crate::fsm::{BoxedStateCheck, StateMachine};
+use crate::fsm::{BoxedStateCheck, StateId, StateMachine};
 use crate::hunt::state_machine::HuntStateOutput;
 use crate::hunt::{BaseHunt, HuntFSM, HuntResult, InternalHuntState};
 use crate::vision::{Processing, ProcessingResult};
@@ -13,6 +12,33 @@ use std::time::{Duration, SystemTime};
 
 pub type BoxedProcessFn =
     Box<dyn Fn(&Vec<ProcessingResult>, &mut InternalHuntState) -> Option<HuntResult>>;
+
+pub struct Branch2<K> {
+    tag: K,
+    to_met: K,
+}
+
+pub struct Branch3<K> {
+    tag: K,
+    to_met: K,
+    to_not: K,
+}
+
+impl<K> Branch2<K> {
+    pub fn new(tag: K, to_met: K) -> Self {
+        Branch2 { tag, to_met }
+    }
+}
+
+impl<K> Branch3<K> {
+    pub fn new(tag: K, to_met: K, to_not: K) -> Self {
+        Branch3 {
+            tag,
+            to_met,
+            to_not,
+        }
+    }
+}
 
 pub struct StateDescription<K> {
     tag: K,
@@ -98,8 +124,7 @@ impl HuntFSMBuilder {
         let mut fsm = StateMachine::new();
 
         let last_fragment = self.fragments.len() - 1;
-        let mut findex = 0;
-        for fragment in self.fragments {
+        for (findex, fragment) in self.fragments.into_iter().enumerate() {
             let fragment_first = last_index;
             let fragment_last = last_index + fragment.states.len() - 1;
             for state in fragment.states {
@@ -110,16 +135,16 @@ impl HuntFSMBuilder {
                 } else {
                     tag + 1
                 };
-                let name = state.name;
+                let name = &state.name;
                 let debug_name = format!(
                     "fragment{}-{} [{} next state(s)]",
                     findex,
                     name,
                     state.checks.len()
                 );
-                let outputs = state.outputs;
-                let delay_msec = state.delay_msecs;
-                let inputs = state.inputs;
+                let outputs = &state.outputs;
+                let delay_msec = &state.delay_msecs;
+                let inputs = &state.inputs;
                 let (next_states, check): (
                     Vec<usize>,
                     BoxedStateCheck<ProcessingResult, HuntResult, InternalHuntState>,
@@ -160,18 +185,15 @@ impl HuntFSMBuilder {
                 };
 
                 fsm.add_state(
-                    tag,
-                    name,
-                    debug_name,
-                    outputs,
-                    delay_msec,
-                    inputs,
+                    StateId::new(tag, name.to_string(), debug_name),
+                    outputs.to_vec(),
+                    delay_msec.clone(),
+                    inputs.to_vec(),
                     next_states,
                     check,
                 );
             }
             last_index = fragment_last + 1;
-            findex += 1;
         }
 
         HuntFSM::new(fsm)
@@ -314,15 +336,18 @@ where
     }
 
     fn simple_process_state_helper(
-        tag: K,
-        to_met: K,
-        to_not: K,
+        branch: Branch3<K>,
         processing: Processing,
         output: Vec<HuntStateOutput>,
         delay_msecs: Range<u64>,
         start_timer: bool,
         end_timer: bool,
     ) -> Self {
+        let Branch3 {
+            tag,
+            to_met,
+            to_not,
+        } = branch;
         let mut process_checks: HashMap<K, BoxedProcessFn> = HashMap::new();
         let proc_for_met = processing.clone();
         let proc_for_not = processing.clone();
@@ -367,11 +392,10 @@ where
         StateDescription::new(tag, vec![processing], output, delay_msecs, process_checks)
     }
 
-    pub fn simple_process_state_no_output(tag: K, to_met: K, processing: Processing) -> Self {
+    pub fn simple_process_state_no_output(branch: Branch2<K>, processing: Processing) -> Self {
+        let Branch2 { tag, to_met } = branch;
         Self::simple_process_state_helper(
-            tag.clone(),
-            to_met,
-            tag,
+            Branch3::new(tag.clone(), to_met, tag),
             processing,
             vec![],
             0..0,
@@ -381,14 +405,12 @@ where
     }
 
     pub fn simple_process_state_no_output_start_timer(
-        tag: K,
-        to_met: K,
+        branch: Branch2<K>,
         processing: Processing,
     ) -> Self {
+        let Branch2 { tag, to_met } = branch;
         Self::simple_process_state_helper(
-            tag.clone(),
-            to_met,
-            tag,
+            Branch3::new(tag.clone(), to_met, tag),
             processing,
             vec![],
             0..0,
@@ -398,14 +420,12 @@ where
     }
 
     pub fn simple_process_state_no_output_end_timer(
-        tag: K,
-        to_met: K,
+        branch: Branch2<K>,
         processing: Processing,
     ) -> Self {
+        let Branch2 { tag, to_met } = branch;
         Self::simple_process_state_helper(
-            tag.clone(),
-            to_met,
-            tag,
+            Branch3::new(tag.clone(), to_met, tag),
             processing,
             vec![],
             0..0,
@@ -415,17 +435,13 @@ where
     }
 
     pub fn simple_process_state(
-        tag: K,
-        to_met: K,
-        to_not: K,
+        branch: Branch3<K>,
         processing: Processing,
         output: HuntStateOutput,
         delay_msecs: Range<u64>,
     ) -> Self {
         Self::simple_process_state_helper(
-            tag,
-            to_met,
-            to_not,
+            branch,
             processing,
             vec![output],
             delay_msecs,
@@ -435,14 +451,17 @@ where
     }
 
     pub fn simple_sprite_state(
-        tag: K,
-        to_met: K,
-        to_not: K,
+        branch: Branch3<K>,
         game: &Game,
         method: &Method,
         species: u32,
         target: u32,
     ) -> Self {
+        let Branch3 {
+            tag,
+            to_met,
+            to_not,
+        } = branch;
         let mut detect_checks: HashMap<K, BoxedProcessFn> = HashMap::new();
         let detect = Processing::Sprite(game.clone(), vec![species], false);
 
@@ -518,15 +537,18 @@ where
     }
 
     pub fn sprite_state_delay(
-        tag: K,
-        to_met: K,
-        to_not: K,
+        branch: Branch3<K>,
         game: &Game,
         method: &Method,
         species: u32,
         target: u32,
         threshold: Duration,
     ) -> Self {
+        let Branch3 {
+            tag,
+            to_met,
+            to_not,
+        } = branch;
         let mut detect_checks: HashMap<K, BoxedProcessFn> = HashMap::new();
         let detect = Processing::Sprite(game.clone(), vec![species], false);
 

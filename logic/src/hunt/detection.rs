@@ -6,8 +6,8 @@ use crate::{
     app::{Game, Method, RequestTransition, Transition, TransitionArg},
     control::{Button, Delay},
     hunt::{
-        BoxedProcessFn, HuntFSMBuilder, HuntResult, HuntStateOutput, InternalHuntState,
-        StateDescription,
+        BoxedProcessFn, Branch2, Branch3, HuntFSMBuilder, HuntResult, HuntStateOutput,
+        InternalHuntState, StateDescription,
     },
     vision::{Processing, ProcessingResult},
 };
@@ -76,9 +76,11 @@ impl DetectionResolver {
                 1000..1500,
             ),
             StateDescription::simple_sprite_state(
-                HGSSStarter::Detect155,
-                HGSSStarter::Done,
-                HGSSStarter::Left2,
+                Branch3::new(
+                    HGSSStarter::Detect155,
+                    HGSSStarter::Done,
+                    HGSSStarter::Left2,
+                ),
                 game,
                 method,
                 155,
@@ -90,9 +92,11 @@ impl DetectionResolver {
                 1000..1500,
             ),
             StateDescription::simple_sprite_state(
-                HGSSStarter::Detect158,
-                HGSSStarter::Done,
-                HGSSStarter::Left3,
+                Branch3::new(
+                    HGSSStarter::Detect158,
+                    HGSSStarter::Done,
+                    HGSSStarter::Left3,
+                ),
                 game,
                 method,
                 158,
@@ -104,9 +108,11 @@ impl DetectionResolver {
                 1000..1500,
             ),
             StateDescription::simple_sprite_state(
-                HGSSStarter::Detect152,
-                HGSSStarter::Done,
-                HGSSStarter::NextAttempt,
+                Branch3::new(
+                    HGSSStarter::Detect152,
+                    HGSSStarter::Done,
+                    HGSSStarter::NextAttempt,
+                ),
                 game,
                 method,
                 152,
@@ -133,19 +139,15 @@ impl DetectionResolver {
 
         let states = vec![
             StateDescription::simple_process_state_no_output_start_timer(
-                Detection::EnterEncounter,
-                Detection::WaitEncounterReady,
+                Branch2::new(Detection::EnterEncounter, Detection::WaitEncounterReady),
                 Processing::DP_IN_ENCOUNTER,
             ),
             StateDescription::simple_process_state_no_output_end_timer(
-                Detection::WaitEncounterReady,
-                Detection::Detect,
+                Branch2::new(Detection::WaitEncounterReady, Detection::Detect),
                 Processing::DP_ENCOUNTER_READY,
             ),
             StateDescription::sprite_state_delay(
-                Detection::Detect,
-                Detection::Done,
-                Detection::Run1,
+                Branch3::new(Detection::Detect, Detection::Done, Detection::Run1),
                 game,
                 method,
                 species,
@@ -168,13 +170,11 @@ impl DetectionResolver {
 
         let states = vec![
             StateDescription::simple_process_state_no_output_start_timer(
-                Detection::EnterEncounter,
-                Detection::WaitEncounterReady,
+                Branch2::new(Detection::EnterEncounter, Detection::WaitEncounterReady),
                 Processing::FRLG_IN_ENCOUNTER,
             ),
             StateDescription::simple_process_state_no_output_end_timer(
-                Detection::WaitEncounterReady,
-                Detection::PressA,
+                Branch2::new(Detection::WaitEncounterReady, Detection::PressA),
                 Processing::FRLG_ENCOUNTER_READY,
             ),
             StateDescription::linear_state(
@@ -183,9 +183,7 @@ impl DetectionResolver {
                 3000..3000,
             ),
             StateDescription::sprite_state_delay(
-                Detection::Detect,
-                Detection::Done,
-                Detection::Run1,
+                Branch3::new(Detection::Detect, Detection::Done, Detection::Run1),
                 &game,
                 &method,
                 target,
@@ -287,13 +285,11 @@ impl DetectionResolver {
         let states = vec![
             StateDescription::toggle_state(Detection::Toggle, Detection::EnterEncounter),
             StateDescription::simple_process_state_no_output_start_timer(
-                Detection::EnterEncounter,
-                Detection::WaitEncounterReady,
+                Branch2::new(Detection::EnterEncounter, Detection::WaitEncounterReady),
                 Processing::FRLG_IN_ENCOUNTER,
             ),
             StateDescription::simple_process_state_no_output_end_timer(
-                Detection::WaitEncounterReady,
-                Detection::PressA,
+                Branch2::new(Detection::WaitEncounterReady, Detection::PressA),
                 Processing::FRLG_ENCOUNTER_READY,
             ),
             StateDescription::linear_state(

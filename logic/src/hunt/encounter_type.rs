@@ -3,7 +3,7 @@ use strum_macros::AsRefStr;
 use crate::{
     app::{Game, Method},
     control::{Button, Delay},
-    hunt::{HuntFSMBuilder, HuntStateOutput, StateDescription},
+    hunt::{Branch2, Branch3, HuntFSMBuilder, HuntStateOutput, StateDescription},
     vision::Processing,
 };
 
@@ -32,9 +32,6 @@ enum SoftResetProcess {
 enum StartSoftResetEncounter {
     SkipMemory,
     Delay,
-    Setup,
-    Decide,
-    Decr,
     Press1,
     Press2,
     Press3,
@@ -57,9 +54,9 @@ impl EncounterTypeResolver {
             Some(Self::frlg_random(builder))
         } else if *game == Game::FireRedLeafGreen && *method == Method::SoftResetEncounter {
             Some(Self::gen3_softreset(builder))
-        } else if *game == Game::HeartGoldSoulSilver && *method == Method::SoftResetGift {
-            Self::gen4_softreset(builder)
-        } else if *game == Game::DiamondPearl && *method == Method::SoftResetEncounter {
+        } else if (*game == Game::HeartGoldSoulSilver && *method == Method::SoftResetGift)
+            || (*game == Game::DiamondPearl && *method == Method::SoftResetEncounter)
+        {
             Self::gen4_softreset(builder)
         } else {
             None
@@ -122,8 +119,10 @@ impl EncounterTypeResolver {
                 0..0,
             ),
             StateDescription::simple_process_state_no_output(
-                StartSoftResetEncounter::IsEntering,
-                StartSoftResetEncounter::Entering,
+                Branch2::new(
+                    StartSoftResetEncounter::IsEntering,
+                    StartSoftResetEncounter::Entering,
+                ),
                 Processing::FRLG_START_ENCOUNTER,
             ),
             StateDescription::linear_state_no_delay(StartSoftResetEncounter::Entering, vec![]),
@@ -179,6 +178,7 @@ impl EncounterTypeResolver {
             }
             486 | 487 => {
                 // Legendaries
+                // Needs Setup/Decide/Decr
                 // Count button press method
                 // let states2 = vec![
                 //     StateDescription::linear_state(StartSoftResetEncounter::Delay, vec![], 0..1000),
@@ -211,24 +211,30 @@ impl EncounterTypeResolver {
                         500..1000,
                     ),
                     StateDescription::simple_process_state(
-                        StartSoftResetEncounter::Press1,
-                        StartSoftResetEncounter::IsEntering,
-                        StartSoftResetEncounter::Press2,
+                        Branch3::new(
+                            StartSoftResetEncounter::Press1,
+                            StartSoftResetEncounter::IsEntering,
+                            StartSoftResetEncounter::Press2,
+                        ),
                         Processing::DP_START_ENCOUNTER_WHITE,
                         HuntStateOutput::button(Button::A),
                         100..100,
                     ),
                     StateDescription::simple_process_state(
-                        StartSoftResetEncounter::Press2,
-                        StartSoftResetEncounter::IsEntering,
-                        StartSoftResetEncounter::Press1,
+                        Branch3::new(
+                            StartSoftResetEncounter::Press2,
+                            StartSoftResetEncounter::IsEntering,
+                            StartSoftResetEncounter::Press1,
+                        ),
                         Processing::DP_START_ENCOUNTER_WHITE,
                         HuntStateOutput::button(Button::A),
                         100..100,
                     ),
                     StateDescription::simple_process_state_no_output(
-                        StartSoftResetEncounter::IsEntering,
-                        StartSoftResetEncounter::Entering,
+                        Branch2::new(
+                            StartSoftResetEncounter::IsEntering,
+                            StartSoftResetEncounter::Entering,
+                        ),
                         Processing::DP_START_ENCOUNTER,
                     ),
                     StateDescription::linear_state_no_delay(
@@ -252,33 +258,41 @@ impl EncounterTypeResolver {
                 TryGetEncounter::Left,
             ),
             StateDescription::simple_process_state(
-                TryGetEncounter::Up,
-                TryGetEncounter::Entering,
-                TryGetEncounter::Down,
+                Branch3::new(
+                    TryGetEncounter::Up,
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Down,
+                ),
                 Processing::FRLG_START_ENCOUNTER,
                 HuntStateOutput::new(Button::Up, Delay::Tenth),
                 Self::MOVE_DELAY..Self::MOVE_DELAY,
             ),
             StateDescription::simple_process_state(
-                TryGetEncounter::Down,
-                TryGetEncounter::Entering,
-                TryGetEncounter::Up,
+                Branch3::new(
+                    TryGetEncounter::Down,
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Up,
+                ),
                 Processing::FRLG_START_ENCOUNTER,
                 HuntStateOutput::new(Button::Down, Delay::Tenth),
                 Self::MOVE_DELAY..Self::MOVE_DELAY,
             ),
             StateDescription::simple_process_state(
-                TryGetEncounter::Left,
-                TryGetEncounter::Entering,
-                TryGetEncounter::Right,
+                Branch3::new(
+                    TryGetEncounter::Left,
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Right,
+                ),
                 Processing::FRLG_START_ENCOUNTER,
                 HuntStateOutput::new(Button::Left, Delay::Tenth),
                 Self::MOVE_DELAY..Self::MOVE_DELAY,
             ),
             StateDescription::simple_process_state(
-                TryGetEncounter::Right,
-                TryGetEncounter::Entering,
-                TryGetEncounter::Left,
+                Branch3::new(
+                    TryGetEncounter::Right,
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Left,
+                ),
                 Processing::FRLG_START_ENCOUNTER,
                 HuntStateOutput::new(Button::Right, Delay::Tenth),
                 Self::MOVE_DELAY..Self::MOVE_DELAY,

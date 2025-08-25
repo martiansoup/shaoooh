@@ -1,5 +1,3 @@
-use std::fs::File;
-use std::io::Write;
 use std::thread;
 use std::time::Duration;
 
@@ -69,10 +67,10 @@ async fn main() {
                 p.encounters,
             ))
         }
-        if let Some(date) = h.date {
-            if h.complete {
-                mons.push((date, h.species, h.game, h.method, h.encounters))
-            }
+        if let Some(date) = h.date
+            && h.complete
+        {
+            mons.push((date, h.species, h.game, h.method, h.encounters))
         }
     }
     mons.sort_by_key(|f| f.0);
