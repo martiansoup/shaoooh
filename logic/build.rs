@@ -1,9 +1,9 @@
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "aarch64", target_os = "linux"))]
 use std::env;
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "aarch64", target_os = "linux"))]
 use std::path::PathBuf;
 
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "aarch64", target_os = "linux"))]
 fn build() {
     let libdir_path = PathBuf::from("ws2812")
         .canonicalize()
@@ -90,9 +90,30 @@ fn build() {
         .expect("Couldn't write bindings!");
 }
 
-#[cfg(not(target_arch = "aarch64"))]
+#[cfg(not(all(target_arch = "aarch64", target_os = "linux")))]
 fn build() {}
 
+fn opencv_compat() {
+    let major = opencv::core::CV_VERSION_MAJOR;
+    let minor = opencv::core::CV_VERSION_MINOR;
+
+    println!("cargo::rustc-check-cfg=cfg(opencv5_0_0)");
+    println!("cargo::rustc-check-cfg=cfg(opencv4_0_0,opencv4_11_0)");
+
+    // Untested with OpenCV >= 5
+    if major == 5 {
+        println!("cargo::rustc-cfg=opencv5_0_0");
+    }
+    if major == 4 {
+        println!("cargo::rustc-cfg=opencv4_0_0");
+        // Different optional args from 4.10 -> 4.11
+        if minor >= 11 {
+            println!("cargo::rustc-cfg=opencv4_11_0");
+        }
+    }
+}
+
 fn main() {
+    opencv_compat();
     build();
 }

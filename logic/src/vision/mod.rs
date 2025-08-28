@@ -1,5 +1,6 @@
 use crate::app::states::Game;
 
+pub mod compat;
 mod ds_vision;
 mod nop_vision;
 

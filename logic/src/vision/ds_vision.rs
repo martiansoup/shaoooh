@@ -17,7 +17,7 @@ use crate::{
     context::PkContext,
     vision::{
         BotVision, ChannelDetectSettings, Processing, ProcessingResult, RegionDetectSettings,
-        WinInfo,
+        WinInfo, compat,
     },
 };
 
@@ -365,7 +365,7 @@ impl Vision {
             .expect("Failed to crop to region of interest")
             .clone_pointee();
         let mut greyscale = Mat::default();
-        opencv::imgproc::cvt_color(&region, &mut greyscale, opencv::imgproc::COLOR_BGR2GRAY, 0)
+        compat::cvt_color(&region, &mut greyscale, opencv::imgproc::COLOR_BGR2GRAY, 0)
             .expect("Failed to convert colour");
         let mut thresholded = Mat::default();
         let typ = if settings.invert {
@@ -406,7 +406,7 @@ impl Vision {
             .expect("Failed to crop to region of interest")
             .clone_pointee();
         let mut hsv = Mat::default();
-        opencv::imgproc::cvt_color(&region, &mut hsv, opencv::imgproc::COLOR_BGR2HSV, 0)
+        compat::cvt_color(&region, &mut hsv, opencv::imgproc::COLOR_BGR2HSV, 0)
             .expect("Failed to convert colour");
         let mut thresholded = Mat::default();
         let lower = Vector::from_slice(&[settings.h_lo, settings.s_lo, settings.v_lo]);

@@ -6,14 +6,14 @@ mod display;
 mod gfx;
 mod webhook;
 
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "aarch64", target_os = "linux"))]
 mod lights;
 
 pub use display::ScreenDisplay;
 pub use gfx::GfxDisplay;
 pub use webhook::Webhook;
 
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "aarch64", target_os = "linux"))]
 pub use lights::LightsDisplay;
 
 pub struct DisplayWrapper {

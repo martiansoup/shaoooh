@@ -27,7 +27,7 @@ use crate::{
 pub use states::*;
 use tokio::signal;
 
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "aarch64", target_os = "linux"))]
 use crate::displays::LightsDisplay;
 
 // Response to any requests for the current state, also includes possible transitions
@@ -350,7 +350,7 @@ impl Shaoooh {
         }
     }
 
-    #[cfg(target_arch = "aarch64")]
+    #[cfg(all(target_arch = "aarch64", target_os = "linux"))]
     fn add_lights_display(displays: &mut Vec<DisplayWrapper>) {
         displays.push(DisplayWrapper::new(
             "Neopixel display".to_string(),
@@ -358,12 +358,18 @@ impl Shaoooh {
         ));
     }
 
-    #[cfg(not(target_arch = "aarch64"))]
+    #[cfg(not(all(target_arch = "aarch64", target_os = "linux")))]
     fn add_lights_display(_: &mut Vec<DisplayWrapper>) {}
 
     pub async fn serve(mut self) -> Result<(), String> {
         log::info!("Selected configuration: {}", self.config.info());
         log::info!("  {}", self.config.description());
+        log::info!(
+            "OpenCV version: {}.{}.{}",
+            opencv::core::CV_VERSION_MAJOR,
+            opencv::core::CV_VERSION_MINOR,
+            opencv::core::CV_VERSION_REVISION
+        );
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
 
         let state = self.api.take().expect("Couldn't get API state");

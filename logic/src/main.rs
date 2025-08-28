@@ -2,7 +2,7 @@ use simple_logger::SimpleLogger;
 
 use shaoooh::app::Shaoooh;
 
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "aarch64", target_os = "linux"))]
 fn get_config() -> shaoooh::app::Config {
     let paths = shaoooh::app::CaptureControlPaths::new(
         "/dev/video0".to_string(),
@@ -11,7 +11,7 @@ fn get_config() -> shaoooh::app::Config {
     shaoooh::app::Config::Shaoooh(paths)
 }
 
-#[cfg(not(target_arch = "aarch64"))]
+#[cfg(not(all(target_arch = "aarch64", target_os = "linux")))]
 fn get_config() -> shaoooh::app::Config {
     shaoooh::app::Config::Ditto
 }
