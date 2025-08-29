@@ -31,7 +31,13 @@ impl BotVision for NopVision {
 
 impl NopVision {
     pub fn new() -> Self {
-        NopVision { frame: vec![] }
+        let frame = if let Ok(f) = std::fs::read("static/metamon.png") {
+            f
+        } else {
+            vec![]
+        };
+
+        NopVision { frame }
     }
 }
 
