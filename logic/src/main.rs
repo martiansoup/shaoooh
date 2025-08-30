@@ -39,8 +39,7 @@ fn get_config() -> shaoooh::app::Config {
     shaoooh::app::Config::Ditto
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let args = Args::parse();
     let log_level = if args.quiet {
         log::Level::Info.to_level_filter()
@@ -68,7 +67,7 @@ async fn main() {
 
         let app = Shaoooh::new(config);
 
-        match app.serve().await {
+        match app.serve() {
             Ok(_) => log::info!("Shaoooh done"),
             Err(e) => log::error!("{}", e),
         }

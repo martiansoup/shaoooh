@@ -185,7 +185,13 @@
     <div id="mode" class="status-item">Current Configuration</div>
   </div>
 
+
+  <img id="dummy" style="display: none" />
   <script>
+    var extended = false;
+    var ext_count = 0;
+    var last_blob1 = "";
+    var last_blob2 = "";
     let state = "/api/state";
     let button = "/api/button";
 
@@ -355,9 +361,12 @@
       fetch("/api/frame")
         .then(res => res.blob())
         .then(blob => {
+          var url = URL.createObjectURL(blob);
           var img = document.getElementById("gameOutputImage");
-          img.src = URL.createObjectURL(blob);
+          img.src = url;
           setTimeout(updateFrame, window.frameTimer);
+          URL.revokeObjectURL(last_blob1);
+          last_blob1 = url;
         })
         .catch(err => {
           errorCount++;
@@ -366,6 +375,23 @@
           }
           console.log(err);
         });
+      ext_count++;
+      if (extended && ext_count % 4 == 0) {
+        fetch("/api/frame2")
+        .then(res => res.blob())
+        .then(blob => {
+          var url = URL.createObjectURL(blob);
+          var pre = document.getElementById("dummy");
+          pre.src = url;
+          var img = document.getElementById("touch");
+          img.style.background = "url("+url+")";
+          URL.revokeObjectURL(last_blob2);
+          last_blob2 = url;
+        })
+        .catch(err => {
+          console.log(err);
+        });
+      }
     }
 
     function updateState() {
@@ -397,6 +423,7 @@
         .then(res => res.json())
         .then(json => {
           if (json.extended) {
+            extended = true;
             document.getElementById("n3ds-controls").className = "";
             document.getElementById("circle").addEventListener("click", b2);
             document.getElementById("touch").addEventListener("click", b2);

@@ -53,6 +53,7 @@ struct ApiState {
     tx: mpsc::Sender<RequestTransition>,
     button_tx: mpsc::Sender<(Button, Delay)>,
     image: Arc<Mutex<Vec<u8>>>,
+    image2: Arc<Mutex<Vec<u8>>>,
     mode: ResponseMode,
 }
 
@@ -63,6 +64,7 @@ pub struct Shaoooh {
     rx: mpsc::Receiver<RequestTransition>,
     button_rx: mpsc::Receiver<(Button, Delay)>,
     image: Arc<Mutex<Vec<u8>>>,
+    image2: Arc<Mutex<Vec<u8>>>,
     config: Config,
 }
 
@@ -92,6 +94,7 @@ impl Shaoooh {
         let (transition_tx, transition_rx) = mpsc::channel(1);
         let (button_tx, button_rx) = mpsc::channel(8);
         let image_mutex = Arc::new(Mutex::new(Vec::new()));
+        let image_mutex2 = Arc::new(Mutex::new(Vec::new()));
 
         // Support 3ds features
         let mode_tup = match config {
@@ -110,6 +113,7 @@ impl Shaoooh {
             tx: transition_tx,
             button_tx,
             image: image_mutex.clone(),
+            image2: image_mutex2.clone(),
             mode,
         };
         Self {
@@ -119,6 +123,7 @@ impl Shaoooh {
             rx: transition_rx,
             button_rx,
             image: image_mutex,
+            image2: image_mutex2,
             config,
         }
     }
@@ -133,6 +138,7 @@ impl Shaoooh {
             .route("/api/state", get(get_state).post(post_state))
             .route("/api/button", post(post_button))
             .route("/api/frame", get(get_frame))
+            .route("/api/frame2", get(get_frame2))
             .route("/api/mode", get(get_mode))
             .with_state(state)
     }
@@ -307,7 +313,8 @@ impl Shaoooh {
 
     fn main_thread(
         mut self,
-        frame_rx: watch::Receiver<Mat>,
+        top_frame_rx: watch::Receiver<Mat>,
+        bottom_frame_rx: watch::Receiver<Mat>,
         button_tx: mpsc::Sender<(Vec<Button>, Delay)>,
         mut shutdown_rx: oneshot::Receiver<()>,
         raw_frame_mutex: Arc<Mutex<Mat>>,
@@ -320,7 +327,7 @@ impl Shaoooh {
             ),
             Config::Bishaan(_) => (
                 Box::new(BishaanControl::new(button_tx)),
-                Box::new(BishaanVision::new(frame_rx)),
+                Box::new(BishaanVision::new(top_frame_rx, bottom_frame_rx)),
             ),
             Config::Ditto => (Box::new(NopControl::new()), Box::new(NopVision::new())),
         };
@@ -352,6 +359,10 @@ impl Shaoooh {
                 if let Ok(mut img_wr) = self.image.try_lock() {
                     img_wr.clear();
                     img_wr.extend(vision.read_frame());
+                }
+                if let Ok(mut img_wr) = self.image2.try_lock() {
+                    img_wr.clear();
+                    img_wr.extend(vision.read_frame2());
                 }
             } else if !self.rx.is_closed() {
                 log::warn!("Failed to process frame");
@@ -389,7 +400,13 @@ impl Shaoooh {
     #[cfg(not(all(target_arch = "aarch64", target_os = "linux")))]
     fn add_lights_display(_: &mut Vec<DisplayWrapper>) {}
 
-    pub async fn serve(mut self) -> std::io::Result<()> {
+    pub fn serve(mut self) -> std::io::Result<()> {
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let _guard = runtime.enter();
+
         log::info!(
             "Selected configuration: {} {}",
             self.config.emoji(),
@@ -404,14 +421,15 @@ impl Shaoooh {
         );
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
 
-        let (frame_tx, frame_rx) = watch::channel(Mat::default());
+        let (t_frame_tx, t_frame_rx) = watch::channel(Mat::default());
+        let (b_frame_tx, b_frame_rx) = watch::channel(Mat::default());
         let (button_tx, button_rx) = mpsc::channel(16);
 
         let state = self.api.take().expect("Couldn't get API state");
 
         let rx_clone = state.rx.clone();
 
-        tokio::spawn(Webhook::call(rx_clone));
+        runtime.spawn(Webhook::call(rx_clone));
 
         let mut displays: Vec<DisplayWrapper> = Vec::new();
         let mut handles: Vec<(String, JoinHandle<()>)> = Vec::new();
@@ -428,14 +446,18 @@ impl Shaoooh {
                 ));
             }
             Config::Bishaan(ip) => {
-                log::info!("- Frame stream Rx thread");
-                let vision = BishaanVisionSocket::new(ip, frame_tx).await?;
-                let vision_handle = tokio::spawn(vision.task());
-                log::info!("- Control Tx thread");
-                let control = BishaanControlSocket::new(ip, button_rx).await?;
-                let control_handle = tokio::spawn(control.task());
+                runtime.spawn(async move {
+                    log::info!("- Frame stream Rx thread");
+                    let vision = BishaanVisionSocket::new(ip, t_frame_tx, b_frame_tx)
+                        .await
+                        .expect("Error creating vision thread");
+                    let vision_handle = tokio::spawn(vision.task());
+                    log::info!("- Control Tx thread");
+                    let control = BishaanControlSocket::new(ip, button_rx)
+                        .await
+                        .expect("Error creating control thread");
+                    let control_handle = tokio::spawn(control.task());
 
-                tokio::spawn(async {
                     tokio::select! {
                         r = vision_handle => {
                             if let Err(e) = r {
@@ -473,17 +495,27 @@ impl Shaoooh {
             handles.push((name, handle));
         }
 
-        let main_thread = std::thread::spawn(|| {
-            self.main_thread(frame_rx, button_tx, shutdown_rx, raw_frame_mutex);
-            log::info!("Main thread complete");
+        let handle = std::thread::spawn(move || {
+            runtime.block_on(async {
+                // run our app with hyper, listening globally on port 3000
+                let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+                axum::serve(listener, Self::routes(state))
+                    .with_graceful_shutdown(shutdown(shutdown_tx))
+                    .await
+                    .expect("Error from web server");
+            })
         });
-        // run our app with hyper, listening globally on port 3000
-        let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-        axum::serve(listener, Self::routes(state))
-            .with_graceful_shutdown(shutdown(shutdown_tx))
-            .await?;
 
-        main_thread.join().expect("Error from main thread");
+        self.main_thread(
+            t_frame_rx,
+            b_frame_rx,
+            button_tx,
+            shutdown_rx,
+            raw_frame_mutex,
+        );
+        log::info!("Main thread complete");
+
+        handle.join();
 
         for handle in handles {
             handle
@@ -560,6 +592,21 @@ async fn get_frame(State(state): State<ApiState>) -> impl IntoResponse {
     ];
 
     if let Ok(img_rd) = state.image.lock() {
+        (StatusCode::OK, headers, (*img_rd).clone())
+    } else {
+        let vec = Vec::new();
+        (StatusCode::INTERNAL_SERVER_ERROR, headers, vec.clone())
+    }
+}
+
+#[axum::debug_handler]
+async fn get_frame2(State(state): State<ApiState>) -> impl IntoResponse {
+    let headers = [
+        (header::CONTENT_TYPE, "image/png"),
+        (header::CACHE_CONTROL, "max-age=0, must-revalidate"),
+    ];
+
+    if let Ok(img_rd) = state.image2.lock() {
         (StatusCode::OK, headers, (*img_rd).clone())
     } else {
         let vec = Vec::new();

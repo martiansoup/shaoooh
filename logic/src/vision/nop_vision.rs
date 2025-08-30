@@ -27,6 +27,10 @@ impl BotVision for NopVision {
     fn read_frame(&self) -> &[u8] {
         &self.frame
     }
+
+    fn read_frame2(&self) -> &[u8] {
+        &self.frame
+    }
 }
 
 impl NopVision {

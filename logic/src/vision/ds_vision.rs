@@ -80,6 +80,10 @@ impl BotVision for Vision {
     fn read_frame(&self) -> &[u8] {
         self.encoded.as_slice()
     }
+
+    fn read_frame2(&self) -> &[u8] {
+        self.encoded.as_slice()
+    }
 }
 
 impl Vision {
