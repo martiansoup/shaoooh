@@ -48,21 +48,29 @@ impl ShaooohControl {
 
     fn get_button_str(button: &Button, down: bool) -> String {
         let cchar = match button {
-            Button::A => 'A',
-            Button::B => 'B',
-            Button::X => 'X',
-            Button::Y => 'Y',
-            Button::Start => 'S',
-            Button::Select => 's',
-            Button::L => 'L',
-            Button::R => 'R',
-            Button::Left => 'l',
-            Button::Right => 'r',
-            Button::Up => 'u',
-            Button::Down => 'd',
+            Button::A => Some('A'),
+            Button::B => Some('B'),
+            Button::X => Some('X'),
+            Button::Y => Some('Y'),
+            Button::Start => Some('S'),
+            Button::Select => Some('s'),
+            Button::L => Some('L'),
+            Button::R => Some('R'),
+            Button::Left => Some('l'),
+            Button::Right => Some('r'),
+            Button::Up => Some('u'),
+            Button::Down => Some('d'),
+            Button::Circle(..) | Button::Home | Button::Touch(..) | Button::ZL | Button::ZR => {
+                log::warn!("Use of unsupported button: {:?}", button);
+                None
+            }
         };
-        let val_char = if down { "1" } else { "0" };
-        format!("q{}{}", cchar, val_char)
+        if let Some(c) = cchar {
+            let val_char = if down { "1" } else { "0" };
+            format!("q{}{}", c, val_char)
+        } else {
+            "".to_string()
+        }
     }
 
     fn get_delay_str(delay: &Delay) -> String {

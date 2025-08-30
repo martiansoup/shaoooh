@@ -1,9 +1,11 @@
 use crate::app::states::Game;
 
+mod bishaan_vision;
 pub mod compat;
 mod ds_vision;
 mod nop_vision;
 
+pub use bishaan_vision::{BishaanVision, BishaanVisionSocket};
 pub use ds_vision::Vision;
 pub use nop_vision::NopVision;
 

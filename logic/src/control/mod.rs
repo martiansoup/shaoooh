@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+mod bishaan_control;
 mod nop_control;
 mod serial_control;
 
+pub use bishaan_control::{BishaanControl, BishaanControlSocket};
 pub use nop_control::NopControl;
 pub use serial_control::ShaooohControl;
 
@@ -20,6 +22,11 @@ pub enum Button {
     Right,
     Up,
     Down,
+    Home,
+    ZL,
+    ZR,
+    Circle(u8, u8),
+    Touch(u16, u16),
 }
 
 #[allow(dead_code)] // TODO are Half/Sec needed?

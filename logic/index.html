@@ -21,7 +21,7 @@
     }
     header {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 10px;
     }
     h1 {
       color: var(--sunset);
@@ -35,6 +35,7 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 20px;
+      margin-top: 20px;
     }
     .status-item {
       font-size: 1.2em;
@@ -94,8 +95,26 @@
       background-color: var(--falu-red);
       color: var(--sunset);
     }
+    .ds-controls .circle {
+      border-radius: 100%;
+      width: 80px;
+      height: 80px;
+    }
+    .ds-controls .touch {
+      width: 320px;
+      height: 240px;
+    }
+    #n3ds-controls {
+      margin-top: 10px;
+    }
+    .hidden {
+      display: none;
+    }
     .game-and-control {
       display: flex
+    }
+    #mode {
+      margin: 0px auto;
     }
   </style>
 </head>
@@ -123,6 +142,15 @@
         <tr><td></td><td></td><td></td><td></td><td><button onclick="b()" value="Start">Start</button></td><td></td><td></td></tr>
         <tr><td></td><td></td><td></td><td></td><td><button onclick="b()" value="Select">Select</button></td><td></td><td></td></tr>
       </table>
+      <div id="n3ds-controls" class="hidden">
+        <table>
+          <tr>
+            <td><button onclick="b()" value="Home">Home</button></td>
+            <td><button id="circle" class="circle" value="Circle">&nbsp;</button></td>
+            <td><button id="touch" class="touch" value="Touch">&nbsp;</button></td>
+          </tr>
+        </table>
+      </div>
     </div>
 
     <div class="game-output" id="gameOutput">
@@ -151,6 +179,10 @@
     <!--<button onclick="hgss_ditto()">HGSS Ditto</button>-->
     <!--<button onclick="rs_registeel()">RS Registeel</button>-->
     <!--<button onclick="bw2_latios()">BW2 Latios</button>-->
+  </div>
+
+  <div class="status-panel">
+    <div id="mode" class="status-item">Current Configuration</div>
   </div>
 
   <script>
@@ -240,6 +272,29 @@
       fetch(button, {
         method: "POST",
         body: JSON.stringify(window.event.target.value),
+        headers: {
+          "Content-Type": "application/json",
+        }
+      })
+      .catch(err => console.log(err));
+    }
+
+    function b2(e) {
+      let control = {};
+      let x = e.offsetX;
+      let y = e.offsetY;
+      if (e.target.value == "Circle") {
+        y = 80 - y;
+        x = (x * 255) / 80;
+        y = (y * 255) / 80;
+      }
+      x = Math.round(x);
+      y = Math.round(y);
+      control[e.target.value] = [x, y];
+      let ctrl_str = JSON.stringify(control);
+      fetch(button, {
+        method: "POST",
+        body: ctrl_str,
         headers: {
           "Content-Type": "application/json",
         }
@@ -337,7 +392,24 @@
         });
     }
 
+    function updateMode() {
+      fetch("/api/mode")
+        .then(res => res.json())
+        .then(json => {
+          if (json.extended) {
+            document.getElementById("n3ds-controls").className = "";
+            document.getElementById("circle").addEventListener("click", b2);
+            document.getElementById("touch").addEventListener("click", b2);
+          }
+          document.getElementById("mode").innerHTML = json.info + " " + json.emoji + " " + json.description;
+        })
+        .catch(err => {
+          console.log(err);
+        });
+    }
+
     window.onload = function() {
+      updateMode();
       updateState();
       updateFrame();
     }

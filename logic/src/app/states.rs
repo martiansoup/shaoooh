@@ -154,6 +154,7 @@ pub struct Phase {
     pub date: DateTime<Utc>,
 }
 
+#[derive(Debug)]
 pub struct CaptureControlPaths {
     video: String,
     control: String,
@@ -173,6 +174,7 @@ impl CaptureControlPaths {
     }
 }
 
+#[derive(Debug)]
 pub enum Config {
     // RaspberryPi - DS Lite - V4L2 Capture, Serial Control (Pico)
     Shaoooh(CaptureControlPaths),
@@ -208,6 +210,14 @@ impl Config {
             Self::Shaoooh(_) => "DS-Lite with video mod".to_string(),
             Self::Bishaan(_) => "New 2DS XL".to_string(),
             Self::Ditto => "Test configuration".to_string(),
+        }
+    }
+
+    pub fn emoji(&self) -> String {
+        match self {
+            Self::Shaoooh(_) => "🐦‍🔥".to_string(),
+            Self::Bishaan(_) => "👾".to_string(),
+            Self::Ditto => "🍙".to_string(),
         }
     }
 }
