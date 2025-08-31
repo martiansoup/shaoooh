@@ -5,9 +5,13 @@ pub struct NTRPacket {
     arg_priority: u32,
     arg_quality: u32,
     arg_qos: u32,
+    args_extra: Vec<u32>,
+    data_length: u32,
 }
 
 impl NTRPacket {
+    pub const HDR_SIZE: usize = 4 + (4 * 3) + (4 * 16) + 4;
+
     pub fn heartbeat(seq: u32) -> Self {
         // TODO incrementing sequence
         NTRPacket {
@@ -17,6 +21,8 @@ impl NTRPacket {
             arg_priority: 0,
             arg_quality: 0,
             arg_qos: 0,
+            args_extra: vec![],
+            data_length: 0,
         }
     }
 
@@ -38,6 +44,42 @@ impl NTRPacket {
             arg_priority,
             arg_quality,
             arg_qos,
+            args_extra: vec![],
+            data_length: 0,
+        }
+    }
+
+    pub fn extra_len(&self) -> usize {
+        self.data_length.try_into().unwrap()
+    }
+
+    pub fn from_wire(bytes: &[u8; Self::HDR_SIZE]) -> Option<Self> {
+        let magic = u32::from_be_bytes(bytes[0..4].try_into().unwrap());
+        let seq = u32::from_be_bytes(bytes[4..8].try_into().unwrap());
+        let typ = u32::from_be_bytes(bytes[8..12].try_into().unwrap());
+        let cmd = u32::from_be_bytes(bytes[12..16].try_into().unwrap());
+        let mut args: Vec<_> = Vec::with_capacity(16);
+        for i in 0..16 {
+            let start = 16 + (i * 4);
+            let end = start + 4;
+            let arg = u32::from_be_bytes(bytes[start..end].try_into().unwrap());
+            args.push(arg);
+        }
+        let extra_length = u32::from_le_bytes(bytes[80..84].try_into().unwrap());
+
+        if magic == 0x78563412 {
+            Some(Self {
+                seq,
+                typ,
+                cmd,
+                arg_priority: 0,
+                arg_quality: 0,
+                arg_qos: 0,
+                args_extra: args,
+                data_length: extra_length,
+            })
+        } else {
+            None
         }
     }
 
@@ -65,6 +107,13 @@ impl NTRPacket {
         // Args 3..16 and rest of packet
         while buf.len() < 84 {
             buf.push(0x00);
+        }
+
+        if self.args_extra.len() > 0 {
+            log::error!("Extra arguments unsupported when converting to wire format");
+        }
+        if self.data_length != 0 {
+            log::error!("Extra data unsupported when converting to wire format");
         }
 
         buf

@@ -1,10 +1,12 @@
+use std::time::{Duration, SystemTime};
+
 use crate::vision::{BotVision, ProcessingResult};
 
-use opencv::{prelude::*, core::Vector};
+use opencv::{core::Vector, prelude::*};
 
 use tokio::{
-    io::AsyncWriteExt,
-    net::{TcpStream, UdpSocket},
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::{TcpStream, UdpSocket, tcp::OwnedWriteHalf},
     sync::watch,
 };
 
@@ -26,7 +28,7 @@ pub struct BishaanVision {
 pub struct BishaanVisionSocket {
     tx_top: watch::Sender<Mat>,
     tx_bottom: watch::Sender<Mat>,
-    tcp_sock: TcpStream,
+    tcp_sock: Option<TcpStream>,
     img_socket: UdpSocket,
     top_frame_num: u8,
     top_frame_seq: u8,
@@ -34,7 +36,6 @@ pub struct BishaanVisionSocket {
     bot_frame_num: u8,
     bot_frame_seq: u8,
     bot_screen_buf: Vec<u8>,
-    heartbeat_seq: u32,
 }
 
 impl BotVision for BishaanVision {
@@ -56,7 +57,7 @@ impl BotVision for BishaanVision {
             let top = self.rx_top.borrow().clone();
             if !top.empty() {
                 opencv::imgcodecs::imencode(".png", &top, &mut self.encoded_top, &Vector::new())
-                .expect("Failed to encode frame");
+                    .expect("Failed to encode frame");
                 opencv::highgui::imshow("top", &top)
                     .unwrap_or_else(|_| panic!("Failed to show top window"));
                 opencv::highgui::wait_key(1).expect("Event loop failed");
@@ -65,7 +66,12 @@ impl BotVision for BishaanVision {
         {
             let bottom = self.rx_bottom.borrow().clone();
             if !bottom.empty() {
-                opencv::imgcodecs::imencode(".png", &bottom, &mut self.encoded_bottom, &Vector::new())
+                opencv::imgcodecs::imencode(
+                    ".png",
+                    &bottom,
+                    &mut self.encoded_bottom,
+                    &Vector::new(),
+                )
                 .expect("Failed to encode frame");
                 opencv::highgui::imshow("bottom", &bottom)
                     .unwrap_or_else(|_| panic!("Failed to show bottom window"));
@@ -97,7 +103,7 @@ impl BishaanVision {
             rx_top,
             rx_bottom,
             encoded_top: Vector::default(),
-            encoded_bottom: Vector::default()
+            encoded_bottom: Vector::default(),
         }
     }
 }
@@ -108,7 +114,8 @@ impl BishaanVisionSocket {
         tx_top: watch::Sender<Mat>,
         tx_bottom: watch::Sender<Mat>,
     ) -> std::io::Result<Self> {
-        // TODO heartbeat etc.
+        log::info!("Creating BishaanVisionSocket");
+
         let img_socket = UdpSocket::bind("0.0.0.0:8001").await?;
         img_socket.connect((ip.clone(), 8000)).await?;
 
@@ -123,9 +130,10 @@ impl BishaanVisionSocket {
         }
 
         let tcp_sock = TcpStream::connect((ip, 8000)).await?;
+
         Ok(Self {
             img_socket,
-            tcp_sock,
+            tcp_sock: Some(tcp_sock),
             tx_top,
             tx_bottom,
             top_frame_num: 0,
@@ -134,13 +142,12 @@ impl BishaanVisionSocket {
             bot_frame_num: 0,
             bot_frame_seq: 0,
             bot_screen_buf: vec![],
-            heartbeat_seq: 1,
         })
     }
 
     async fn listen(&mut self) -> std::io::Result<Frame> {
         let mut frame = Frame::None;
-        let mut buf = vec![0; 1500];
+        let mut buf = [0u8; 1500];
         let n = self.img_socket.recv(&mut buf).await?;
 
         let is_top_screen = (buf[1] & 0xf) == 1;
@@ -212,9 +219,9 @@ impl BishaanVisionSocket {
                 // } else {
                 //     print!("BOT ");
                 // }
-                // println!(
-                //     "Missing packet? Expected frame{}, got frame{} - exp{},got{}",
-                //     exp_frame_num, frame_id, next_seq, seq_num
+                //  println!(
+                //      "Missing packet? Expected frame{}, got frame{} - exp{},got{}",
+                //      exp_frame_num, frame_id, next_seq, seq_num
                 // );
                 // Poison sequence
                 if is_top_screen {
@@ -229,6 +236,62 @@ impl BishaanVisionSocket {
     }
 
     pub async fn task(mut self) -> std::io::Result<()> {
+        let (mut read, mut write) = self
+            .tcp_sock
+            .take()
+            .expect("Failed to get socket")
+            .into_split();
+
+        tokio::spawn(async move {
+            loop {
+                let mut header_buf = [0u8; NTRPacket::HDR_SIZE];
+                let r = read.read(&mut header_buf).await;
+                match r {
+                    Ok(n) => {
+                        if n == 84 {
+                            if let Some(hdr) = NTRPacket::from_wire(&header_buf) {
+                                if hdr.extra_len() > 0 {
+                                    let mut extra_buf = vec![0u8; hdr.extra_len()];
+                                    let e_res = read.read(&mut extra_buf).await;
+                                    match e_res {
+                                        Ok(n) => {
+                                            let str_conv = String::from_utf8_lossy(&extra_buf);
+                                            let strings = str_conv.split('\n');
+                                            for s in strings {
+                                                if s.len() > 0 {
+                                                    log::info!("[NTR] {}", s);
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            log::error!("{:?}", e);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        log::error!("{:?}", e);
+                    }
+                }
+            }
+        });
+        tokio::spawn(async move {
+            let mut seq = 1;
+            loop {
+                tokio::time::sleep(Duration::from_millis(250));
+                let hb_pkt = NTRPacket::heartbeat(seq);
+                match write.write_all(&hb_pkt.to_wire()).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        log::error!("Heartbeat send error: {:?}", e);
+                        break;
+                    }
+                }
+            }
+        });
+
         while let Ok(frame) = self.listen().await {
             match frame {
                 Frame::None => {}
