@@ -1,7 +1,8 @@
 # SHAOOOH
 Shiny Hunting Automaton Operating On Original Hardware
 
-Shaooh is an automated shiny hunting bot for a DS Lite using a Raspberry Pi Pico for control.
+Shaooh is an automated shiny hunting bot for a DS Lite using a Raspberry Pi Pico for control. There is some support
+for the 3DS using NTR and InputRedirection.
 
 The code mostly works, but only has a limited set of scenarios to hunt in, and the hardware isn't pretty. It's not intended to
 try to catch shinies, but waits for manual input at that stage.

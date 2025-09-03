@@ -349,6 +349,7 @@ impl Shaoooh {
                     // Automatic transition requests
                     if result.incr_encounters {
                         self.app.encounters += 1;
+                        log::info!("Current encounters: {}", self.app.encounters);
                         self.update_state();
                     }
                     if let Some(transition_req) = result.transition {
@@ -429,7 +430,7 @@ impl Shaoooh {
 
         let rx_clone = state.rx.clone();
 
-        runtime.spawn(Webhook::call(rx_clone));
+        runtime.spawn(Webhook::call(rx_clone, self.config.name()));
 
         let mut displays: Vec<DisplayWrapper> = Vec::new();
         let mut handles: Vec<(String, JoinHandle<()>)> = Vec::new();
@@ -516,6 +517,7 @@ impl Shaoooh {
         log::info!("Main thread complete");
 
         handle.join();
+        // TODO should wait for all threads including 3ds communication threads
 
         for handle in handles {
             handle

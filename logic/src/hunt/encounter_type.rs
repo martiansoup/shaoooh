@@ -40,6 +40,20 @@ enum StartSoftResetEncounter {
     Entering,
 }
 
+#[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
+enum USUM {
+    SoftReset1,
+    SoftReset2,
+    Title1,
+    Title2,
+    Title3,
+    Title4,
+    Circle1,
+    Circle2,
+    Circle3,
+    Circle4,
+}
+
 pub struct EncounterTypeResolver {}
 
 impl EncounterTypeResolver {
@@ -58,6 +72,8 @@ impl EncounterTypeResolver {
             || (*game == Game::DiamondPearl && *method == Method::SoftResetEncounter)
         {
             Self::gen4_softreset(builder)
+        } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetEncounter {
+            Self::gen7_softreset(builder)
         } else {
             None
         }
@@ -302,5 +318,61 @@ impl EncounterTypeResolver {
 
         builder.add_states(states);
         builder
+    }
+
+    pub fn gen7_softreset(mut builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
+        let sr_buttons = vec![
+            HuntStateOutput::new(Button::L, Delay::Half),
+            HuntStateOutput::new(Button::R, Delay::Half),
+            HuntStateOutput::new(Button::Start, Delay::Half),
+            HuntStateOutput::new(Button::Select, Delay::Half),
+        ];
+        let states = vec![
+            StateDescription::linear_state(USUM::SoftReset1, sr_buttons.clone(), 500..500),
+            StateDescription::linear_state(USUM::SoftReset2, sr_buttons, 7500..8000),
+            StateDescription::linear_state(
+                USUM::Title1,
+                vec![HuntStateOutput::button(Button::A)],
+                2000..2250,
+            ),
+            StateDescription::linear_state(
+                USUM::Title2,
+                vec![HuntStateOutput::button(Button::A)],
+                2500..2750,
+            ),
+            StateDescription::linear_state(
+                USUM::Title3,
+                vec![HuntStateOutput::button(Button::A)],
+                2000..2250,
+            ),
+            StateDescription::linear_state(
+                USUM::Title4,
+                vec![HuntStateOutput::button(Button::A)],
+                2500..2750,
+            ),
+            StateDescription::linear_state(
+                USUM::Circle1,
+                vec![HuntStateOutput::new(Button::Circle(128, 250), Delay::Half)],
+                250..250,
+            ),
+            StateDescription::linear_state(
+                USUM::Circle2,
+                vec![HuntStateOutput::new(Button::Circle(128, 250), Delay::Half)],
+                250..250,
+            ),
+            StateDescription::linear_state(
+                USUM::Circle3,
+                vec![HuntStateOutput::new(Button::Circle(128, 250), Delay::Half)],
+                250..250,
+            ),
+            StateDescription::linear_state(
+                USUM::Circle4,
+                vec![HuntStateOutput::new(Button::Circle(128, 250), Delay::Half)],
+                250..250,
+            ),
+        ];
+        builder.add_states(states);
+
+        Some(builder)
     }
 }

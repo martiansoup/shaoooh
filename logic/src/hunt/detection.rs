@@ -60,6 +60,8 @@ impl DetectionResolver {
                 486 | 487 => Some(Self::gen4_legend(builder)),
                 _ => None,
             }
+        } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetEncounter {
+            Some(Self::gen7_legend(builder))
         } else {
             None
         }
@@ -156,6 +158,40 @@ impl DetectionResolver {
             ),
             StateDescription::deadend_state(Detection::Done),
             StateDescription::linear_state(Detection::Run1, vec![], 1000..3000),
+        ];
+
+        builder.add_states(states);
+        builder
+    }
+
+    pub fn gen7_legend(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        let game = builder.game();
+        let method = builder.method();
+        let species = builder.target();
+
+        let states = vec![
+            StateDescription::start_timer_state(Detection::EnterEncounter, Detection::Detect),
+            StateDescription::simple_process_state_no_output3(
+                Branch3::new(Detection::Detect, Detection::Toggle, Detection::PressA),
+                Processing::USUMShinyStar(species),
+            ),
+            StateDescription::branch_delay_state(
+                Branch3::new(
+                    Detection::PressA,
+                    Detection::Run1,
+                    Detection::WaitEncounterReady,
+                ),
+                14000,
+            ),
+            StateDescription::branch_state(
+                Detection::WaitEncounterReady,
+                Detection::Detect,
+                50..50,
+            ),
+            StateDescription::found_target_state(Detection::Toggle, Detection::Done),
+            StateDescription::deadend_state(Detection::Done),
+            StateDescription::incr_encounter_state(Detection::Run1, Detection::Run2),
+            StateDescription::linear_state(Detection::Run2, vec![], 0..500),
         ];
 
         builder.add_states(states);

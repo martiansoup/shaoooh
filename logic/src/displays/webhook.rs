@@ -15,7 +15,7 @@ struct UserConfig {
 pub struct Webhook {}
 
 impl Webhook {
-    pub async fn call(mut rx: watch::Receiver<AppState>) {
+    pub async fn call(mut rx: watch::Receiver<AppState>, name: String) {
         let path = "user_config.json";
         if std::fs::exists(path).unwrap_or(false) {
             let data = std::fs::read_to_string(path).expect("Couldn't read file");
@@ -46,9 +46,9 @@ impl Webhook {
                             let phased = state.encounters;
                             let interesting_encounter = (phased % 64 == 0) && (phased != 0);
                             let title = if interesting_state {
-                                "Shaoooh Alert"
+                                format!("{} Alert", name)
                             } else {
-                                "Shaoooh Status"
+                                format!("{} Status", name)
                             };
                             let content = reqwest::multipart::Form::new()
                                 .text(

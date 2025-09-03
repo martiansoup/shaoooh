@@ -169,6 +169,7 @@
     <br /><br />
     <!--<button onclick="frlg_bulba()">FRLG Bulbasaur</button>-->
     <!--<button onclick="frlg_rat()">FRLG Ratatta</button>-->
+    <button onclick="usum_legend()">USUM Articuno</button>
     <button onclick="dp_giratina()">DP Giratina</button>
     <button onclick="frlg_snorlax()">FRLG Snorlax</button>
     <button onclick="hgss_start()">HGSS Starter</button>
@@ -195,6 +196,12 @@
     let state = "/api/state";
     let button = "/api/button";
 
+    function usum_legend() {
+      document.getElementById("arg_name").value = "WormholeArticuno";
+      document.getElementById("arg_species").value = "144";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
     function dp_giratina() {
       document.getElementById("arg_name").value = "Giratina";
       document.getElementById("arg_species").value = "487";

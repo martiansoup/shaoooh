@@ -1,8 +1,13 @@
 use std::time::{Duration, SystemTime};
 
-use crate::vision::{BotVision, ProcessingResult};
+use crate::vision::{BotVision, ProcessingResult, compat};
 
-use opencv::{core::Vector, prelude::*};
+use opencv::{
+    core::{Point, Vector},
+    imgcodecs::IMREAD_GRAYSCALE,
+    imgproc::{THRESH_BINARY, TM_CCORR_NORMED},
+    prelude::*,
+};
 
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -10,7 +15,7 @@ use tokio::{
     sync::watch,
 };
 
-use super::NTRPacket;
+use super::{NTRPacket, Processing};
 
 enum Frame {
     None,
@@ -23,6 +28,8 @@ pub struct BishaanVision {
     rx_bottom: watch::Receiver<Mat>,
     encoded_top: Vector<u8>,
     encoded_bottom: Vector<u8>,
+    ref_shiny_star: Mat,
+    shiny_star_mask: Mat,
 }
 
 pub struct BishaanVisionSocket {
@@ -43,26 +50,6 @@ impl BotVision for BishaanVision {
         &mut self,
         processing: &[super::Processing],
     ) -> Option<Vec<ProcessingResult>> {
-        let mut results = vec![];
-        for proc in processing {
-            results.push(ProcessingResult {
-                process: proc.clone(),
-                met: true,
-                species: 0,
-                shiny: true,
-            });
-        }
-
-        {
-            let top = self.rx_top.borrow().clone();
-            if !top.empty() {
-                opencv::imgcodecs::imencode(".png", &top, &mut self.encoded_top, &Vector::new())
-                    .expect("Failed to encode frame");
-                opencv::highgui::imshow("top", &top)
-                    .unwrap_or_else(|_| panic!("Failed to show top window"));
-                opencv::highgui::wait_key(1).expect("Event loop failed");
-            }
-        }
         {
             let bottom = self.rx_bottom.borrow().clone();
             if !bottom.empty() {
@@ -78,8 +65,17 @@ impl BotVision for BishaanVision {
                 opencv::highgui::wait_key(1).expect("Event loop failed");
             }
         }
-
-        Some(results)
+        {
+            let top = self.rx_top.borrow().clone();
+            if !top.empty() {
+                opencv::imgcodecs::imencode(".png", &top, &mut self.encoded_top, &Vector::new())
+                    .expect("Failed to encode frame");
+                opencv::highgui::imshow("top", &top)
+                    .unwrap_or_else(|_| panic!("Failed to show top window"));
+                opencv::highgui::wait_key(1).expect("Event loop failed");
+            }
+            Some(processing.iter().map(|p| self.process(p, &top)).collect())
+        }
     }
 
     fn read_frame(&self) -> &[u8] {
@@ -93,17 +89,78 @@ impl BotVision for BishaanVision {
 
 impl BishaanVision {
     pub fn new(rx_top: watch::Receiver<Mat>, rx_bottom: watch::Receiver<Mat>) -> Self {
-        let frame = if let Ok(f) = std::fs::read("static/metamon.png") {
-            f
-        } else {
-            vec![]
-        };
+        let ref_shiny_star =
+            opencv::imgcodecs::imread("static/usum_shiny_star.png", IMREAD_GRAYSCALE)
+                .expect("Couldn't read image");
+
+        let mut shiny_star_mask = Mat::default();
+
+        opencv::imgproc::threshold(
+            &ref_shiny_star,
+            &mut shiny_star_mask,
+            50.0,
+            255.0,
+            THRESH_BINARY,
+        )
+        .expect("Failed to create mask");
 
         BishaanVision {
             rx_top,
             rx_bottom,
             encoded_top: Vector::default(),
             encoded_bottom: Vector::default(),
+            ref_shiny_star,
+            shiny_star_mask,
+        }
+    }
+
+    fn shiny_star(&self, frame: &Mat, target: u32) -> ProcessingResult {
+        let mut hsv = Mat::default();
+        compat::cvt_color(&frame, &mut hsv, opencv::imgproc::COLOR_BGR2HSV, 0)
+            .expect("Failed to convert colour");
+        let mut thresholded_ylw = Mat::default();
+        let lower = Vector::from_slice(&[25.0, 32.0, 100.0]);
+        let upper = Vector::from_slice(&[40.0, 200.0, 255.0]);
+        opencv::core::in_range(&hsv, &lower, &upper, &mut thresholded_ylw);
+
+        let mut result = Mat::default();
+        opencv::imgproc::match_template(
+            &thresholded_ylw,
+            &self.ref_shiny_star,
+            &mut result,
+            TM_CCORR_NORMED,
+            &Mat::default(),
+        )
+        .expect("Failed to convolve");
+
+        let mut max_val = 0.0;
+        let mut max_loc = Point::default();
+
+        opencv::core::min_max_loc(
+            &result,
+            None,
+            Some(&mut max_val),
+            None,
+            Some(&mut max_loc),
+            &opencv::core::no_array(),
+        )
+        .expect("min max failed");
+
+        let met = max_val > 0.8 && !(max_val < 0.8) && (max_val < 2.0);
+        log::debug!("Value = {} (met={})", max_val, met);
+
+        ProcessingResult {
+            process: Processing::USUMShinyStar(target),
+            met,
+            species: target,
+            shiny: met,
+        }
+    }
+
+    fn process(&mut self, process: &Processing, frame: &Mat) -> ProcessingResult {
+        match process {
+            Processing::USUMShinyStar(target) => self.shiny_star(frame, *target),
+            _ => unimplemented!("Processing not implemented for 3DS"),
         }
     }
 }

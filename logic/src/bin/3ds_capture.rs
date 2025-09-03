@@ -1,9 +1,8 @@
-
 use std::net::Ipv4Addr;
 
-use tokio::sync::watch;
 use opencv::prelude::*;
 use shaoooh::vision::{BishaanVision, BishaanVisionSocket};
+use tokio::sync::watch;
 
 use simple_logger::SimpleLogger;
 
@@ -17,16 +16,16 @@ async fn main() {
 
     log::info!("Starting Shaoooh Test : Bishaan Capture");
 
-        let (t_frame_tx, mut t_frame_rx) = watch::channel(Mat::default());
-        let (b_frame_tx, mut b_frame_rx) = watch::channel(Mat::default());
+    let (t_frame_tx, mut t_frame_rx) = watch::channel(Mat::default());
+    let (b_frame_tx, mut b_frame_rx) = watch::channel(Mat::default());
 
     let ip = Ipv4Addr::new(192, 168, 68, 4);
 
     tokio::spawn(async move {
-                            let vision = BishaanVisionSocket::new(ip, t_frame_tx, b_frame_tx)
-                        .await
-                        .expect("Error creating vision thread");
-                    let vision_handle = tokio::spawn(vision.task());
+        let vision = BishaanVisionSocket::new(ip, t_frame_tx, b_frame_tx)
+            .await
+            .expect("Error creating vision thread");
+        let vision_handle = tokio::spawn(vision.task());
     });
 
     //let vision = BishaanVision::new(t_frame_rx, b_frame_rx);
@@ -55,6 +54,5 @@ async fn main() {
                 b_frame_id += 1;
             }
         }
-    };
-
+    }
 }

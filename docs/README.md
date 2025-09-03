@@ -149,3 +149,14 @@ had Pokérus, which I'd never encountered before.
 ...and that's Shaoooh :star2:
 
 ![Shaoooh - shiny hunting bot](../hardware.jpg)
+
+## 3DS Support
+
+The same general process can be used to hunt shinies in a 3DS using NTR to capture the screen
+and InputRedirection for control. These require sockets to be created to communicate with the
+3DS, and these then interact with the existing methods of perfoming image processing and
+sending button presses.
+
+Matching sprites isn't as feasible in the 3D games, so instead the approach used is to match
+on the shiny star at the start of an encounter, at least for Ultra Sun and Ultra Moon which
+is the first game logic is implemented for.

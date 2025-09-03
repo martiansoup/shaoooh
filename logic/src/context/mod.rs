@@ -42,6 +42,7 @@ impl PkContext {
             Game::HeartGoldSoulSilver => "hgss",
             Game::Black2White2 => "bw",
             Game::BlackWhite => "bw",
+            Game::UltraSunUltraMoon => "usum",
             _ => panic!("Unimplemented game"), // TODO other games
         };
         if shiny {

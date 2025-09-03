@@ -126,6 +126,7 @@ pub enum Game {
     HeartGoldSoulSilver,
     BlackWhite,
     Black2White2,
+    UltraSunUltraMoon,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -189,6 +190,14 @@ pub enum Config {
 }
 
 impl Config {
+    pub fn name(&self) -> String {
+        match self {
+            Self::Shaoooh(..) => "Shaoooh ショオーッ".to_string(),
+            Self::Bishaan(..) => "Bishaan ビシアーン".to_string(),
+            Self::Ditto => "Ditto メタモン".to_string(),
+        }
+    }
+
     pub fn info(&self) -> String {
         match self {
             Self::Shaoooh(cfg) => {

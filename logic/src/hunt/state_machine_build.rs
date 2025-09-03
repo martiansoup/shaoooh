@@ -234,6 +234,61 @@ where
         Self::new(tag, vec![], vec![], 0..0, set_count_check)
     }
 
+    pub fn branch_state(tag: K, to: K, delay: Range<u64>) -> Self {
+        let mut branch_state: HashMap<K, BoxedProcessFn> = HashMap::new();
+
+        branch_state.insert(to, Box::new(move |_, _| Some(HuntResult::default())));
+
+        Self::new(tag, vec![], vec![], delay, branch_state)
+    }
+
+    pub fn start_timer_state(tag: K, to: K) -> Self {
+        let mut branch_state: HashMap<K, BoxedProcessFn> = HashMap::new();
+
+        branch_state.insert(
+            to,
+            Box::new(move |_, int| {
+                int.time = SystemTime::now();
+                Some(HuntResult::default())
+            }),
+        );
+
+        Self::new(tag, vec![], vec![], 0..0, branch_state)
+    }
+
+    pub fn branch_delay_state(branch: Branch3<K>, delay: u64) -> Self {
+        let mut branch_check: HashMap<K, BoxedProcessFn> = HashMap::new();
+        let duration = Duration::from_millis(delay);
+        let dur2 = duration.clone();
+
+        branch_check.insert(
+            branch.to_met,
+            Box::new(
+                move |_: &Vec<ProcessingResult>, int: &mut InternalHuntState| {
+                    if int.time.elapsed().unwrap() > duration {
+                        Some(HuntResult::default())
+                    } else {
+                        None
+                    }
+                },
+            ),
+        );
+        branch_check.insert(
+            branch.to_not,
+            Box::new(
+                move |_: &Vec<ProcessingResult>, int: &mut InternalHuntState| {
+                    if int.time.elapsed().unwrap() > dur2 {
+                        None
+                    } else {
+                        Some(HuntResult::default())
+                    }
+                },
+            ),
+        );
+
+        Self::new(branch.tag, vec![], vec![], 0..0, branch_check)
+    }
+
     pub fn choose_counter_state(tag: K, zero: K, nonzero: K) -> Self {
         let mut count_check: HashMap<K, BoxedProcessFn> = HashMap::new();
 
@@ -404,6 +459,10 @@ where
         )
     }
 
+    pub fn simple_process_state_no_output3(branch: Branch3<K>, processing: Processing) -> Self {
+        Self::simple_process_state_helper(branch, processing, vec![], 0..0, false, false)
+    }
+
     pub fn simple_process_state_no_output_start_timer(
         branch: Branch2<K>,
         processing: Processing,
@@ -448,6 +507,41 @@ where
             false,
             false,
         )
+    }
+
+    pub fn found_target_state(tag: K, next: K) -> Self {
+        let mut detect_checks: HashMap<K, BoxedProcessFn> = HashMap::new();
+
+        detect_checks.insert(
+            next,
+            Box::new(move |_, _| {
+                Some(HuntResult {
+                    transition: Some(RequestTransition {
+                        transition: Transition::FoundTarget,
+                        arg: None,
+                    }),
+                    incr_encounters: true,
+                })
+            }),
+        );
+
+        Self::new(tag, vec![], vec![], 0..0, detect_checks)
+    }
+
+    pub fn incr_encounter_state(tag: K, next: K) -> Self {
+        let mut detect_checks: HashMap<K, BoxedProcessFn> = HashMap::new();
+
+        detect_checks.insert(
+            next,
+            Box::new(move |_, _| {
+                Some(HuntResult {
+                    transition: None,
+                    incr_encounters: true,
+                })
+            }),
+        );
+
+        Self::new(tag, vec![], vec![], 0..0, detect_checks)
     }
 
     pub fn simple_sprite_state(

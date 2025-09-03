@@ -268,6 +268,7 @@ where
     }
 
     pub fn graph_file(&mut self, file_root: &str) -> Result<(), Box<dyn std::error::Error>> {
+        // TODO cleanly error if dot/inkscape not installed
         let dot_file_name = format!("{}.dot", file_root);
         let svg_file_name = format!("{}.svg", file_root);
         let png_file_name = format!("{}.png", file_root);

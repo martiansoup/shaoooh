@@ -436,6 +436,7 @@ impl Vision {
             }
             Processing::ChannelDetect(settings) => self.channel_detect(settings, frame),
             Processing::RegionDetect(settings) => self.region_detect(settings, frame),
+            Processing::USUMShinyStar(_) => panic!("USUM Shiny Star incompatible with DS"),
         }
     }
 

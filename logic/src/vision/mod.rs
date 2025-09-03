@@ -43,6 +43,7 @@ pub enum Processing {
     Sprite(Game, Vec<u32>, bool),
     RegionDetect(RegionDetectSettings),
     ChannelDetect(ChannelDetectSettings),
+    USUMShinyStar(u32),
 }
 
 impl Processing {
