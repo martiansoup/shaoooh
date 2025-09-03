@@ -35,7 +35,7 @@ impl NTRPacket {
         // args[1] = quality
         // args[2] = (qos*2)<<16
         let arg_priority = 1 << 8 | (2 % 256);
-        let arg_quality = 30;
+        let arg_quality = 20;
         let arg_qos = (16 * 2) << 16;
         NTRPacket {
             seq: 3000,

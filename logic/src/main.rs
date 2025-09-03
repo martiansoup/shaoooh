@@ -27,14 +27,14 @@ fn get_config() -> shaoooh::app::Config {
     shaoooh::app::Config::Shaoooh(paths)
 }
 
-#[cfg(all(target_os = "macos"))]
+#[cfg(any(target_os = "macos", target_arch = "x86_64"))]
 fn get_config() -> shaoooh::app::Config {
     use std::net::Ipv4Addr;
 
     shaoooh::app::Config::Bishaan(Ipv4Addr::new(192, 168, 68, 4))
 }
 
-#[cfg(not(any(all(target_arch = "aarch64", target_os = "linux"), target_os = "macos")))]
+#[cfg(not(any(all(target_arch = "aarch64", target_os = "linux"), any(target_os = "macos", target_arch = "x86_64"))))]
 fn get_config() -> shaoooh::app::Config {
     shaoooh::app::Config::Ditto
 }
