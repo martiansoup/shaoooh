@@ -101,6 +101,15 @@ impl Processing {
         num_thresh: 10000,
         invert: true,
     });
+    pub const HGSS_BLACK_SCREEN: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 0,
+        y: 0,
+        w: 256,
+        h: 192,
+        col_thresh: 40.0,
+        num_thresh: 49000,
+        invert: true,
+    });
     pub const DP_IN_ENCOUNTER: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 0,
         y: 145,

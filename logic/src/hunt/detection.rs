@@ -62,9 +62,18 @@ impl DetectionResolver {
             }
         } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetEncounter {
             Some(Self::gen7_legend(builder))
+        } else if (*game == Game::HeartGoldSoulSilver
+            && *method == Method::SoftResetGift
+            && builder.target() == 206)
+        {
+            Some(Self::hgss_darkcave(builder))
         } else {
             None
         }
+    }
+
+    pub fn hgss_darkcave(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        builder
     }
 
     pub fn hgss_starter(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {

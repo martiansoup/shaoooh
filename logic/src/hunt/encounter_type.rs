@@ -54,6 +54,26 @@ enum USUM {
     Circle4,
 }
 
+#[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
+enum DarkCave {
+    Start,
+    CheckToggle,
+    First,
+    Second,
+    SoftReset,
+    Title1,
+    Title2,
+    Title3,
+    Title4,
+    SetToggle,
+    Down1,
+    Down2,
+    Right,
+    Smash,
+    CheckEncounter,
+    Entering,
+}
+
 pub struct EncounterTypeResolver {}
 
 impl EncounterTypeResolver {
@@ -74,9 +94,83 @@ impl EncounterTypeResolver {
             Self::gen4_softreset(builder)
         } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetEncounter {
             Self::gen7_softreset(builder)
+        } else if (*game == Game::HeartGoldSoulSilver
+            && *method == Method::SoftResetGift
+            && builder.target() == 206)
+        {
+            Some(Self::hgss_darkcave(builder))
         } else {
             None
         }
+    }
+
+    pub fn hgss_darkcave(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        let sr_buttons = vec![
+            HuntStateOutput::new(Button::L, Delay::Tenth),
+            HuntStateOutput::new(Button::R, Delay::Tenth),
+            HuntStateOutput::new(Button::Start, Delay::Tenth),
+            HuntStateOutput::new(Button::Select, Delay::Tenth),
+        ];
+
+        let states = vec![
+            StateDescription::linear_state_no_delay(DarkCave::Start, vec![]),
+            StateDescription::choose_toggle_state(
+                DarkCave::CheckToggle,
+                DarkCave::Second,
+                DarkCave::First,
+            ),
+            StateDescription::linear_state_no_delay(DarkCave::First, vec![]),
+            StateDescription::linear_state(DarkCave::SoftReset, sr_buttons, 7500..8000),
+            StateDescription::linear_state(
+                DarkCave::Title1,
+                vec![HuntStateOutput::button(Button::A)],
+                4000..4250,
+            ),
+            StateDescription::linear_state(
+                DarkCave::Title2,
+                vec![HuntStateOutput::button(Button::A)],
+                2500..2750,
+            ),
+            StateDescription::linear_state(
+                DarkCave::Title3,
+                vec![HuntStateOutput::button(Button::A)],
+                3500..3750,
+            ),
+            StateDescription::linear_state(
+                DarkCave::Title4,
+                vec![HuntStateOutput::button(Button::A)],
+                3000..3250,
+            ),
+            StateDescription::toggle_state(DarkCave::SetToggle, DarkCave::Smash),
+            StateDescription::linear_state_no_delay(DarkCave::Second, vec![]),
+            StateDescription::linear_state(
+                DarkCave::Down1,
+                vec![HuntStateOutput::new(Button::Down, Delay::Tenth)],
+                250..250,
+            ),
+            StateDescription::linear_state(
+                DarkCave::Down2,
+                vec![HuntStateOutput::new(Button::Down, Delay::Tenth)],
+                250..250,
+            ),
+            StateDescription::linear_state(
+                DarkCave::Right,
+                vec![HuntStateOutput::new(Button::Right, Delay::Tenth)],
+                250..250,
+            ),
+            StateDescription::linear_state(
+                DarkCave::Smash,
+                vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
+                250..250,
+            ),
+            StateDescription::simple_process_state_no_output(
+                Branch2::new(DarkCave::CheckEncounter, DarkCave::Entering),
+                Processing::HGSS_BLACK_SCREEN,
+            ),
+        ];
+
+        builder.add_states(states);
+        builder
     }
 
     pub fn gen3_softreset(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
