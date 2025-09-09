@@ -386,7 +386,7 @@ impl Shaoooh {
                 break;
             }
 
-            std::thread::sleep(std::time::Duration::new(0, 50000));
+            std::thread::sleep(std::time::Duration::new(0, 500000));
         }
     }
 

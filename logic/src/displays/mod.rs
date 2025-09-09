@@ -35,11 +35,13 @@ impl DisplayWrapper {
                 while rx.has_changed().is_ok() {
                     let state_copy = { rx.borrow().clone() };
                     inner.display(state_copy);
+                    std::thread::sleep(std::time::Duration::from_millis(10));
                 }
             } else {
                 while rx.has_changed().is_ok() {
                     let state_copy = { (*rx.borrow_and_update()).clone() };
                     inner.display(state_copy);
+                    std::thread::sleep(std::time::Duration::from_millis(10));
                 }
             }
             inner.cleanup();
