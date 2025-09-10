@@ -66,11 +66,18 @@ enum DarkCave {
     Title3,
     Title4,
     SetToggle,
+    SetToggle2,
     Down1,
     Down2,
     Right,
     Smash,
+    Smash2,
+    Smash3,
+    B1,
+    B2,
+    StartTimer,
     CheckEncounter,
+    BranchEncounter,
     Entering,
 }
 
@@ -95,7 +102,7 @@ impl EncounterTypeResolver {
         } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetEncounter {
             Self::gen7_softreset(builder)
         } else if (*game == Game::HeartGoldSoulSilver
-            && *method == Method::SoftResetGift
+            && *method == Method::SoftResetEncounter
             && builder.target() == 206)
         {
             Some(Self::hgss_darkcave(builder))
@@ -129,7 +136,7 @@ impl EncounterTypeResolver {
             StateDescription::linear_state(
                 DarkCave::Title2,
                 vec![HuntStateOutput::button(Button::A)],
-                2500..2750,
+                4500..4750,
             ),
             StateDescription::linear_state(
                 DarkCave::Title3,
@@ -143,6 +150,16 @@ impl EncounterTypeResolver {
             ),
             StateDescription::toggle_state(DarkCave::SetToggle, DarkCave::Smash),
             StateDescription::linear_state_no_delay(DarkCave::Second, vec![]),
+            StateDescription::linear_state(
+                DarkCave::B1,
+                vec![HuntStateOutput::new(Button::B, Delay::Tenth)],
+                2500..2500,
+            ),
+            StateDescription::linear_state(
+                DarkCave::B2,
+                vec![HuntStateOutput::new(Button::B, Delay::Tenth)],
+                2500..2500,
+            ),
             StateDescription::linear_state(
                 DarkCave::Down1,
                 vec![HuntStateOutput::new(Button::Down, Delay::Tenth)],
@@ -158,15 +175,40 @@ impl EncounterTypeResolver {
                 vec![HuntStateOutput::new(Button::Right, Delay::Tenth)],
                 250..250,
             ),
+            StateDescription::toggle_state(DarkCave::SetToggle2, DarkCave::Smash),
             StateDescription::linear_state(
                 DarkCave::Smash,
                 vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
-                250..250,
+                2000..2000,
             ),
-            StateDescription::simple_process_state_no_output(
-                Branch2::new(DarkCave::CheckEncounter, DarkCave::Entering),
+            StateDescription::linear_state(
+                DarkCave::Smash2,
+                vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
+                2000..2000,
+            ),
+            StateDescription::linear_state(
+                DarkCave::Smash3,
+                vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
+                2000..2000,
+            ),
+            StateDescription::start_timer_state(DarkCave::StartTimer, DarkCave::CheckEncounter),
+            StateDescription::simple_process_state_no_output3(
+                Branch3::new(
+                    DarkCave::CheckEncounter,
+                    DarkCave::Entering,
+                    DarkCave::BranchEncounter,
+                ),
                 Processing::HGSS_BLACK_SCREEN,
             ),
+            StateDescription::branch_delay_state(
+                Branch3::new(
+                    DarkCave::BranchEncounter,
+                    DarkCave::Start,
+                    DarkCave::CheckEncounter,
+                ),
+                8000,
+            ),
+            StateDescription::linear_state_no_delay(DarkCave::Entering, vec![]),
         ];
 
         builder.add_states(states);

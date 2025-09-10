@@ -128,6 +128,15 @@ impl Processing {
         num_thresh: 1500,
         invert: false,
     });
+    pub const HGSS_ENCOUNTER_READY: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 150,
+        y: 100,
+        w: 106,
+        h: 35,
+        col_thresh: 150.0,
+        num_thresh: 1500,
+        invert: false,
+    });
     pub const DP_SAFARI_ENCOUNTER_READY: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 150,
         y: 100,

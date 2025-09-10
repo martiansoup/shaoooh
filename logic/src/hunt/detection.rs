@@ -23,6 +23,8 @@ enum Detection {
     Run2,
     Run3,
     Run4,
+    Run5,
+    Run6,
     Toggle,
 }
 
@@ -63,7 +65,7 @@ impl DetectionResolver {
         } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetEncounter {
             Some(Self::gen7_legend(builder))
         } else if (*game == Game::HeartGoldSoulSilver
-            && *method == Method::SoftResetGift
+            && *method == Method::SoftResetEncounter
             && builder.target() == 206)
         {
             Some(Self::hgss_darkcave(builder))
@@ -73,6 +75,63 @@ impl DetectionResolver {
     }
 
     pub fn hgss_darkcave(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        let duration = 6800;
+        let shiny_threshold = Duration::from_millis(duration);
+        let game = builder.game();
+        let method = builder.method();
+        let species = builder.target();
+
+        let states = vec![
+            StateDescription::simple_process_state_no_output_start_timer(
+                Branch2::new(Detection::EnterEncounter, Detection::WaitEncounterReady),
+                Processing::DP_IN_ENCOUNTER,
+            ),
+            StateDescription::simple_process_state_no_output_end_timer(
+                Branch2::new(Detection::WaitEncounterReady, Detection::Detect),
+                Processing::HGSS_ENCOUNTER_READY,
+            ),
+            StateDescription::sprite_state_delay_targets(
+                Branch3::new(Detection::Detect, Detection::Done, Detection::Run1),
+                game,
+                method,
+                vec![206, 74],
+                species,
+                shiny_threshold,
+            ),
+            StateDescription::deadend_state(Detection::Done),
+            StateDescription::linear_state(
+                Detection::Run1,
+                vec![HuntStateOutput::button(Button::Down)],
+                1000..1000,
+            ),
+            StateDescription::linear_state(
+                Detection::Run2,
+                vec![HuntStateOutput::button(Button::Down)],
+                1000..1000,
+            ),
+            StateDescription::linear_state(
+                Detection::Run3,
+                vec![HuntStateOutput::button(Button::Right)],
+                1000..1000,
+            ),
+            StateDescription::linear_state(
+                Detection::Run4,
+                vec![HuntStateOutput::button(Button::Right)],
+                1000..1000,
+            ),
+            StateDescription::linear_state(
+                Detection::Run5,
+                vec![HuntStateOutput::button(Button::Left)],
+                1000..1000,
+            ),
+            StateDescription::linear_state(
+                Detection::Run6,
+                vec![HuntStateOutput::button(Button::A)],
+                10000..10000,
+            ),
+        ];
+
+        builder.add_states(states);
         builder
     }
 

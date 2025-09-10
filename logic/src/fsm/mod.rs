@@ -165,7 +165,8 @@ where
 
     pub fn process(&mut self, inputs: Vec<InputValue>) -> Option<StateTransition> {
         if let Some(delay) = self.delay {
-            if self.time.elapsed().expect("Couldn't get duration") > delay.0 {
+            let extra_delay = Duration::from_secs(0); // TODO for debug
+            if self.time.elapsed().expect("Couldn't get duration") > (delay.0 + extra_delay) {
                 self.current = delay.1;
                 self.delay = None;
             }
