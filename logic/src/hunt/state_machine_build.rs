@@ -551,13 +551,24 @@ where
         species: u32,
         target: u32,
     ) -> Self {
+        Self::simple_sprite_state_flip(branch, game, method, species, target, false)
+    }
+
+    pub fn simple_sprite_state_flip(
+        branch: Branch3<K>,
+        game: &Game,
+        method: &Method,
+        species: u32,
+        target: u32,
+        flip: bool,
+    ) -> Self {
         let Branch3 {
             tag,
             to_met,
             to_not,
         } = branch;
         let mut detect_checks: HashMap<K, BoxedProcessFn> = HashMap::new();
-        let detect = Processing::Sprite(game.clone(), vec![species], false);
+        let detect = Processing::Sprite(game.clone(), vec![species], flip);
 
         let shiny_closure = move |res: &Vec<ProcessingResult>| {
             let sprite_results: Vec<&ProcessingResult> = res

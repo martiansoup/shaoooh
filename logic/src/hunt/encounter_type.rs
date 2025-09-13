@@ -36,6 +36,7 @@ enum StartSoftResetEncounter {
     Press2,
     Press3,
     Press4,
+    Press5,
     IsEntering,
     Entering,
 }
@@ -95,6 +96,8 @@ impl EncounterTypeResolver {
             Some(Self::frlg_random(builder))
         } else if *game == Game::FireRedLeafGreen && *method == Method::SoftResetEncounter {
             Some(Self::gen3_softreset(builder))
+        } else if *game == Game::RubySapphire && *method == Method::SoftResetGift {
+            Self::gen3_softreset_gift(builder)
         } else if (*game == Game::HeartGoldSoulSilver && *method == Method::SoftResetGift)
             || (*game == Game::DiamondPearl && *method == Method::SoftResetEncounter)
         {
@@ -213,6 +216,77 @@ impl EncounterTypeResolver {
 
         builder.add_states(states);
         builder
+    }
+
+    pub fn gen3_softreset_gift(mut builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
+        let sr_buttons = vec![
+            HuntStateOutput::new(Button::A, Delay::Tenth),
+            HuntStateOutput::new(Button::B, Delay::Tenth),
+            HuntStateOutput::new(Button::Start, Delay::Tenth),
+            HuntStateOutput::new(Button::Select, Delay::Tenth),
+        ];
+        let states = vec![
+            StateDescription::linear_state(SoftResetProcess::SoftReset, sr_buttons, 3750..3750),
+            StateDescription::linear_state(
+                SoftResetProcess::Title1,
+                vec![HuntStateOutput::button(Button::A)],
+                5000..5000,
+            ),
+            StateDescription::linear_state(
+                SoftResetProcess::Title2,
+                vec![HuntStateOutput::button(Button::A)],
+                3750..3750,
+            ),
+            StateDescription::linear_state(
+                SoftResetProcess::Title3,
+                vec![HuntStateOutput::button(Button::A)],
+                2500..2500,
+            ),
+            StateDescription::linear_state(
+                SoftResetProcess::Title4,
+                vec![HuntStateOutput::button(Button::A)],
+                3000..3500,
+            ),
+        ];
+
+        builder.add_states(states);
+
+        if builder.target() != 374 {
+            return None;
+        }
+
+        // Beldum Sequence
+        let states2 = vec![
+            StateDescription::linear_state(
+                StartSoftResetEncounter::Press1,
+                vec![HuntStateOutput::button(Button::A)],
+                1000..5500,
+            ),
+            StateDescription::linear_state(
+                StartSoftResetEncounter::Press2,
+                vec![HuntStateOutput::button(Button::A)],
+                1000..1500,
+            ),
+            StateDescription::linear_state(
+                StartSoftResetEncounter::Press3,
+                vec![HuntStateOutput::button(Button::A)],
+                1000..1500,
+            ),
+            StateDescription::linear_state(
+                StartSoftResetEncounter::Press4,
+                vec![HuntStateOutput::button(Button::A)],
+                5500..5500,
+            ),
+            StateDescription::linear_state(
+                StartSoftResetEncounter::Press5,
+                vec![HuntStateOutput::button(Button::B)],
+                2000..2500,
+            ),
+        ];
+
+        builder.add_states(states2);
+
+        Some(builder)
     }
 
     pub fn gen3_softreset(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {

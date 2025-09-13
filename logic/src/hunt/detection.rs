@@ -40,6 +40,20 @@ enum HGSSStarter {
     NextAttempt,
 }
 
+#[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
+enum CheckSummary {
+    Start,
+    Down,
+    ToPokemon,
+    Up1,
+    Up2,
+    Select,
+    ToSummary,
+    Detect,
+    Done,
+    NextAttempt,
+}
+
 pub struct DetectionResolver {}
 
 impl DetectionResolver {
@@ -52,6 +66,8 @@ impl DetectionResolver {
             Some(Self::frlg_random(builder))
         } else if *game == Game::FireRedLeafGreen && *method == Method::SoftResetEncounter {
             Some(Self::frlg_softreset(builder))
+        } else if *game == Game::RubySapphire && *method == Method::SoftResetGift {
+            Self::gen3_softreset_gift(builder)
         } else if *game == Game::HeartGoldSoulSilver && *method == Method::SoftResetGift {
             match builder.target() {
                 152 | 155 | 158 => Some(Self::hgss_starter(builder)),
@@ -72,6 +88,67 @@ impl DetectionResolver {
         } else {
             None
         }
+    }
+
+    pub fn gen3_softreset_gift(mut builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
+        let target = builder.target();
+        let game = builder.game().clone();
+        let method = builder.method().clone();
+
+        let states = vec![
+            StateDescription::linear_state(
+                CheckSummary::Start,
+                vec![HuntStateOutput::button(Button::Start)],
+                500..500,
+            ),
+            StateDescription::linear_state(
+                CheckSummary::Down,
+                vec![HuntStateOutput::button(Button::Down)],
+                500..500,
+            ),
+            StateDescription::linear_state(
+                CheckSummary::ToPokemon,
+                vec![HuntStateOutput::button(Button::A)],
+                1000..1000,
+            ),
+            StateDescription::linear_state(
+                CheckSummary::Up1,
+                vec![HuntStateOutput::button(Button::Up)],
+                1000..1000,
+            ),
+            StateDescription::linear_state(
+                CheckSummary::Up2,
+                vec![HuntStateOutput::button(Button::Up)],
+                1000..1000,
+            ),
+            StateDescription::linear_state(
+                CheckSummary::Select,
+                vec![HuntStateOutput::button(Button::A)],
+                1000..1000,
+            ),
+            StateDescription::linear_state(
+                CheckSummary::ToSummary,
+                vec![HuntStateOutput::button(Button::A)],
+                1000..1000,
+            ),
+            StateDescription::simple_sprite_state_flip(
+                Branch3::new(
+                    CheckSummary::Detect,
+                    CheckSummary::Done,
+                    CheckSummary::NextAttempt,
+                ),
+                &game,
+                &method,
+                target,
+                target,
+                true,
+            ),
+            StateDescription::deadend_state(CheckSummary::Done),
+            StateDescription::linear_state(CheckSummary::NextAttempt, vec![], 500..5000),
+        ];
+
+        builder.add_states(states);
+        Some(builder)
     }
 
     pub fn hgss_darkcave(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
