@@ -135,6 +135,7 @@ impl TransitionArg {
 }
 
 #[derive(
+    clap::ValueEnum,
     Clone,
     Serialize,
     Deserialize,
@@ -159,7 +160,7 @@ pub enum Game {
     UltraSunUltraMoon,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(clap::ValueEnum, Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum Method {
     RandomEncounter,
     SoftResetEncounter,
