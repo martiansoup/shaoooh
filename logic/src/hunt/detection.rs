@@ -80,9 +80,9 @@ impl DetectionResolver {
             }
         } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetEncounter {
             Some(Self::gen7_legend(builder))
-        } else if (*game == Game::HeartGoldSoulSilver
+        } else if *game == Game::HeartGoldSoulSilver
             && *method == Method::SoftResetEncounter
-            && builder.target() == 206)
+            && builder.target() == 206
         {
             Some(Self::hgss_darkcave(builder))
         } else {

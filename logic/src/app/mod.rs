@@ -3,6 +3,7 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
     thread::JoinHandle,
+    time::Duration,
 };
 
 use axum::{
@@ -16,7 +17,7 @@ use chrono::{DateTime, Utc};
 use opencv::core::Mat;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, oneshot, watch};
-use tower_http::services::{ServeDir, ServeFile};
+use tower_http::services::ServeDir;
 pub(crate) mod states;
 use crate::{
     control::{
@@ -51,6 +52,7 @@ struct ResponseMode {
 struct ApiState {
     rx: watch::Receiver<AppState>,
     tx: mpsc::Sender<RequestTransition>,
+    tx_conn: watch::Sender<bool>,
     button_tx: mpsc::Sender<(Button, Delay)>,
     image: Arc<Mutex<Vec<u8>>>,
     image2: Arc<Mutex<Vec<u8>>>,
@@ -62,6 +64,7 @@ pub struct Shaoooh {
     app: AppState,
     tx: watch::Sender<AppState>,
     rx: mpsc::Receiver<RequestTransition>,
+    rx_conn: watch::Receiver<bool>,
     button_rx: mpsc::Receiver<(Button, Delay)>,
     image: Arc<Mutex<Vec<u8>>>,
     image2: Arc<Mutex<Vec<u8>>>,
@@ -93,6 +96,7 @@ impl Shaoooh {
         let (state_tx, state_rx) = watch::channel(app.clone());
         let (transition_tx, transition_rx) = mpsc::channel(1);
         let (button_tx, button_rx) = mpsc::channel(8);
+        let (conn_tx, conn_rx) = watch::channel(false);
         let image_mutex = Arc::new(Mutex::new(Vec::new()));
         let image_mutex2 = Arc::new(Mutex::new(Vec::new()));
 
@@ -111,6 +115,7 @@ impl Shaoooh {
         let api = ApiState {
             rx: state_rx,
             tx: transition_tx,
+            tx_conn: conn_tx,
             button_tx,
             image: image_mutex.clone(),
             image2: image_mutex2.clone(),
@@ -121,6 +126,7 @@ impl Shaoooh {
             app,
             tx: state_tx,
             rx: transition_rx,
+            rx_conn: conn_rx,
             button_rx,
             image: image_mutex,
             image2: image_mutex2,
@@ -130,10 +136,9 @@ impl Shaoooh {
 
     fn routes(state: ApiState) -> Router {
         let static_dir = ServeDir::new("./static");
-        let index = ServeFile::new("index.html");
 
         Router::new()
-            .route_service("/", index)
+            .route("/", get(get_index))
             .nest_service("/static", static_dir)
             .route("/api/state", get(get_state).post(post_state))
             .route("/api/button", post(post_button))
@@ -422,15 +427,51 @@ impl Shaoooh {
         );
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
 
+        let state = self.api.take().expect("Couldn't get API state");
+        let rx_clone_hook = state.rx.clone();
+        let rx_clone_disp = state.rx.clone();
+        let runtime_hndl = runtime.handle().clone();
+
+        // Have to start web server early to catch connection requests
+        // from the 3DS
+        let handle = std::thread::spawn(move || {
+            runtime_hndl.block_on(async {
+                // run our app with hyper, listening globally on port 3000
+                let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+                axum::serve(listener, Self::routes(state))
+                    .with_graceful_shutdown(shutdown(shutdown_tx))
+                    .await
+                    .expect("Error from web server");
+            })
+        });
+
+        // If in Bishaan(3DS) configuration, want to wait until the 3DS has performed a connection
+        // test, and then allow some time to start InputRedirection and Streaming
+        if let Config::Bishaan(_) = self.config {
+            log::info!("Waiting for connection test to be performed");
+            while !*self.rx_conn.borrow() {
+                std::thread::sleep(Duration::from_millis(500));
+            }
+            log::info!(
+                "Seen connection test, waiting for a minute to enable InputRedirection and NTR"
+            );
+            // TODO report time in 10 second intervals to count down
+            for x in 0..5 {
+                log::info!("{} seconds remaining...", 60 - (x * 10));
+                std::thread::sleep(Duration::from_secs(10));
+            }
+            for x in 0..10 {
+                log::info!("{} seconds remaining...", 10 - x);
+                std::thread::sleep(Duration::from_secs(1));
+            }
+            log::info!("Resuming startup...");
+        }
+
         let (t_frame_tx, t_frame_rx) = watch::channel(Mat::default());
         let (b_frame_tx, b_frame_rx) = watch::channel(Mat::default());
         let (button_tx, button_rx) = mpsc::channel(16);
 
-        let state = self.api.take().expect("Couldn't get API state");
-
-        let rx_clone = state.rx.clone();
-
-        runtime.spawn(Webhook::call(rx_clone, self.config.name()));
+        runtime.spawn(Webhook::call(rx_clone_hook, self.config.name()));
 
         let mut displays: Vec<DisplayWrapper> = Vec::new();
         let mut handles: Vec<(String, JoinHandle<()>)> = Vec::new();
@@ -487,7 +528,7 @@ impl Shaoooh {
         //));
 
         for mut display in displays {
-            let rx_clone = state.rx.clone();
+            let rx_clone = rx_clone_disp.clone();
             let name = display.name();
             log::info!("Creating thread for display: '{}'", name);
             let handle = std::thread::spawn(move || {
@@ -495,17 +536,6 @@ impl Shaoooh {
             });
             handles.push((name, handle));
         }
-
-        let handle = std::thread::spawn(move || {
-            runtime.block_on(async {
-                // run our app with hyper, listening globally on port 3000
-                let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-                axum::serve(listener, Self::routes(state))
-                    .with_graceful_shutdown(shutdown(shutdown_tx))
-                    .await
-                    .expect("Error from web server");
-            })
-        });
 
         self.main_thread(
             t_frame_rx,
@@ -534,6 +564,29 @@ impl Shaoooh {
 struct ApiResponse {
     ok: bool,
     error: String,
+}
+
+#[axum::debug_handler]
+async fn get_index(
+    State(state): State<ApiState>,
+    req: axum::extract::Request<axum::body::Body>,
+) -> impl IntoResponse {
+    let headers = [
+        (header::CONTENT_TYPE, "text/html"),
+        (header::CONNECTION, "keep-alive"),
+        (
+            header::HeaderName::from_static("x-organization"),
+            "Nintendo",
+        ),
+    ];
+
+    if req.uri() == "http://conntest.nintendowifi.net/" {
+        log::info!("Got connection test request");
+        let _ = state.tx_conn.send(true);
+    }
+    std::fs::read("index.html")
+        .map(|b| (StatusCode::OK, headers, b))
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
 #[axum::debug_handler]

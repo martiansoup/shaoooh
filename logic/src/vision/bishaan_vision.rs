@@ -1,4 +1,4 @@
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use crate::vision::{BotVision, ProcessingResult, compat};
 
@@ -346,6 +346,7 @@ impl BishaanVisionSocket {
                         break;
                     }
                 }
+                seq += 1;
             }
         });
 
