@@ -16,8 +16,13 @@ use axum::{
 use chrono::{DateTime, Utc};
 use opencv::core::Mat;
 use serde::{Deserialize, Serialize};
-use tokio::sync::{mpsc, oneshot, watch};
+use tokio::sync::{
+    broadcast, mpsc,
+    oneshot::{self, error::TryRecvError},
+    watch,
+};
 use tower_http::services::ServeDir;
+pub(crate) mod error;
 pub(crate) mod states;
 use crate::{
     control::{
@@ -27,6 +32,7 @@ use crate::{
     hunt::{HuntBuild, HuntFSM},
     vision::{BishaanVision, BishaanVisionSocket, BotVision, NopVision, Vision},
 };
+pub use error::*;
 pub use states::*;
 use tokio::signal;
 
@@ -66,6 +72,8 @@ pub struct Shaoooh {
     rx: mpsc::Receiver<RequestTransition>,
     rx_conn: watch::Receiver<bool>,
     button_rx: mpsc::Receiver<(Button, Delay)>,
+    error_tx: Arc<broadcast::Sender<ShaooohError>>,
+    error_rx: broadcast::Receiver<ShaooohError>,
     image: Arc<Mutex<Vec<u8>>>,
     image2: Arc<Mutex<Vec<u8>>>,
     config: Config,
@@ -101,6 +109,8 @@ impl Shaoooh {
         let image_mutex = Arc::new(Mutex::new(Vec::new()));
         let image_mutex2 = Arc::new(Mutex::new(Vec::new()));
         let atomic = Arc::new(AtomicBool::new(true));
+        let (error_tx_chnl, error_rx) = broadcast::channel(32);
+        let error_tx = Arc::new(error_tx_chnl);
 
         // Support 3ds features
         let mode_tup = match config {
@@ -130,6 +140,8 @@ impl Shaoooh {
             rx: transition_rx,
             rx_conn: conn_rx,
             button_rx,
+            error_rx,
+            error_tx,
             image: image_mutex,
             image2: image_mutex2,
             config,
@@ -341,60 +353,65 @@ impl Shaoooh {
         };
         let mut hunt: Option<HuntFSM> = None;
 
-        while shutdown_rx.try_recv().is_err() {
-            // What processing is needed
-            let processing = if let Some(h) = &mut hunt {
-                h.processing()
-            } else {
-                &Vec::new()
+        while let Err(shutdown) = shutdown_rx.try_recv() {
+            match shutdown {
+                TryRecvError::Closed => break,
+                TryRecvError::Empty => {
+                    // What processing is needed
+                    let processing = if let Some(h) = &mut hunt {
+                        h.processing()
+                    } else {
+                        &Vec::new()
+                    };
+                    // Frame processing
+                    if let Some(results) = vision.process_next_frame(processing) {
+                        // Step state machines
+                        if let Some(h) = &mut hunt {
+                            let result = h.step(&mut control, results);
+                            h.display();
+                            // Automatic transition requests
+                            if result.incr_encounters {
+                                self.app.encounters += 1;
+                                log::info!("Current encounters: {}", self.app.encounters);
+                                self.update_state();
+                            }
+                            if let Some(transition_req) = result.transition {
+                                self.do_transition(transition_req, &mut hunt, true);
+                            }
+                        }
+
+                        if let Ok(mut img_wr) = self.image.try_lock() {
+                            img_wr.clear();
+                            img_wr.extend(vision.read_frame());
+                        }
+                        if let Ok(mut img_wr) = self.image2.try_lock() {
+                            img_wr.clear();
+                            img_wr.extend(vision.read_frame2());
+                        }
+                    } else if !self.rx.is_closed() {
+                        log::warn!("Failed to process frame");
+                    }
+
+                    // Manual transition requests from API
+                    if !self.rx.is_empty()
+                        && let Some(transition_req) = self.rx.blocking_recv()
+                    {
+                        self.do_transition(transition_req, &mut hunt, false);
+                    }
+
+                    if !self.button_rx.is_empty()
+                        && let Some((button, delay)) = self.button_rx.blocking_recv()
+                    {
+                        control.press_delay(&button, &delay);
+                    }
+
+                    if self.rx.is_closed() {
+                        break;
+                    }
+
+                    std::thread::sleep(std::time::Duration::new(0, 500000));
+                }
             };
-            // Frame processing
-            if let Some(results) = vision.process_next_frame(processing) {
-                // Step state machines
-                if let Some(h) = &mut hunt {
-                    let result = h.step(&mut control, results);
-                    h.display();
-                    // Automatic transition requests
-                    if result.incr_encounters {
-                        self.app.encounters += 1;
-                        log::info!("Current encounters: {}", self.app.encounters);
-                        self.update_state();
-                    }
-                    if let Some(transition_req) = result.transition {
-                        self.do_transition(transition_req, &mut hunt, true);
-                    }
-                }
-
-                if let Ok(mut img_wr) = self.image.try_lock() {
-                    img_wr.clear();
-                    img_wr.extend(vision.read_frame());
-                }
-                if let Ok(mut img_wr) = self.image2.try_lock() {
-                    img_wr.clear();
-                    img_wr.extend(vision.read_frame2());
-                }
-            } else if !self.rx.is_closed() {
-                log::warn!("Failed to process frame");
-            }
-
-            // Manual transition requests from API
-            if !self.rx.is_empty()
-                && let Some(transition_req) = self.rx.blocking_recv()
-            {
-                self.do_transition(transition_req, &mut hunt, false);
-            }
-
-            if !self.button_rx.is_empty()
-                && let Some((button, delay)) = self.button_rx.blocking_recv()
-            {
-                control.press_delay(&button, &delay);
-            }
-
-            if self.rx.is_closed() {
-                break;
-            }
-
-            std::thread::sleep(std::time::Duration::new(0, 500000));
         }
     }
 
@@ -409,7 +426,7 @@ impl Shaoooh {
     #[cfg(not(all(target_arch = "aarch64", target_os = "linux")))]
     fn add_lights_display(_: &mut Vec<DisplayWrapper>) {}
 
-    pub fn serve(mut self) -> std::io::Result<()> {
+    pub fn serve(mut self, skip_conn: bool) -> std::io::Result<()> {
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()
@@ -434,6 +451,7 @@ impl Shaoooh {
         let rx_clone_hook = state.rx.clone();
         let rx_clone_disp = state.rx.clone();
         let runtime_hndl = runtime.handle().clone();
+        let error_rx_shutdown = self.error_tx.subscribe();
 
         // Have to start web server early to catch connection requests
         // from the 3DS
@@ -442,7 +460,7 @@ impl Shaoooh {
                 // run our app with hyper, listening globally on port 3000
                 let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
                 axum::serve(listener, Self::routes(state))
-                    .with_graceful_shutdown(shutdown(shutdown_tx))
+                    .with_graceful_shutdown(shutdown(shutdown_tx, error_rx_shutdown))
                     .await
                     .expect("Error from web server");
             })
@@ -450,35 +468,43 @@ impl Shaoooh {
 
         // If in Bishaan(3DS) configuration, want to wait until the 3DS has performed a connection
         // test, and then allow some time to start InputRedirection and Streaming
-        if let Config::Bishaan(_) = self.config {
-            log::info!("Waiting for connection test to be performed");
-            while !*self.rx_conn.borrow() {
-                std::thread::sleep(Duration::from_millis(500));
+        if !skip_conn {
+            if let Config::Bishaan(_) = self.config {
+                log::info!("Waiting for connection test to be performed");
+                while !*self.rx_conn.borrow() {
+                    std::thread::sleep(Duration::from_millis(500));
+                }
+                log::info!(
+                    "Seen connection test, waiting for a minute to enable InputRedirection and NTR"
+                );
+                // TODO report time in 10 second intervals to count down
+                for x in 0..5 {
+                    log::info!("{} seconds remaining...", 60 - (x * 10));
+                    std::thread::sleep(Duration::from_secs(10));
+                }
+                for x in 0..10 {
+                    log::info!("{} seconds remaining...", 10 - x);
+                    std::thread::sleep(Duration::from_secs(1));
+                }
+                log::info!("Resuming startup...");
             }
-            log::info!(
-                "Seen connection test, waiting for a minute to enable InputRedirection and NTR"
-            );
-            // TODO report time in 10 second intervals to count down
-            for x in 0..5 {
-                log::info!("{} seconds remaining...", 60 - (x * 10));
-                std::thread::sleep(Duration::from_secs(10));
-            }
-            for x in 0..10 {
-                log::info!("{} seconds remaining...", 10 - x);
-                std::thread::sleep(Duration::from_secs(1));
-            }
-            log::info!("Resuming startup...");
         }
 
         let (t_frame_tx, t_frame_rx) = watch::channel(Mat::default());
         let (b_frame_tx, b_frame_rx) = watch::channel(Mat::default());
         let (button_tx, button_rx) = mpsc::channel(16);
+        let error_rx_webhook = self.error_tx.subscribe();
 
-        runtime.spawn(Webhook::call(rx_clone_hook, self.config.name()));
+        runtime.spawn(Webhook::call(
+            rx_clone_hook,
+            error_rx_webhook,
+            self.config.name(),
+        ));
 
         let mut displays: Vec<DisplayWrapper> = Vec::new();
         let mut handles: Vec<(String, JoinHandle<()>)> = Vec::new();
         let atomic_clone = self.atomic.clone();
+        let error_tx_clone = self.error_tx.clone();
 
         log::info!("Adding state listeners and communication threads");
         match self.config {
@@ -494,9 +520,15 @@ impl Shaoooh {
             Config::Bishaan(ip) => {
                 runtime.spawn(async move {
                     log::info!("- Frame stream Rx thread");
-                    let vision = BishaanVisionSocket::new(ip, t_frame_tx, b_frame_tx, atomic_clone)
-                        .await
-                        .expect("Error creating vision thread");
+                    let vision = BishaanVisionSocket::new(
+                        ip,
+                        t_frame_tx,
+                        b_frame_tx,
+                        atomic_clone,
+                        error_tx_clone,
+                    )
+                    .await
+                    .expect("Error creating vision thread");
                     let vision_handle = tokio::spawn(vision.task());
                     log::info!("- Control Tx thread");
                     let control = BishaanControlSocket::new(ip, button_rx)
@@ -678,7 +710,10 @@ async fn get_mode(State(state): State<ApiState>) -> Json<ResponseMode> {
     Json(state.mode)
 }
 
-async fn shutdown(shutdown_tx: oneshot::Sender<()>) {
+async fn shutdown(
+    shutdown_tx: oneshot::Sender<()>,
+    mut error_rx: broadcast::Receiver<ShaooohError>,
+) {
     let ctrl_c = async {
         signal::ctrl_c()
             .await
@@ -695,6 +730,13 @@ async fn shutdown(shutdown_tx: oneshot::Sender<()>) {
     tokio::select! {
         _ = ctrl_c => {},
         _ = terminate => {},
+        err = error_rx.recv() => {
+            match err {
+                Ok(e) => log::error!("Got Error [{}], shutting down", e),
+                Err(_) => log::error!("Error channel dropped")
+            }
+            tokio::time::sleep(Duration::from_secs(5)).await;
+        }
     }
 
     log::info!("Got shutdown");

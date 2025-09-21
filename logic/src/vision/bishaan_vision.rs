@@ -1,5 +1,6 @@
 use std::time::{Duration, SystemTime};
 
+use crate::app::ShaooohError;
 use crate::vision::{BotVision, ProcessingResult, compat};
 
 use std::sync::Arc;
@@ -15,7 +16,7 @@ use opencv::{
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpStream, UdpSocket, tcp::OwnedWriteHalf},
-    sync::watch,
+    sync::{broadcast, watch},
 };
 
 use super::{NTRPacket, Processing};
@@ -49,6 +50,7 @@ pub struct BishaanVisionSocket {
     can_heartbeat: Arc<AtomicBool>,
     last_fps: SystemTime,
     last_frame_count: usize,
+    error_tx: Arc<broadcast::Sender<ShaooohError>>,
 }
 
 impl BotVision for BishaanVision {
@@ -152,7 +154,7 @@ impl BishaanVision {
         )
         .expect("min max failed");
 
-        let met = max_val > 0.8 && !(max_val < 0.8) && (max_val < 2.0);
+        let met = max_val > 0.55 && !(max_val < 0.55) && (max_val < 2.0);
         log::debug!("Value = {} (met={})", max_val, met);
 
         ProcessingResult {
@@ -177,6 +179,7 @@ impl BishaanVisionSocket {
         tx_top: watch::Sender<Mat>,
         tx_bottom: watch::Sender<Mat>,
         can_heartbeat: Arc<AtomicBool>,
+        error_tx: Arc<broadcast::Sender<ShaooohError>>,
     ) -> std::io::Result<Self> {
         log::info!("Creating BishaanVisionSocket");
 
@@ -212,6 +215,7 @@ impl BishaanVisionSocket {
             can_heartbeat,
             last_fps,
             last_frame_count,
+            error_tx,
         })
     }
 
@@ -262,7 +266,9 @@ impl BishaanVisionSocket {
                         ) {
                             self.last_frame_count += 1;
 
-                            if (self.last_fps.elapsed().unwrap() > Duration::from_secs(1)) {
+                            if self.last_fps.elapsed().expect("Failed to get time")
+                                > Duration::from_secs(1)
+                            {
                                 log::info!("Last FPS: {}", self.last_frame_count);
 
                                 self.last_frame_count = 0;
@@ -311,6 +317,13 @@ impl BishaanVisionSocket {
             }
         }
 
+        if self.last_fps.elapsed().unwrap() > Duration::from_secs(10) {
+            log::error!("Haven't got a new frame in 10 seconds");
+            self.error_tx
+                .send(ShaooohError::CommunicationError)
+                .expect("Failed to send error");
+        }
+
         Ok(frame)
     }
 
@@ -321,6 +334,7 @@ impl BishaanVisionSocket {
             .take()
             .expect("Failed to get socket")
             .into_split();
+        let error_tx = self.error_tx.clone();
 
         tokio::spawn(async move {
             loop {
@@ -360,13 +374,16 @@ impl BishaanVisionSocket {
         tokio::spawn(async move {
             let mut seq = 1;
             loop {
-                tokio::time::sleep(Duration::from_millis(500));
+                tokio::time::sleep(Duration::from_millis(250)).await;
                 let hb_pkt = NTRPacket::heartbeat(seq);
                 if can_heartbeat.load(Ordering::Acquire) {
                     match write.write_all(&hb_pkt.to_wire()).await {
                         Ok(_) => {}
                         Err(e) => {
                             log::error!("Heartbeat send error: {:?}", e);
+                            error_tx
+                                .send(ShaooohError::CommunicationError)
+                                .expect("Failed to send error");
                             break;
                         }
                     }
@@ -375,18 +392,36 @@ impl BishaanVisionSocket {
             }
         });
 
-        while let Ok(frame) = self.listen().await {
-            match frame {
-                Frame::None => {}
-                Frame::Bottom(m) => {
-                    if self.tx_bottom.send(m).is_err() {
+        loop {
+            match tokio::time::timeout(Duration::from_secs(10), self.listen()).await {
+                Ok(frame_res) => match frame_res {
+                    Ok(frame) => match frame {
+                        Frame::None => {}
+                        Frame::Bottom(m) => {
+                            if self.tx_bottom.send(m).is_err() {
+                                break;
+                            }
+                        }
+                        Frame::Top(m) => {
+                            if self.tx_top.send(m).is_err() {
+                                break;
+                            }
+                        }
+                    },
+                    Err(_) => {
+                        log::error!("Frame error");
+                        self.error_tx
+                            .send(ShaooohError::CommunicationError)
+                            .expect("Failed to send error");
                         break;
                     }
-                }
-                Frame::Top(m) => {
-                    if self.tx_top.send(m).is_err() {
-                        break;
-                    }
+                },
+                Err(_) => {
+                    log::error!("Haven't got a new frame in 10 seconds");
+                    self.error_tx
+                        .send(ShaooohError::CommunicationError)
+                        .expect("Failed to send error");
+                    break;
                 }
             }
         }

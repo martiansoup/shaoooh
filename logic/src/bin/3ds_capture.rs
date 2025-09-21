@@ -4,7 +4,7 @@ use opencv::prelude::*;
 use shaoooh::vision::{BishaanVision, BishaanVisionSocket};
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
-use tokio::sync::watch;
+use tokio::sync::{broadcast, watch};
 
 use simple_logger::SimpleLogger;
 
@@ -21,11 +21,13 @@ async fn main() {
     let (t_frame_tx, mut t_frame_rx) = watch::channel(Mat::default());
     let (b_frame_tx, mut b_frame_rx) = watch::channel(Mat::default());
     let atomic = Arc::new(AtomicBool::new(true));
+    let (error_tx_c, error_rx) = broadcast::channel(32);
+    let error_tx = Arc::new(error_tx_c);
 
     let ip = Ipv4Addr::new(192, 168, 68, 4);
 
     tokio::spawn(async move {
-        let vision = BishaanVisionSocket::new(ip, t_frame_tx, b_frame_tx, atomic)
+        let vision = BishaanVisionSocket::new(ip, t_frame_tx, b_frame_tx, atomic, error_tx)
             .await
             .expect("Error creating vision thread");
         let vision_handle = tokio::spawn(vision.task());

@@ -16,6 +16,9 @@ struct Args {
     /// Reduce log verbosity
     #[arg(short, long, default_value_t = false)]
     quiet: bool,
+    /// Skip connection test
+    #[arg(short, long, default_value_t = false)]
+    skip_conn: bool,
 }
 
 #[cfg(all(target_arch = "aarch64", target_os = "linux"))]
@@ -73,7 +76,7 @@ fn main() {
 
         let app = Shaoooh::new(config);
 
-        match app.serve() {
+        match app.serve(args.skip_conn) {
             Ok(_) => log::info!("Shaoooh done"),
             Err(e) => log::error!("{}", e),
         }
