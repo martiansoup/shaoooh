@@ -60,16 +60,14 @@ pub struct StateMachine<InputKind, InputValue, StateOutput, StateTransition, Int
 
 impl<InputKind, InputValue, StateOutput, StateTransition, InternalState>
     StateMachine<InputKind, InputValue, StateOutput, StateTransition, InternalState>
-where
-    InternalState: Default,
 {
-    pub fn new() -> Self {
+    pub fn new(internal: InternalState) -> Self {
         Self {
             states: HashMap::new(),
             current: 0,
             time: SystemTime::now(),
             delay: None,
-            internal: InternalState::default(),
+            internal,
             empty_input: Vec::new(),
             empty_output: Vec::new(),
             graph: None,
@@ -350,7 +348,7 @@ where
     InternalState: Default,
 {
     fn default() -> Self {
-        Self::new()
+        Self::new(InternalState::default())
     }
 }
 

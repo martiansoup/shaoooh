@@ -26,6 +26,9 @@ pub use crate::hunt::encounter_type::*;
 mod detection;
 pub use crate::hunt::detection::*;
 
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+
 use crate::app::states::{Game, Method, RequestTransition};
 
 #[derive(Debug, Default)]
@@ -37,7 +40,12 @@ pub struct HuntResult {
 pub struct HuntBuild {}
 
 impl HuntBuild {
-    pub fn build(target: u32, game: Game, method: Method) -> Option<HuntFSM> {
+    pub fn build(
+        target: u32,
+        game: Game,
+        method: Method,
+        atomic: Arc<AtomicBool>,
+    ) -> Option<HuntFSM> {
         let base = BaseHunt {
             target,
             game: game.clone(),
@@ -48,7 +56,7 @@ impl HuntBuild {
 
         if let Some(builder) = EncounterTypeResolver::add_states(builder) {
             if let Some(builder) = DetectionResolver::add_states(builder) {
-                return Some(builder.build());
+                return Some(builder.build(atomic));
             } else {
                 log::error!("Failed to add detection type states");
             }

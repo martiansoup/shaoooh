@@ -8,6 +8,8 @@ use std::collections::HashMap;
 use std::convert::AsRef;
 use std::hash::Hash;
 use std::ops::Range;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, SystemTime};
 
 pub type BoxedProcessFn =
@@ -119,9 +121,9 @@ impl HuntFSMBuilder {
         self.fragments.push(FSMFragment { states: fragment });
     }
 
-    pub fn build(self) -> HuntFSM {
+    pub fn build(self, atomic: Arc<AtomicBool>) -> HuntFSM {
         let mut last_index = 0;
-        let mut fsm = StateMachine::new();
+        let mut fsm = StateMachine::new(InternalHuntState::new(atomic));
 
         let last_fragment = self.fragments.len() - 1;
         for (findex, fragment) in self.fragments.into_iter().enumerate() {
@@ -363,6 +365,34 @@ where
             to,
             Box::new(|_: &Vec<ProcessingResult>, int: &mut InternalHuntState| {
                 int.toggle = !int.toggle;
+
+                Some(HuntResult::default())
+            }),
+        );
+
+        Self::new(tag, vec![], vec![], 0..0, toggle_check)
+    }
+
+    pub fn set_atomic_state(tag: K, to: K) -> Self {
+        let mut toggle_check: HashMap<K, BoxedProcessFn> = HashMap::new();
+        toggle_check.insert(
+            to,
+            Box::new(|_: &Vec<ProcessingResult>, int: &mut InternalHuntState| {
+                int.atomic.store(true, Ordering::Release);
+
+                Some(HuntResult::default())
+            }),
+        );
+
+        Self::new(tag, vec![], vec![], 0..0, toggle_check)
+    }
+
+    pub fn clear_atomic_state(tag: K, to: K) -> Self {
+        let mut toggle_check: HashMap<K, BoxedProcessFn> = HashMap::new();
+        toggle_check.insert(
+            to,
+            Box::new(|_: &Vec<ProcessingResult>, int: &mut InternalHuntState| {
+                int.atomic.store(false, Ordering::Release);
 
                 Some(HuntResult::default())
             }),

@@ -1,6 +1,9 @@
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use crate::vision::{BotVision, ProcessingResult, compat};
+
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use opencv::{
     core::{Point, Vector},
@@ -43,6 +46,9 @@ pub struct BishaanVisionSocket {
     bot_frame_num: u8,
     bot_frame_seq: u8,
     bot_screen_buf: Vec<u8>,
+    can_heartbeat: Arc<AtomicBool>,
+    last_fps: SystemTime,
+    last_frame_count: usize,
 }
 
 impl BotVision for BishaanVision {
@@ -51,7 +57,7 @@ impl BotVision for BishaanVision {
         processing: &[super::Processing],
     ) -> Option<Vec<ProcessingResult>> {
         {
-            let bottom = self.rx_bottom.borrow().clone();
+            let bottom = { self.rx_bottom.borrow().clone() };
             if !bottom.empty() {
                 opencv::imgcodecs::imencode(
                     ".png",
@@ -66,7 +72,7 @@ impl BotVision for BishaanVision {
             }
         }
         {
-            let top = self.rx_top.borrow().clone();
+            let top = { self.rx_top.borrow().clone() };
             if !top.empty() {
                 opencv::imgcodecs::imencode(".png", &top, &mut self.encoded_top, &Vector::new())
                     .expect("Failed to encode frame");
@@ -170,6 +176,7 @@ impl BishaanVisionSocket {
         ip: core::net::Ipv4Addr,
         tx_top: watch::Sender<Mat>,
         tx_bottom: watch::Sender<Mat>,
+        can_heartbeat: Arc<AtomicBool>,
     ) -> std::io::Result<Self> {
         log::info!("Creating BishaanVisionSocket");
 
@@ -188,6 +195,9 @@ impl BishaanVisionSocket {
 
         let tcp_sock = TcpStream::connect((ip, 8000)).await?;
 
+        let last_fps = SystemTime::now();
+        let last_frame_count = 0;
+
         Ok(Self {
             img_socket,
             tcp_sock: Some(tcp_sock),
@@ -199,6 +209,9 @@ impl BishaanVisionSocket {
             bot_frame_num: 0,
             bot_frame_seq: 0,
             bot_screen_buf: vec![],
+            can_heartbeat,
+            last_fps,
+            last_frame_count,
         })
     }
 
@@ -247,6 +260,15 @@ impl BishaanVisionSocket {
                             &opencv::core::Vector::from_slice(&self.top_screen_buf),
                             opencv::imgcodecs::IMREAD_COLOR,
                         ) {
+                            self.last_frame_count += 1;
+
+                            if (self.last_fps.elapsed().unwrap() > Duration::from_secs(1)) {
+                                log::info!("Last FPS: {}", self.last_frame_count);
+
+                                self.last_frame_count = 0;
+                                self.last_fps = SystemTime::now();
+                            }
+
                             let mut m2 = Mat::default();
                             opencv::core::rotate(
                                 &s,
@@ -293,6 +315,7 @@ impl BishaanVisionSocket {
     }
 
     pub async fn task(mut self) -> std::io::Result<()> {
+        let can_heartbeat = self.can_heartbeat.clone();
         let (mut read, mut write) = self
             .tcp_sock
             .take()
@@ -337,16 +360,18 @@ impl BishaanVisionSocket {
         tokio::spawn(async move {
             let mut seq = 1;
             loop {
-                tokio::time::sleep(Duration::from_millis(250));
+                tokio::time::sleep(Duration::from_millis(500));
                 let hb_pkt = NTRPacket::heartbeat(seq);
-                match write.write_all(&hb_pkt.to_wire()).await {
-                    Ok(_) => {}
-                    Err(e) => {
-                        log::error!("Heartbeat send error: {:?}", e);
-                        break;
+                if can_heartbeat.load(Ordering::Acquire) {
+                    match write.write_all(&hb_pkt.to_wire()).await {
+                        Ok(_) => {}
+                        Err(e) => {
+                            log::error!("Heartbeat send error: {:?}", e);
+                            break;
+                        }
                     }
+                    seq += 1;
                 }
-                seq += 1;
             }
         });
 

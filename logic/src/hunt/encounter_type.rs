@@ -45,6 +45,7 @@ enum StartSoftResetEncounter {
 enum USUM {
     SoftReset1,
     SoftReset2,
+    AllowHeartbeat,
     Title1,
     Title2,
     Title3,
@@ -538,8 +539,9 @@ impl EncounterTypeResolver {
             HuntStateOutput::new(Button::Select, Delay::Half),
         ];
         let states = vec![
-            StateDescription::linear_state(USUM::SoftReset1, sr_buttons.clone(), 500..500),
-            StateDescription::linear_state(USUM::SoftReset2, sr_buttons, 7500..8000),
+            StateDescription::linear_state(USUM::SoftReset1, sr_buttons.clone(), 250..250),
+            StateDescription::linear_state(USUM::SoftReset2, sr_buttons, 8000..8500),
+            StateDescription::set_atomic_state(USUM::AllowHeartbeat, USUM::Title1),
             StateDescription::linear_state(
                 USUM::Title1,
                 vec![HuntStateOutput::button(Button::A)],

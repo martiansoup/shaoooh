@@ -1,7 +1,7 @@
 use std::{
     io::{BufWriter, Write},
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, atomic::AtomicBool},
     thread::JoinHandle,
     time::Duration,
 };
@@ -69,6 +69,7 @@ pub struct Shaoooh {
     image: Arc<Mutex<Vec<u8>>>,
     image2: Arc<Mutex<Vec<u8>>>,
     config: Config,
+    atomic: Arc<AtomicBool>,
 }
 
 // Struct to load/save from disc
@@ -99,6 +100,7 @@ impl Shaoooh {
         let (conn_tx, conn_rx) = watch::channel(false);
         let image_mutex = Arc::new(Mutex::new(Vec::new()));
         let image_mutex2 = Arc::new(Mutex::new(Vec::new()));
+        let atomic = Arc::new(AtomicBool::new(true));
 
         // Support 3ds features
         let mode_tup = match config {
@@ -131,6 +133,7 @@ impl Shaoooh {
             image: image_mutex,
             image2: image_mutex2,
             config,
+            atomic,
         }
     }
 
@@ -231,7 +234,7 @@ impl Shaoooh {
             let target = self.app.arg.as_ref().unwrap().species;
             let game = self.app.arg.as_ref().unwrap().game.clone();
             let method = self.app.arg.as_ref().unwrap().method.clone();
-            let new_hunt = HuntBuild::build(target, game, method);
+            let new_hunt = HuntBuild::build(target, game, method, self.atomic.clone());
             match new_hunt {
                 Some(h) => *hunt = Some(h),
                 None => return false,
@@ -475,6 +478,7 @@ impl Shaoooh {
 
         let mut displays: Vec<DisplayWrapper> = Vec::new();
         let mut handles: Vec<(String, JoinHandle<()>)> = Vec::new();
+        let atomic_clone = self.atomic.clone();
 
         log::info!("Adding state listeners and communication threads");
         match self.config {
@@ -490,7 +494,7 @@ impl Shaoooh {
             Config::Bishaan(ip) => {
                 runtime.spawn(async move {
                     log::info!("- Frame stream Rx thread");
-                    let vision = BishaanVisionSocket::new(ip, t_frame_tx, b_frame_tx)
+                    let vision = BishaanVisionSocket::new(ip, t_frame_tx, b_frame_tx, atomic_clone)
                         .await
                         .expect("Error creating vision thread");
                     let vision_handle = tokio::spawn(vision.task());

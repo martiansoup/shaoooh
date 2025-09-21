@@ -336,7 +336,8 @@ impl DetectionResolver {
             StateDescription::found_target_state(Detection::Toggle, Detection::Done),
             StateDescription::deadend_state(Detection::Done),
             StateDescription::incr_encounter_state(Detection::Run1, Detection::Run2),
-            StateDescription::linear_state(Detection::Run2, vec![], 0..500),
+            StateDescription::clear_atomic_state(Detection::Run2, Detection::Run3),
+            StateDescription::linear_state(Detection::Run3, vec![], 0..500),
         ];
 
         builder.add_states(states);

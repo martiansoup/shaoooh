@@ -2,6 +2,9 @@ use std::time::{Duration, SystemTime};
 
 use opencv::highgui::{WINDOW_AUTOSIZE, WINDOW_GUI_NORMAL, WINDOW_KEEPRATIO};
 
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+
 use crate::{
     control::{BotControl, Button, Delay},
     fsm::StateMachine,
@@ -31,15 +34,17 @@ impl HuntStateOutput {
 #[derive(Debug)]
 pub struct InternalHuntState {
     pub toggle: bool,
+    pub atomic: Arc<AtomicBool>,
     pub time: SystemTime,
     pub last_duration: Duration,
     pub counter: usize,
 }
 
-impl Default for InternalHuntState {
-    fn default() -> Self {
+impl InternalHuntState {
+    pub fn new(atomic: Arc<AtomicBool>) -> Self {
         Self {
             toggle: Default::default(),
+            atomic,
             time: SystemTime::now(),
             last_duration: Duration::default(),
             counter: 0,
