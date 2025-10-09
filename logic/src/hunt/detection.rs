@@ -313,31 +313,29 @@ impl DetectionResolver {
         let game = builder.game();
         let method = builder.method();
         let species = builder.target();
+        let timer = match species {
+            144 => 16750, // Articuno
+            _ => 100,
+        };
 
         let states = vec![
-            StateDescription::start_timer_state(Detection::EnterEncounter, Detection::Detect),
-            StateDescription::simple_process_state_no_output3(
-                Branch3::new(Detection::Detect, Detection::Toggle, Detection::PressA),
-                Processing::USUMShinyStar(species),
+            StateDescription::simple_process_state_no_output_start_timer(
+                Branch2::new(Detection::EnterEncounter, Detection::Detect),
+                Processing::USUMBottomScreen(5.0),
             ),
-            StateDescription::branch_delay_state(
-                Branch3::new(
-                    Detection::PressA,
-                    Detection::Run1,
-                    Detection::WaitEncounterReady,
-                ),
-                14000,
+            StateDescription::simple_process_state_no_output_end_timer(
+                Branch2::new(Detection::Detect, Detection::Run1),
+                Processing::USUMBottomScreen(60.0),
             ),
-            StateDescription::branch_state(
-                Detection::WaitEncounterReady,
-                Detection::Detect,
-                50..50,
+            StateDescription::branch_last_delay_state(
+                Branch3::new(Detection::Run1, Detection::Toggle, Detection::Run2),
+                timer,
             ),
             StateDescription::found_target_state(Detection::Toggle, Detection::Done),
             StateDescription::deadend_state(Detection::Done),
-            StateDescription::incr_encounter_state(Detection::Run1, Detection::Run2),
-            StateDescription::clear_atomic_state(Detection::Run2, Detection::Run3),
-            StateDescription::linear_state(Detection::Run3, vec![], 0..500),
+            StateDescription::incr_encounter_state(Detection::Run2, Detection::Run3),
+            StateDescription::clear_atomic_state(Detection::Run3, Detection::Run4),
+            StateDescription::linear_state(Detection::Run4, vec![], 0..500),
         ];
 
         builder.add_states(states);

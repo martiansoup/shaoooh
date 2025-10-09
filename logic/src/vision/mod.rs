@@ -44,6 +44,7 @@ pub enum Processing {
     RegionDetect(RegionDetectSettings),
     ChannelDetect(ChannelDetectSettings),
     USUMShinyStar(u32),
+    USUMBottomScreen(f64),
 }
 
 impl Processing {

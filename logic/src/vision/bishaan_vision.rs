@@ -60,6 +60,7 @@ impl BotVision for BishaanVision {
     ) -> Option<Vec<ProcessingResult>> {
         {
             let bottom = { self.rx_bottom.borrow().clone() };
+            let top = { self.rx_top.borrow().clone() };
             if !bottom.empty() {
                 opencv::imgcodecs::imencode(
                     ".png",
@@ -72,9 +73,6 @@ impl BotVision for BishaanVision {
                     .unwrap_or_else(|_| panic!("Failed to show bottom window"));
                 opencv::highgui::wait_key(1).expect("Event loop failed");
             }
-        }
-        {
-            let top = { self.rx_top.borrow().clone() };
             if !top.empty() {
                 opencv::imgcodecs::imencode(".png", &top, &mut self.encoded_top, &Vector::new())
                     .expect("Failed to encode frame");
@@ -82,7 +80,12 @@ impl BotVision for BishaanVision {
                     .unwrap_or_else(|_| panic!("Failed to show top window"));
                 opencv::highgui::wait_key(1).expect("Event loop failed");
             }
-            Some(processing.iter().map(|p| self.process(p, &top)).collect())
+            Some(
+                processing
+                    .iter()
+                    .map(|p| self.process(p, &top, &bottom))
+                    .collect(),
+            )
         }
     }
 
@@ -154,7 +157,7 @@ impl BishaanVision {
         )
         .expect("min max failed");
 
-        let met = max_val > 0.55 && !(max_val < 0.55) && (max_val < 2.0);
+        let met = max_val > 0.5 && !(max_val < 0.5) && (max_val < 2.0);
         log::debug!("Value = {} (met={})", max_val, met);
 
         ProcessingResult {
@@ -165,9 +168,32 @@ impl BishaanVision {
         }
     }
 
-    fn process(&mut self, process: &Processing, frame: &Mat) -> ProcessingResult {
+    fn bottom(&self, frame: &Mat, threshold: f64) -> ProcessingResult {
+        let mut bot_grey = Mat::default();
+        compat::cvt_color(&frame, &mut bot_grey, opencv::imgproc::COLOR_BGR2GRAY, 0)
+            .expect("Failed to convert colour");
+        let mean = opencv::core::mean(&bot_grey, &Mat::default()).expect("Failed to get mean");
+
+        let met = mean[0] > threshold;
+        log::trace!("MEAN = {}", mean[0]);
+
+        ProcessingResult {
+            process: Processing::USUMBottomScreen(threshold),
+            met,
+            species: 0,
+            shiny: false,
+        }
+    }
+
+    fn process(
+        &mut self,
+        process: &Processing,
+        top_frame: &Mat,
+        bot_frame: &Mat,
+    ) -> ProcessingResult {
         match process {
-            Processing::USUMShinyStar(target) => self.shiny_star(frame, *target),
+            Processing::USUMShinyStar(target) => self.shiny_star(top_frame, *target),
+            Processing::USUMBottomScreen(threshold) => self.bottom(bot_frame, *threshold),
             _ => unimplemented!("Processing not implemented for 3DS"),
         }
     }
