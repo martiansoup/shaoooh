@@ -246,7 +246,7 @@ impl EncounterTypeResolver {
             StateDescription::linear_state(
                 SoftResetProcess::Title4,
                 vec![HuntStateOutput::button(Button::A)],
-                3000..3500,
+                2000..2500,
             ),
         ];
 
@@ -266,7 +266,7 @@ impl EncounterTypeResolver {
             StateDescription::linear_state(
                 StartSoftResetEncounter::Press2,
                 vec![HuntStateOutput::button(Button::A)],
-                1000..1500,
+                750..1250,
             ),
             StateDescription::linear_state(
                 StartSoftResetEncounter::Press3,
@@ -276,12 +276,12 @@ impl EncounterTypeResolver {
             StateDescription::linear_state(
                 StartSoftResetEncounter::Press4,
                 vec![HuntStateOutput::button(Button::A)],
-                5500..5500,
+                5000..5000,
             ),
             StateDescription::linear_state(
                 StartSoftResetEncounter::Press5,
                 vec![HuntStateOutput::button(Button::B)],
-                2000..2500,
+                1000..1000,
             ),
         ];
 

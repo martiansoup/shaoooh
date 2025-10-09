@@ -104,7 +104,7 @@ impl DetectionResolver {
             StateDescription::linear_state(
                 CheckSummary::Down,
                 vec![HuntStateOutput::button(Button::Down)],
-                500..500,
+                250..250,
             ),
             StateDescription::linear_state(
                 CheckSummary::ToPokemon,
@@ -114,17 +114,17 @@ impl DetectionResolver {
             StateDescription::linear_state(
                 CheckSummary::Up1,
                 vec![HuntStateOutput::button(Button::Up)],
-                1000..1000,
+                250..250,
             ),
             StateDescription::linear_state(
                 CheckSummary::Up2,
                 vec![HuntStateOutput::button(Button::Up)],
-                1000..1000,
+                250..250,
             ),
             StateDescription::linear_state(
                 CheckSummary::Select,
                 vec![HuntStateOutput::button(Button::A)],
-                1000..1000,
+                500..500,
             ),
             StateDescription::linear_state(
                 CheckSummary::ToSummary,
