@@ -37,6 +37,8 @@ enum StartSoftResetEncounter {
     Press3,
     Press4,
     Press5,
+    Press6,
+    Press7,
     IsEntering,
     Entering,
 }
@@ -96,7 +98,7 @@ impl EncounterTypeResolver {
         if *game == Game::FireRedLeafGreen && *method == Method::RandomEncounter {
             Some(Self::frlg_random(builder))
         } else if *game == Game::FireRedLeafGreen && *method == Method::SoftResetEncounter {
-            Some(Self::gen3_softreset(builder))
+            Self::gen3_softreset(builder)
         } else if *game == Game::RubySapphire && *method == Method::SoftResetGift {
             Self::gen3_softreset_gift(builder)
         } else if (*game == Game::HeartGoldSoulSilver && *method == Method::SoftResetGift)
@@ -290,7 +292,7 @@ impl EncounterTypeResolver {
         Some(builder)
     }
 
-    pub fn gen3_softreset(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+    pub fn gen3_softreset(mut builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
         let sr_buttons = vec![
             HuntStateOutput::new(Button::A, Delay::Tenth),
             HuntStateOutput::new(Button::B, Delay::Tenth),
@@ -323,41 +325,95 @@ impl EncounterTypeResolver {
 
         builder.add_states(states);
 
-        // PokeFlute Sequence
-        let states2 = vec![
-            StateDescription::linear_state(
-                StartSoftResetEncounter::Press1,
-                vec![HuntStateOutput::button(Button::A)],
-                1000..1500,
-            ),
-            StateDescription::linear_state(
-                StartSoftResetEncounter::Press2,
-                vec![HuntStateOutput::button(Button::A)],
-                9000..9250,
-            ),
-            StateDescription::linear_state(
-                StartSoftResetEncounter::Press3,
-                vec![HuntStateOutput::button(Button::A)],
-                1000..1500,
-            ),
-            StateDescription::linear_state(
-                StartSoftResetEncounter::Press4,
-                vec![HuntStateOutput::button(Button::A)],
-                0..0,
-            ),
-            StateDescription::simple_process_state_no_output(
-                Branch2::new(
-                    StartSoftResetEncounter::IsEntering,
-                    StartSoftResetEncounter::Entering,
+        let species = builder.target();
+        if species == 143 {
+            // PokeFlute Sequence for Snorlax
+            let states2 = vec![
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press1,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1500,
                 ),
-                Processing::FRLG_START_ENCOUNTER,
-            ),
-            StateDescription::linear_state_no_delay(StartSoftResetEncounter::Entering, vec![]),
-        ];
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press2,
+                    vec![HuntStateOutput::button(Button::A)],
+                    9000..9250,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press3,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1500,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press4,
+                    vec![HuntStateOutput::button(Button::A)],
+                    0..0,
+                ),
+                StateDescription::simple_process_state_no_output(
+                    Branch2::new(
+                        StartSoftResetEncounter::IsEntering,
+                        StartSoftResetEncounter::Entering,
+                    ),
+                    Processing::FRLG_START_ENCOUNTER,
+                ),
+                StateDescription::linear_state_no_delay(StartSoftResetEncounter::Entering, vec![]),
+            ];
 
-        builder.add_states(states2);
+            builder.add_states(states2);
+        } else if species == 97 {
+            // Sequence for Lostelle Hypno encounter
+            let states2 = vec![
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press1,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1500,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press2,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1500,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press3,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1500,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press4,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1500,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press5,
+                    vec![HuntStateOutput::button(Button::A)],
+                    2000..2500,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press6,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1500,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press7,
+                    vec![HuntStateOutput::button(Button::A)],
+                    0..0,
+                ),
+                StateDescription::simple_process_state_no_output(
+                    Branch2::new(
+                        StartSoftResetEncounter::IsEntering,
+                        StartSoftResetEncounter::Entering,
+                    ),
+                    Processing::FRLG_START_ENCOUNTER,
+                ),
+                StateDescription::linear_state_no_delay(StartSoftResetEncounter::Entering, vec![]),
+            ];
 
-        builder
+            builder.add_states(states2);
+        } else {
+            return None;
+        }
+
+        Some(builder)
     }
 
     pub fn gen4_softreset(mut builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {

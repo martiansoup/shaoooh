@@ -170,7 +170,7 @@
     <!--<button onclick="frlg_bulba()">FRLG Bulbasaur</button>-->
     <!--<button onclick="frlg_rat()">FRLG Ratatta</button>-->
     <button onclick="usum_legend()">USUM Articuno</button>
-    <button onclick="rs_beldum()">Beldum</button>
+    <button onclick="lostelle_hypno()">Hypno</button>
     <!--<button onclick="dp_giratina()">DP Giratina</button>-->
     <!--<button onclick="hgss_dunsparse()">Three Segment</button>-->
     <button onclick="frlg_snorlax()">FRLG Snorlax</button>
@@ -198,6 +198,15 @@
     let state = "/api/state";
     let button = "/api/button";
 
+    function current_hunt() {
+      lostelle_hypno();
+    }
+    function lostelle_hypno() {
+      document.getElementById("arg_name").value = "LostelleHypno";
+      document.getElementById("arg_species").value = "97";
+      document.getElementById("arg_game").value = "FireRedLeafGreen";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
     function rs_beldum() {
       document.getElementById("arg_name").value = "StevenBeldum";
       document.getElementById("arg_species").value = "374";
@@ -457,6 +466,7 @@
     }
 
     window.onload = function() {
+      current_hunt();
       updateMode();
       updateState();
       updateFrame();
