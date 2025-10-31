@@ -588,6 +588,7 @@ impl EncounterTypeResolver {
     }
 
     pub fn gen7_softreset(mut builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
+        let target = builder.target();
         let sr_buttons = vec![
             HuntStateOutput::new(Button::L, Delay::Half),
             HuntStateOutput::new(Button::R, Delay::Half),
@@ -618,6 +619,8 @@ impl EncounterTypeResolver {
                 vec![HuntStateOutput::button(Button::A)],
                 2500..2750,
             ),
+        ];
+        let states_walk = vec![
             StateDescription::linear_state(
                 USUM::Circle1,
                 vec![HuntStateOutput::new(Button::Circle(128, 250), Delay::Half)],
@@ -639,7 +642,23 @@ impl EncounterTypeResolver {
                 4000..4000,
             ),
         ];
+        let states_press = vec![
+            StateDescription::linear_state(
+                USUM::Circle1,
+                vec![HuntStateOutput::new(Button::A, Delay::Half)],
+                250..250,
+            ),
+            StateDescription::linear_state(
+                USUM::Circle2,
+                vec![HuntStateOutput::new(Button::A, Delay::Half)],
+                250..250,
+            ),
+        ];
         builder.add_states(states);
+        match target {
+            799 => builder.add_states(states_press),
+            _ => builder.add_states(states_walk),
+        }
 
         Some(builder)
     }

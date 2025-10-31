@@ -168,17 +168,19 @@ impl BishaanVision {
         }
     }
 
-    fn bottom(&self, frame: &Mat, threshold: f64) -> ProcessingResult {
+    fn bottom(&self, frame: &Mat, threshold: f64, inv: bool) -> ProcessingResult {
         let mut bot_grey = Mat::default();
         compat::cvt_color(&frame, &mut bot_grey, opencv::imgproc::COLOR_BGR2GRAY, 0)
             .expect("Failed to convert colour");
         let mean = opencv::core::mean(&bot_grey, &Mat::default()).expect("Failed to get mean");
 
-        let met = mean[0] > threshold;
+        let met = if inv { mean[0] < threshold } else { mean[0] > threshold };
         log::trace!("MEAN = {}", mean[0]);
 
+        let proc = if inv { Processing::USUMBottomScreenInv(threshold) } else { Processing::USUMBottomScreen(threshold) };
+
         ProcessingResult {
-            process: Processing::USUMBottomScreen(threshold),
+            process: proc,
             met,
             species: 0,
             shiny: false,
@@ -193,7 +195,8 @@ impl BishaanVision {
     ) -> ProcessingResult {
         match process {
             Processing::USUMShinyStar(target) => self.shiny_star(top_frame, *target),
-            Processing::USUMBottomScreen(threshold) => self.bottom(bot_frame, *threshold),
+            Processing::USUMBottomScreen(threshold) => self.bottom(bot_frame, *threshold, false),
+            Processing::USUMBottomScreenInv(threshold) => self.bottom(bot_frame, *threshold, true),
             _ => unimplemented!("Processing not implemented for 3DS"),
         }
     }

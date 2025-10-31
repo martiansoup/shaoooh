@@ -169,8 +169,15 @@
     <br /><br />
     <!--<button onclick="frlg_bulba()">FRLG Bulbasaur</button>-->
     <!--<button onclick="frlg_rat()">FRLG Ratatta</button>-->
-    <button onclick="usum_legend()">USUM Articuno</button>
-    <button onclick="lostelle_hypno()">Hypno</button>
+    <!--<button onclick="lostelle_hypno()">Hypno</button>-->
+    <!--<button onclick="usum_legend()">USUM Articuno</button>-->
+    <!--<button onclick="usum_entei()">USUM Entei</button>-->
+    <!--<button onclick="usum_kyogre()">USUM Kyogre</button>-->
+    <!--<button onclick="usum_latias()">USUM Latias</button>-->
+    <!--<button onclick="usum_zapdos()">USUM Zapdos</button>-->
+    <!--<button onclick="usum_moltres()">USUM Moltres</button>-->
+    <button onclick="usum_yveltal()">USUM Yveltal</button>
+    <button onclick="rs_beldum()">Beldum</button>
     <!--<button onclick="dp_giratina()">DP Giratina</button>-->
     <!--<button onclick="hgss_dunsparse()">Three Segment</button>-->
     <button onclick="frlg_snorlax()">FRLG Snorlax</button>
@@ -199,7 +206,7 @@
     let button = "/api/button";
 
     function current_hunt() {
-      lostelle_hypno();
+      usum_yveltal();
     }
     function lostelle_hypno() {
       document.getElementById("arg_name").value = "LostelleHypno";
@@ -216,6 +223,42 @@
     function usum_legend() {
       document.getElementById("arg_name").value = "WormholeArticuno";
       document.getElementById("arg_species").value = "144";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function usum_zapdos() {
+      document.getElementById("arg_name").value = "WormholeZapdos";
+      document.getElementById("arg_species").value = "145";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function usum_moltres() {
+      document.getElementById("arg_name").value = "WormholeMoltres";
+      document.getElementById("arg_species").value = "146";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function usum_yveltal() {
+      document.getElementById("arg_name").value = "WormholeYveltal";
+      document.getElementById("arg_species").value = "717";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function usum_entei() {
+      document.getElementById("arg_name").value = "WormholeEntei";
+      document.getElementById("arg_species").value = "244";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function usum_kyogre() {
+      document.getElementById("arg_name").value = "WormholeKyogre";
+      document.getElementById("arg_species").value = "382";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function usum_latias() {
+      document.getElementById("arg_name").value = "WormholeLatias";
+      document.getElementById("arg_species").value = "380";
       document.getElementById("arg_game").value = "UltraSunUltraMoon";
       document.getElementById("arg_method").value = "SoftResetEncounter";
     }

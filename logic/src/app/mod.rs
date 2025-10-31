@@ -471,6 +471,7 @@ impl Shaoooh {
         if !skip_conn {
             if let Config::Bishaan(_) = self.config {
                 log::info!("Waiting for connection test to be performed");
+                // TODO need to allow timeout/Ctrl-C here
                 while !*self.rx_conn.borrow() {
                     std::thread::sleep(Duration::from_millis(500));
                 }

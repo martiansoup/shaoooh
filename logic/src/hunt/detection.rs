@@ -14,6 +14,7 @@ use crate::{
 
 #[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
 enum Detection {
+    PreEnterEncounter,
     EnterEncounter,
     WaitEncounterReady,
     PressA,
@@ -315,10 +316,21 @@ impl DetectionResolver {
         let species = builder.target();
         let timer = match species {
             144 => 16750, // Articuno
+            145 => 16750, // Zapdos
+            146 => 16750, // Moltres
+            244 => 16650, // Entei
+            382 => 16975, // Kyogre
+            380 => 10500, // Latias
+            717 => 16750, // Yveltal
+            799 => 100, // Guzzlord
             _ => 100,
         };
 
         let states = vec![
+            StateDescription::simple_process_state_no_output(
+                Branch2::new(Detection::PreEnterEncounter, Detection::EnterEncounter),
+                Processing::USUMBottomScreenInv(5.0),
+            ),
             StateDescription::simple_process_state_no_output_start_timer(
                 Branch2::new(Detection::EnterEncounter, Detection::Detect),
                 Processing::USUMBottomScreen(5.0),

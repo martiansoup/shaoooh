@@ -438,6 +438,7 @@ impl Vision {
             Processing::RegionDetect(settings) => self.region_detect(settings, frame),
             Processing::USUMShinyStar(_) => panic!("USUM Shiny Star incompatible with DS"),
             Processing::USUMBottomScreen(_) => panic!("USUM Bottom screen incompatible with DS"),
+            Processing::USUMBottomScreenInv(_) => panic!("USUM Bottom screen incompatible with DS"),
         }
     }
 
