@@ -597,7 +597,7 @@ impl EncounterTypeResolver {
         ];
         let states = vec![
             StateDescription::linear_state(USUM::SoftReset1, sr_buttons.clone(), 50..50),
-            StateDescription::linear_state(USUM::SoftReset2, sr_buttons, 8000..9000),
+            StateDescription::linear_state(USUM::SoftReset2, sr_buttons, 11000..12000),
             StateDescription::set_atomic_state(USUM::AllowHeartbeat, USUM::Title1),
             StateDescription::linear_state(
                 USUM::Title1,
@@ -656,7 +656,7 @@ impl EncounterTypeResolver {
         ];
         builder.add_states(states);
         match target {
-            799 => builder.add_states(states_press),
+            797 | 799 => builder.add_states(states_press),
             _ => builder.add_states(states_walk),
         }
 

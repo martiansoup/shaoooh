@@ -322,11 +322,17 @@ impl DetectionResolver {
             382 => 16975, // Kyogre
             380 => 10500, // Latias
             717 => 16750, // Yveltal
-            799 => 100, // Guzzlord
+            797 => 20460, // Celesteela
+            799 => 21070, // Guzzlord
+            249 => 13610, // Lugia
+            644 => 14400, // Zekrom
+            488 => 10400, // Cresselia
             _ => 100,
         };
 
         let states = vec![
+            // TODO only check bottom screen for UBs? avoid getting stuck on missed input
+            // or add timeout to this
             StateDescription::simple_process_state_no_output(
                 Branch2::new(Detection::PreEnterEncounter, Detection::EnterEncounter),
                 Processing::USUMBottomScreenInv(5.0),

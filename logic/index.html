@@ -176,7 +176,12 @@
     <!--<button onclick="usum_latias()">USUM Latias</button>-->
     <!--<button onclick="usum_zapdos()">USUM Zapdos</button>-->
     <!--<button onclick="usum_moltres()">USUM Moltres</button>-->
-    <button onclick="usum_yveltal()">USUM Yveltal</button>
+    <!--<button onclick="usum_yveltal()">USUM Yveltal</button>-->
+    <!--<button onclick="usum_guzzlord()">USUM Guzzlord</button>-->
+    <!--<button onclick="usum_celesteela()">USUM Celesteela</button>-->
+    <!--<button onclick="usum_lugia()">USUM Lugia</button>-->
+    <!--<button onclick="usum_zekrom()">USUM Zekrom</button>-->
+    <button onclick="usum_cresselia()">USUM Cresselia</button>
     <button onclick="rs_beldum()">Beldum</button>
     <!--<button onclick="dp_giratina()">DP Giratina</button>-->
     <!--<button onclick="hgss_dunsparse()">Three Segment</button>-->
@@ -206,7 +211,7 @@
     let button = "/api/button";
 
     function current_hunt() {
-      usum_yveltal();
+      usum_cresselia();
     }
     function lostelle_hypno() {
       document.getElementById("arg_name").value = "LostelleHypno";
@@ -241,6 +246,36 @@
     function usum_yveltal() {
       document.getElementById("arg_name").value = "WormholeYveltal";
       document.getElementById("arg_species").value = "717";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function usum_guzzlord() {
+      document.getElementById("arg_name").value = "WormholeGuzzlord";
+      document.getElementById("arg_species").value = "799";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function usum_celesteela() {
+      document.getElementById("arg_name").value = "WormholeCelesteela";
+      document.getElementById("arg_species").value = "797";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function usum_lugia() {
+      document.getElementById("arg_name").value = "WormholeLugia";
+      document.getElementById("arg_species").value = "249";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function usum_zekrom() {
+      document.getElementById("arg_name").value = "WormholeZekrom";
+      document.getElementById("arg_species").value = "644";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function usum_cresselia() {
+      document.getElementById("arg_name").value = "WormholeCresselia";
+      document.getElementById("arg_species").value = "488";
       document.getElementById("arg_game").value = "UltraSunUltraMoon";
       document.getElementById("arg_method").value = "SoftResetEncounter";
     }
