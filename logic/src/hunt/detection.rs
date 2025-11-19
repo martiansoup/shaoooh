@@ -362,7 +362,7 @@ impl DetectionResolver {
     }
 
     pub fn frlg_softreset(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
-        let shiny_threshold = Duration::from_millis(2400);
+        let shiny_threshold = Duration::from_millis(2385);
         let target = builder.target();
         let game = builder.game().clone();
         let method = builder.method().clone();

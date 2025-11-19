@@ -363,6 +363,12 @@ impl EncounterTypeResolver {
         } else if species == 97 {
             // Sequence for Lostelle Hypno encounter
             let states2 = vec![
+                // Extra delay to try to improve randomness space
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Delay,
+                    vec![],
+                    5000..25000,
+                ),
                 StateDescription::linear_state(
                     StartSoftResetEncounter::Press1,
                     vec![HuntStateOutput::button(Button::A)],
