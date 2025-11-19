@@ -327,6 +327,7 @@ impl DetectionResolver {
             249 => 13610, // Lugia
             644 => 14400, // Zekrom
             488 => 10400, // Cresselia
+            150 => 13750, // Mewtwo
             _ => 100,
         };
 

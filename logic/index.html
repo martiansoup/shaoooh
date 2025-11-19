@@ -181,7 +181,8 @@
     <!--<button onclick="usum_celesteela()">USUM Celesteela</button>-->
     <!--<button onclick="usum_lugia()">USUM Lugia</button>-->
     <!--<button onclick="usum_zekrom()">USUM Zekrom</button>-->
-    <button onclick="usum_cresselia()">USUM Cresselia</button>
+    <!--<button onclick="usum_cresselia()">USUM Cresselia</button>-->
+    <button onclick="usum_mewtwo()">USUM Mewtwo</button>
     <button onclick="rs_beldum()">Beldum</button>
     <!--<button onclick="dp_giratina()">DP Giratina</button>-->
     <!--<button onclick="hgss_dunsparse()">Three Segment</button>-->
@@ -211,7 +212,7 @@
     let button = "/api/button";
 
     function current_hunt() {
-      usum_cresselia();
+      usum_mewtwo();
     }
     function lostelle_hypno() {
       document.getElementById("arg_name").value = "LostelleHypno";
@@ -276,6 +277,12 @@
     function usum_cresselia() {
       document.getElementById("arg_name").value = "WormholeCresselia";
       document.getElementById("arg_species").value = "488";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function usum_mewtwo() {
+      document.getElementById("arg_name").value = "WormholeMewtwo";
+      document.getElementById("arg_species").value = "150";
       document.getElementById("arg_game").value = "UltraSunUltraMoon";
       document.getElementById("arg_method").value = "SoftResetEncounter";
     }
