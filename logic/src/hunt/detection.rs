@@ -67,7 +67,9 @@ impl DetectionResolver {
             Some(Self::frlg_random(builder))
         } else if *game == Game::FireRedLeafGreen && *method == Method::SoftResetEncounter {
             Some(Self::frlg_softreset(builder))
-        } else if *game == Game::RubySapphire && *method == Method::SoftResetGift {
+        } else if (*game == Game::RubySapphire || *game == Game::FireRedLeafGreen)
+            && *method == Method::SoftResetGift
+        {
             Self::gen3_softreset_gift(builder)
         } else if *game == Game::HeartGoldSoulSilver && *method == Method::SoftResetGift {
             match builder.target() {
@@ -95,60 +97,90 @@ impl DetectionResolver {
         let target = builder.target();
         let game = builder.game().clone();
         let method = builder.method().clone();
+        let base = if game == Game::RubySapphire { 250 } else { 500 };
 
         let states = vec![
             StateDescription::linear_state(
                 CheckSummary::Start,
                 vec![HuntStateOutput::button(Button::Start)],
-                500..500,
+                (base * 2)..(base * 2),
             ),
             StateDescription::linear_state(
                 CheckSummary::Down,
                 vec![HuntStateOutput::button(Button::Down)],
-                250..250,
+                (base * 1)..(base * 1),
             ),
             StateDescription::linear_state(
                 CheckSummary::ToPokemon,
                 vec![HuntStateOutput::button(Button::A)],
-                1000..1000,
+                (base * 4)..(base * 4),
             ),
             StateDescription::linear_state(
                 CheckSummary::Up1,
                 vec![HuntStateOutput::button(Button::Up)],
-                250..250,
+                (base * 1)..(base * 1),
             ),
             StateDescription::linear_state(
                 CheckSummary::Up2,
                 vec![HuntStateOutput::button(Button::Up)],
-                250..250,
+                (base * 1)..(base * 1),
             ),
             StateDescription::linear_state(
                 CheckSummary::Select,
                 vec![HuntStateOutput::button(Button::A)],
-                500..500,
+                (base * 2)..(base * 2),
             ),
             StateDescription::linear_state(
                 CheckSummary::ToSummary,
                 vec![HuntStateOutput::button(Button::A)],
-                1000..1000,
+                (base * 4)..(base * 4),
             ),
-            StateDescription::simple_sprite_state_flip(
-                Branch3::new(
-                    CheckSummary::Detect,
-                    CheckSummary::Done,
-                    CheckSummary::NextAttempt,
-                ),
-                &game,
-                &method,
-                target,
-                target,
-                true,
-            ),
-            StateDescription::deadend_state(CheckSummary::Done),
-            StateDescription::linear_state(CheckSummary::NextAttempt, vec![], 500..5000),
         ];
 
         builder.add_states(states);
+
+        if builder.game() == &Game::RubySapphire {
+            let states2 = vec![
+                StateDescription::simple_sprite_state_flip(
+                    Branch3::new(
+                        CheckSummary::Detect,
+                        CheckSummary::Done,
+                        CheckSummary::NextAttempt,
+                    ),
+                    &game,
+                    &method,
+                    target,
+                    target,
+                    true,
+                ),
+                StateDescription::deadend_state(CheckSummary::Done),
+                StateDescription::linear_state(CheckSummary::NextAttempt, vec![], 500..5000),
+            ];
+
+            builder.add_states(states2);
+        } else if builder.game() == &Game::FireRedLeafGreen {
+            let states2 = vec![
+                StateDescription::simple_sprite_state_flip_w_star(
+                    Branch3::new(
+                        CheckSummary::Detect,
+                        CheckSummary::Done,
+                        CheckSummary::NextAttempt,
+                    ),
+                    &game,
+                    &method,
+                    target,
+                    target,
+                    true,
+                ),
+                StateDescription::deadend_state(CheckSummary::Done),
+                StateDescription::linear_state(CheckSummary::NextAttempt, vec![], 500..5000),
+            ];
+
+            builder.add_states(states2);
+        } else {
+            return None;
+        }
+
         Some(builder)
     }
 

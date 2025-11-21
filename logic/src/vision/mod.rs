@@ -148,7 +148,17 @@ impl Processing {
         num_thresh: 1400,
         invert: false,
     });
+    // TODO not working reliably
     pub const FRLG_SHINY_STAR: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 106,
+        y: 52,
+        w: 16,
+        h: 16,
+        col_thresh: 216.0,
+        num_thresh: 120,
+        invert: true,
+    });
+    pub const FRLG_SHINY_STAR_OLD: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 106,
         y: 52,
         w: 16,

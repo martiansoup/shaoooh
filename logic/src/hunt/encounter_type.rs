@@ -85,6 +85,11 @@ enum DarkCave {
     Entering,
 }
 
+#[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
+enum DelayState {
+    Delay,
+}
+
 pub struct EncounterTypeResolver {}
 
 impl EncounterTypeResolver {
@@ -99,7 +104,9 @@ impl EncounterTypeResolver {
             Some(Self::frlg_random(builder))
         } else if *game == Game::FireRedLeafGreen && *method == Method::SoftResetEncounter {
             Self::gen3_softreset(builder)
-        } else if *game == Game::RubySapphire && *method == Method::SoftResetGift {
+        } else if (*game == Game::RubySapphire || *game == Game::FireRedLeafGreen)
+            && *method == Method::SoftResetGift
+        {
             Self::gen3_softreset_gift(builder)
         } else if (*game == Game::HeartGoldSoulSilver && *method == Method::SoftResetGift)
             || (*game == Game::DiamondPearl && *method == Method::SoftResetEncounter)
@@ -228,66 +235,102 @@ impl EncounterTypeResolver {
             HuntStateOutput::new(Button::Start, Delay::Tenth),
             HuntStateOutput::new(Button::Select, Delay::Tenth),
         ];
-        let states = vec![
-            StateDescription::linear_state(SoftResetProcess::SoftReset, sr_buttons, 3750..3750),
-            StateDescription::linear_state(
-                SoftResetProcess::Title1,
-                vec![HuntStateOutput::button(Button::A)],
-                5000..5000,
-            ),
-            StateDescription::linear_state(
-                SoftResetProcess::Title2,
-                vec![HuntStateOutput::button(Button::A)],
-                3750..3750,
-            ),
-            StateDescription::linear_state(
-                SoftResetProcess::Title3,
-                vec![HuntStateOutput::button(Button::A)],
-                2500..2500,
-            ),
-            StateDescription::linear_state(
-                SoftResetProcess::Title4,
-                vec![HuntStateOutput::button(Button::A)],
-                2000..2500,
-            ),
-        ];
+        let states = if builder.game() == &Game::FireRedLeafGreen {
+            vec![
+                StateDescription::linear_state(SoftResetProcess::SoftReset, sr_buttons, 3750..3750),
+                StateDescription::linear_state(
+                    SoftResetProcess::Title1,
+                    vec![HuntStateOutput::button(Button::A)],
+                    5000..5000,
+                ),
+                StateDescription::linear_state(
+                    SoftResetProcess::Title2,
+                    vec![HuntStateOutput::button(Button::A)],
+                    3750..3750,
+                ),
+                StateDescription::linear_state(
+                    SoftResetProcess::Title3,
+                    vec![HuntStateOutput::button(Button::A)],
+                    2500..2500,
+                ),
+                StateDescription::linear_state(
+                    SoftResetProcess::SkipMemory,
+                    vec![HuntStateOutput::button(Button::B)],
+                    3000..3500,
+                ),
+            ]
+        } else {
+            vec![
+                StateDescription::linear_state(SoftResetProcess::SoftReset, sr_buttons, 3750..3750),
+                StateDescription::linear_state(
+                    SoftResetProcess::Title1,
+                    vec![HuntStateOutput::button(Button::A)],
+                    5000..5000,
+                ),
+                StateDescription::linear_state(
+                    SoftResetProcess::Title2,
+                    vec![HuntStateOutput::button(Button::A)],
+                    3750..3750,
+                ),
+                StateDescription::linear_state(
+                    SoftResetProcess::Title3,
+                    vec![HuntStateOutput::button(Button::A)],
+                    2500..2500,
+                ),
+                StateDescription::linear_state(
+                    SoftResetProcess::Title4,
+                    vec![HuntStateOutput::button(Button::A)],
+                    2000..2500,
+                ),
+            ]
+        };
 
         builder.add_states(states);
 
-        if builder.target() != 374 {
-            return None;
+        if builder.game() == &Game::FireRedLeafGreen {
+            let delay_state = vec![StateDescription::linear_state(
+                DelayState::Delay,
+                vec![],
+                5000..15000,
+            )];
+
+            builder.add_states(delay_state);
         }
 
-        // Beldum Sequence
-        let states2 = vec![
-            StateDescription::linear_state(
-                StartSoftResetEncounter::Press1,
-                vec![HuntStateOutput::button(Button::A)],
-                1000..5500,
-            ),
-            StateDescription::linear_state(
-                StartSoftResetEncounter::Press2,
-                vec![HuntStateOutput::button(Button::A)],
-                750..1250,
-            ),
-            StateDescription::linear_state(
-                StartSoftResetEncounter::Press3,
-                vec![HuntStateOutput::button(Button::A)],
-                1000..1500,
-            ),
-            StateDescription::linear_state(
-                StartSoftResetEncounter::Press4,
-                vec![HuntStateOutput::button(Button::A)],
-                5000..5000,
-            ),
-            StateDescription::linear_state(
-                StartSoftResetEncounter::Press5,
-                vec![HuntStateOutput::button(Button::B)],
-                1000..1000,
-            ),
-        ];
+        if builder.target() == 374 || builder.target() == 138 {
+            // Beldum/Fossil Sequence
+            let states2 = vec![
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press1,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..5500,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press2,
+                    vec![HuntStateOutput::button(Button::A)],
+                    750..1250,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press3,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1500,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press4,
+                    vec![HuntStateOutput::button(Button::A)],
+                    5000..5000,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press5,
+                    vec![HuntStateOutput::button(Button::B)],
+                    1000..1000,
+                ),
+            ];
 
-        builder.add_states(states2);
+            builder.add_states(states2);
+        } else {
+            return None;
+        }
 
         Some(builder)
     }
@@ -364,11 +407,7 @@ impl EncounterTypeResolver {
             // Sequence for Lostelle Hypno encounter
             let states2 = vec![
                 // Extra delay to try to improve randomness space
-                StateDescription::linear_state(
-                    StartSoftResetEncounter::Delay,
-                    vec![],
-                    5000..25000,
-                ),
+                StateDescription::linear_state(StartSoftResetEncounter::Delay, vec![], 5000..25000),
                 StateDescription::linear_state(
                     StartSoftResetEncounter::Press1,
                     vec![HuntStateOutput::button(Button::A)],

@@ -174,10 +174,18 @@ impl BishaanVision {
             .expect("Failed to convert colour");
         let mean = opencv::core::mean(&bot_grey, &Mat::default()).expect("Failed to get mean");
 
-        let met = if inv { mean[0] < threshold } else { mean[0] > threshold };
+        let met = if inv {
+            mean[0] < threshold
+        } else {
+            mean[0] > threshold
+        };
         log::trace!("MEAN = {}", mean[0]);
 
-        let proc = if inv { Processing::USUMBottomScreenInv(threshold) } else { Processing::USUMBottomScreen(threshold) };
+        let proc = if inv {
+            Processing::USUMBottomScreenInv(threshold)
+        } else {
+            Processing::USUMBottomScreen(threshold)
+        };
 
         ProcessingResult {
             process: proc,

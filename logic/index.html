@@ -188,10 +188,11 @@
     <!--<button onclick="hgss_dunsparse()">Three Segment</button>-->
     <button onclick="frlg_snorlax()">FRLG Snorlax</button>
     <button onclick="hgss_start()">HGSS Starter</button>
+    <button onclick="frlg_omanyte()">FRLG Omanyte</button>
     <!--<button onclick="dp_shinx()">DP Cute Charm Shinx</button>-->
     <!--<button onclick="rs_oddish()">RS Oddish</button>-->
-    <button onclick="frlg_egg()">FRLG Eggs</button>
-    <button onclick="hgss_rat()">HGSS Ratatta</button>
+    <!--<button onclick="frlg_egg()">FRLG Eggs</button>-->
+    <!--<button onclick="hgss_rat()">HGSS Ratatta</button>-->
     <!--<button onclick="hgss_ditto()">HGSS Ditto</button>-->
     <!--<button onclick="rs_registeel()">RS Registeel</button>-->
     <!--<button onclick="bw2_latios()">BW2 Latios</button>-->
@@ -212,13 +213,19 @@
     let button = "/api/button";
 
     function current_hunt() {
-      usum_mewtwo();
+      frlg_omanyte();
     }
     function lostelle_hypno() {
       document.getElementById("arg_name").value = "LostelleHypno";
       document.getElementById("arg_species").value = "97";
       document.getElementById("arg_game").value = "FireRedLeafGreen";
       document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function frlg_omanyte() {
+      document.getElementById("arg_name").value = "Omanyte";
+      document.getElementById("arg_species").value = "138";
+      document.getElementById("arg_game").value = "FireRedLeafGreen";
+      document.getElementById("arg_method").value = "SoftResetGift";
     }
     function rs_beldum() {
       document.getElementById("arg_name").value = "StevenBeldum";

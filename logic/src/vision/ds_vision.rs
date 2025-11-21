@@ -388,7 +388,22 @@ impl Vision {
 
         let count = opencv::core::count_non_zero(&thresholded).unwrap();
         let met = count > settings.num_thresh;
-        //log::info!("got {} / {}", count, settings.num_thresh);
+        log::info!("got {} / {}", count, settings.num_thresh);
+        // for i in 150..250 {
+        //    let mut thresholded = Mat::default();
+
+        //    opencv::imgproc::threshold(
+        //        &greyscale,
+        //        &mut thresholded,
+        //        i.into(),
+        //        255.0,
+        //        typ,
+        //    )
+        //    .expect("Failed to apply threshold");
+
+        //    let count = opencv::core::count_non_zero(&thresholded).unwrap();
+        //    log::info!("at {} got {}", i, count);
+        // }
 
         ProcessingResult {
             process: Processing::RegionDetect(settings.clone()),
