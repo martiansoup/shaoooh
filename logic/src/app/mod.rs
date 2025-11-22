@@ -21,6 +21,7 @@ use tokio::sync::{
     oneshot::{self, error::TryRecvError},
     watch,
 };
+use tokio_util::sync::CancellationToken;
 use tower_http::services::ServeDir;
 pub(crate) mod error;
 pub(crate) mod states;
@@ -336,7 +337,7 @@ impl Shaoooh {
         top_frame_rx: watch::Receiver<Mat>,
         bottom_frame_rx: watch::Receiver<Mat>,
         button_tx: mpsc::Sender<(Vec<Button>, Delay)>,
-        mut shutdown_rx: oneshot::Receiver<()>,
+        shutdown_token: CancellationToken,
         raw_frame_mutex: Arc<Mutex<Mat>>,
     ) {
         let (mut control, mut vision): (Box<dyn BotControl>, Box<dyn BotVision>) = match self.config
@@ -353,65 +354,60 @@ impl Shaoooh {
         };
         let mut hunt: Option<HuntFSM> = None;
 
-        while let Err(shutdown) = shutdown_rx.try_recv() {
-            match shutdown {
-                TryRecvError::Closed => break,
-                TryRecvError::Empty => {
-                    // What processing is needed
-                    let processing = if let Some(h) = &mut hunt {
-                        h.processing()
-                    } else {
-                        &Vec::new()
-                    };
-                    // Frame processing
-                    if let Some(results) = vision.process_next_frame(processing) {
-                        // Step state machines
-                        if let Some(h) = &mut hunt {
-                            let result = h.step(&mut control, results);
-                            h.display();
-                            // Automatic transition requests
-                            if result.incr_encounters {
-                                self.app.encounters += 1;
-                                log::info!("Current encounters: {}", self.app.encounters);
-                                self.update_state();
-                            }
-                            if let Some(transition_req) = result.transition {
-                                self.do_transition(transition_req, &mut hunt, true);
-                            }
-                        }
-
-                        if let Ok(mut img_wr) = self.image.try_lock() {
-                            img_wr.clear();
-                            img_wr.extend(vision.read_frame());
-                        }
-                        if let Ok(mut img_wr) = self.image2.try_lock() {
-                            img_wr.clear();
-                            img_wr.extend(vision.read_frame2());
-                        }
-                    } else if !self.rx.is_closed() {
-                        log::warn!("Failed to process frame");
-                    }
-
-                    // Manual transition requests from API
-                    if !self.rx.is_empty()
-                        && let Some(transition_req) = self.rx.blocking_recv()
-                    {
-                        self.do_transition(transition_req, &mut hunt, false);
-                    }
-
-                    if !self.button_rx.is_empty()
-                        && let Some((button, delay)) = self.button_rx.blocking_recv()
-                    {
-                        control.press_delay(&button, &delay);
-                    }
-
-                    if self.rx.is_closed() {
-                        break;
-                    }
-
-                    std::thread::sleep(std::time::Duration::new(0, 500000));
-                }
+        while !shutdown_token.is_cancelled() {
+            // What processing is needed
+            let processing = if let Some(h) = &mut hunt {
+                h.processing()
+            } else {
+                &Vec::new()
             };
+            // Frame processing
+            if let Some(results) = vision.process_next_frame(processing) {
+                // Step state machines
+                if let Some(h) = &mut hunt {
+                    let result = h.step(&mut control, results);
+                    h.display();
+                    // Automatic transition requests
+                    if result.incr_encounters {
+                        self.app.encounters += 1;
+                        log::info!("Current encounters: {}", self.app.encounters);
+                        self.update_state();
+                    }
+                    if let Some(transition_req) = result.transition {
+                        self.do_transition(transition_req, &mut hunt, true);
+                    }
+                }
+
+                if let Ok(mut img_wr) = self.image.try_lock() {
+                    img_wr.clear();
+                    img_wr.extend(vision.read_frame());
+                }
+                if let Ok(mut img_wr) = self.image2.try_lock() {
+                    img_wr.clear();
+                    img_wr.extend(vision.read_frame2());
+                }
+            } else if !self.rx.is_closed() {
+                log::warn!("Failed to process frame");
+            }
+
+            // Manual transition requests from API
+            if !self.rx.is_empty()
+                && let Some(transition_req) = self.rx.blocking_recv()
+            {
+                self.do_transition(transition_req, &mut hunt, false);
+            }
+
+            if !self.button_rx.is_empty()
+                && let Some((button, delay)) = self.button_rx.blocking_recv()
+            {
+                control.press_delay(&button, &delay);
+            }
+
+            if self.rx.is_closed() {
+                break;
+            }
+
+            std::thread::sleep(std::time::Duration::new(0, 500000));
         }
     }
 
@@ -445,7 +441,7 @@ impl Shaoooh {
             opencv::core::CV_VERSION_MINOR,
             opencv::core::CV_VERSION_REVISION
         );
-        let (shutdown_tx, shutdown_rx) = oneshot::channel();
+        let shutdown_token = CancellationToken::new();
 
         let state = self.api.take().expect("Couldn't get API state");
         let rx_clone_hook = state.rx.clone();
@@ -455,12 +451,13 @@ impl Shaoooh {
 
         // Have to start web server early to catch connection requests
         // from the 3DS
+        let shutdown_token_server = shutdown_token.clone();
         let handle = std::thread::spawn(move || {
             runtime_hndl.block_on(async {
                 // run our app with hyper, listening globally on port 3000
                 let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
                 axum::serve(listener, Self::routes(state))
-                    .with_graceful_shutdown(shutdown(shutdown_tx, error_rx_shutdown))
+                    .with_graceful_shutdown(shutdown(shutdown_token_server, error_rx_shutdown))
                     .await
                     .expect("Error from web server");
             })
@@ -470,24 +467,32 @@ impl Shaoooh {
         // test, and then allow some time to start InputRedirection and Streaming
         if !skip_conn {
             if let Config::Bishaan(_) = self.config {
-                log::info!("Waiting for connection test to be performed");
-                // TODO need to allow timeout/Ctrl-C here
-                while !*self.rx_conn.borrow() {
-                    std::thread::sleep(Duration::from_millis(500));
-                }
-                log::info!(
-                    "Seen connection test, waiting for a minute to enable InputRedirection and NTR"
-                );
-                // TODO report time in 10 second intervals to count down
-                for x in 0..5 {
-                    log::info!("{} seconds remaining...", 60 - (x * 10));
-                    std::thread::sleep(Duration::from_secs(10));
-                }
-                for x in 0..10 {
-                    log::info!("{} seconds remaining...", 10 - x);
-                    std::thread::sleep(Duration::from_secs(1));
-                }
-                log::info!("Resuming startup...");
+                let shutdown_token_conn = shutdown_token.clone();
+                runtime.block_on(async {
+                    tokio::select! {
+                        _ = shutdown_token_conn.cancelled() => {
+                            log::info!("Got shutdown during connection test");
+                        }
+                        _ = async {
+                            log::info!("Waiting for connection test to be performed");
+                            self.rx_conn.changed().await.unwrap();
+                            log::info!(
+                                "Seen connection test, waiting for a minute to enable InputRedirection and NTR"
+                            );
+                            // TODO report time in 10 second intervals to count down
+                            for x in 0..5 {
+                                log::info!("{} seconds remaining...", 60 - (x * 10));
+                                tokio::time::sleep(Duration::from_secs(10)).await;
+                            }
+                            for x in 0..10 {
+                                log::info!("{} seconds remaining...", 10 - x);
+                                tokio::time::sleep(Duration::from_secs(1)).await;
+                            }
+                        } => {
+                            log::info!("Resuming startup...");
+                        }
+                    };
+                });
             }
         }
 
@@ -578,7 +583,7 @@ impl Shaoooh {
             t_frame_rx,
             b_frame_rx,
             button_tx,
-            shutdown_rx,
+            shutdown_token.clone(),
             raw_frame_mutex,
         );
         log::info!("Main thread complete");
@@ -712,7 +717,7 @@ async fn get_mode(State(state): State<ApiState>) -> Json<ResponseMode> {
 }
 
 async fn shutdown(
-    shutdown_tx: oneshot::Sender<()>,
+    shutdown_token: CancellationToken,
     mut error_rx: broadcast::Receiver<ShaooohError>,
 ) {
     let ctrl_c = async {
@@ -742,7 +747,5 @@ async fn shutdown(
 
     log::info!("Got shutdown");
 
-    shutdown_tx
-        .send(())
-        .expect("Failed to send shutdown to main thread");
+    shutdown_token.cancel();
 }
