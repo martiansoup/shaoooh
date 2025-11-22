@@ -1,7 +1,7 @@
 use clap::Parser;
 use simple_logger::SimpleLogger;
 
-use shaoooh::app::Shaoooh;
+use crate::app::Shaoooh;
 
 /// Shaoooh - Shiny Hunting Automaton On Original Hardware
 #[derive(Parser, Debug)]
@@ -21,35 +21,7 @@ struct Args {
     skip_conn: bool,
 }
 
-// TODO get from config file
-#[cfg(all(target_arch = "aarch64", target_os = "linux"))]
-fn get_config() -> shaoooh::app::Config {
-    //let paths = shaoooh::app::CaptureControlPaths::new(
-    //    "/dev/video0".to_string(),
-    //    "/dev/ttyAMA0".to_string(),
-    //);
-    //shaoooh::app::Config::Shaoooh(paths)
-    use std::net::Ipv4Addr;
-
-    shaoooh::app::Config::Bishaan(Ipv4Addr::new(10, 42, 0, 146))
-}
-
-#[cfg(any(target_os = "macos", target_arch = "x86_64"))]
-fn get_config() -> shaoooh::app::Config {
-    use std::net::Ipv4Addr;
-
-    shaoooh::app::Config::Bishaan(Ipv4Addr::new(192, 168, 68, 4))
-}
-
-#[cfg(not(any(
-    all(target_arch = "aarch64", target_os = "linux"),
-    any(target_os = "macos", target_arch = "x86_64")
-)))]
-fn get_config() -> shaoooh::app::Config {
-    shaoooh::app::Config::Ditto
-}
-
-fn main() {
+pub fn main(cfg_fn: &dyn Fn() -> crate::app::Config) {
     let args = Args::parse();
     let log_level = if args.quiet {
         log::Level::Info.to_level_filter()
@@ -64,9 +36,9 @@ fn main() {
         .unwrap();
 
     let config = if args.metamon {
-        shaoooh::app::Config::Ditto
+        crate::app::Config::Ditto
     } else {
-        get_config()
+        cfg_fn()
     };
 
     if args.print {

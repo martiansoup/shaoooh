@@ -25,6 +25,7 @@ use tokio_util::sync::CancellationToken;
 use tower_http::services::ServeDir;
 pub(crate) mod error;
 pub(crate) mod states;
+pub(crate) mod main;
 use crate::{
     control::{
         BishaanControl, BishaanControlSocket, BotControl, Button, Delay, NopControl, ShaooohControl,
@@ -36,6 +37,8 @@ use crate::{
 pub use error::*;
 pub use states::*;
 use tokio::signal;
+
+pub use main::*;
 
 #[cfg(all(target_arch = "aarch64", target_os = "linux"))]
 use crate::displays::LightsDisplay;
