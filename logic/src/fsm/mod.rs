@@ -58,7 +58,7 @@ pub struct StateMachine<InputKind, InputValue, StateOutput, StateTransition, Int
     graph: Option<draw::Graph>,
 }
 
-impl<InputKind, InputValue, StateOutput, StateTransition, InternalState>
+impl<InputKind, InputValue, StateOutput, StateTransition, InternalState: std::fmt::Debug>
     StateMachine<InputKind, InputValue, StateOutput, StateTransition, InternalState>
 {
     pub fn new(internal: InternalState) -> Self {
@@ -199,6 +199,7 @@ impl<InputKind, InputValue, StateOutput, StateTransition, InternalState>
                             self.debug_name_at_indx(self.current),
                             self.debug_name_at_indx(next_state.0)
                         );
+                        log::trace!("Internal State: {:?}", self.internal);
                     }
                     // No delay
                     self.current = next_state.0;
@@ -212,6 +213,7 @@ impl<InputKind, InputValue, StateOutput, StateTransition, InternalState>
                             duration,
                             self.debug_name_at_indx(next_state.0)
                         );
+                        log::trace!("Internal State: {:?}", self.internal);
                     }
                     self.delay = Some((duration, next_state.0))
                 } else {
@@ -226,6 +228,7 @@ impl<InputKind, InputValue, StateOutput, StateTransition, InternalState>
                             duration,
                             self.debug_name_at_indx(next_state.0)
                         );
+                        log::trace!("Internal State: {:?}", self.internal);
                     }
                     self.delay = Some((duration, next_state.0))
                 }
@@ -345,7 +348,7 @@ impl<InputKind, InputValue, StateOutput, StateTransition, InternalState>
 impl<InputKind, InputValue, StateOutput, StateTransition, InternalState> Default
     for StateMachine<InputKind, InputValue, StateOutput, StateTransition, InternalState>
 where
-    InternalState: Default,
+    InternalState: Default + std::fmt::Debug,
 {
     fn default() -> Self {
         Self::new(InternalState::default())

@@ -188,7 +188,8 @@
     <!--<button onclick="hgss_dunsparse()">Three Segment</button>-->
     <button onclick="frlg_snorlax()">FRLG Snorlax</button>
     <button onclick="hgss_start()">HGSS Starter</button>
-    <button onclick="frlg_omanyte()">FRLG Omanyte</button>
+    <!--<button onclick="frlg_omanyte()">FRLG Omanyte</button>-->
+    <button onclick="frlg_lapras()">FRLG Lapras</button>
     <!--<button onclick="dp_shinx()">DP Cute Charm Shinx</button>-->
     <!--<button onclick="rs_oddish()">RS Oddish</button>-->
     <!--<button onclick="frlg_egg()">FRLG Eggs</button>-->
@@ -213,7 +214,7 @@
     let button = "/api/button";
 
     function current_hunt() {
-      frlg_omanyte();
+      frlg_lapras();
     }
     function lostelle_hypno() {
       document.getElementById("arg_name").value = "LostelleHypno";
@@ -224,6 +225,12 @@
     function frlg_omanyte() {
       document.getElementById("arg_name").value = "Omanyte";
       document.getElementById("arg_species").value = "138";
+      document.getElementById("arg_game").value = "FireRedLeafGreen";
+      document.getElementById("arg_method").value = "SoftResetGift";
+    }
+    function frlg_lapras() {
+      document.getElementById("arg_name").value = "SilphLapras";
+      document.getElementById("arg_species").value = "131";
       document.getElementById("arg_game").value = "FireRedLeafGreen";
       document.getElementById("arg_method").value = "SoftResetGift";
     }

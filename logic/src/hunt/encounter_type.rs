@@ -90,6 +90,20 @@ enum DelayState {
     Delay,
 }
 
+#[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
+enum LoopState {
+    ResetCounter,
+    PressA,
+    DecrCounter,
+    CheckCounter,
+    CheckToggle,
+    Wait,
+    PressB,
+    Toggle,
+    ToggleBack,
+    Done,
+}
+
 pub struct EncounterTypeResolver {}
 
 impl EncounterTypeResolver {
@@ -325,6 +339,41 @@ impl EncounterTypeResolver {
                     vec![HuntStateOutput::button(Button::B)],
                     1000..1000,
                 ),
+            ];
+
+            builder.add_states(states2);
+        } else if builder.target() == 131 {
+            // Lapras
+            let states2 = vec![
+                StateDescription::set_counter_state(LoopState::ResetCounter, LoopState::PressA, 7),
+                StateDescription::linear_state(
+                    LoopState::PressA,
+                    vec![HuntStateOutput::button(Button::A)],
+                    2000..2500,
+                ),
+                StateDescription::decr_counter_state(
+                    LoopState::DecrCounter,
+                    LoopState::CheckCounter,
+                ),
+                StateDescription::choose_counter_state(
+                    LoopState::CheckCounter,
+                    LoopState::Wait,
+                    LoopState::PressA,
+                ),
+                StateDescription::linear_state(LoopState::Wait, vec![], 2000..2500),
+                StateDescription::choose_toggle_state(
+                    LoopState::CheckToggle,
+                    LoopState::ToggleBack,
+                    LoopState::PressB,
+                ),
+                StateDescription::linear_state(
+                    LoopState::PressB,
+                    vec![HuntStateOutput::button(Button::B)],
+                    1000..1500,
+                ),
+                StateDescription::toggle_state(LoopState::Toggle, LoopState::ResetCounter),
+                StateDescription::toggle_state(LoopState::ToggleBack, LoopState::Done),
+                StateDescription::linear_state_no_delay(LoopState::Done, vec![]),
             ];
 
             builder.add_states(states2);

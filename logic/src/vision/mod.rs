@@ -23,6 +23,25 @@ pub struct RegionDetectSettings {
 }
 
 #[derive(PartialEq, Clone, Debug)]
+pub enum ColourChannel {
+    Blue,
+    Green,
+    Red,
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct ColourChannelDetectSettings {
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    pub col_thresh: f64,
+    pub num_thresh: i32,
+    pub invert: bool,
+    pub colour: ColourChannel,
+}
+
+#[derive(PartialEq, Clone, Debug)]
 pub struct ChannelDetectSettings {
     pub x: i32,
     pub y: i32,
@@ -42,6 +61,7 @@ pub enum Processing {
     // List of sprites to check, and should it be flipped
     Sprite(Game, Vec<u32>, bool),
     RegionDetect(RegionDetectSettings),
+    ColourChannelDetect(ColourChannelDetectSettings),
     ChannelDetect(ChannelDetectSettings),
     USUMShinyStar(u32),
     USUMBottomScreen(f64),
@@ -148,16 +168,17 @@ impl Processing {
         num_thresh: 1400,
         invert: false,
     });
-    // TODO not working reliably
-    pub const FRLG_SHINY_STAR: Self = Processing::RegionDetect(RegionDetectSettings {
-        x: 106,
-        y: 52,
-        w: 16,
-        h: 16,
-        col_thresh: 216.0,
-        num_thresh: 120,
-        invert: true,
-    });
+    pub const FRLG_SHINY_STAR: Self =
+        Processing::ColourChannelDetect(ColourChannelDetectSettings {
+            x: 106,
+            y: 52,
+            w: 16,
+            h: 16,
+            col_thresh: 150.0,
+            num_thresh: 5,
+            invert: true,
+            colour: ColourChannel::Blue,
+        });
     pub const FRLG_SHINY_STAR_OLD: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 106,
         y: 52,

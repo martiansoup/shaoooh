@@ -31,13 +31,23 @@ impl HuntStateOutput {
     }
 }
 
-#[derive(Debug)]
 pub struct InternalHuntState {
     pub toggle: bool,
     pub atomic: Arc<AtomicBool>,
     pub time: SystemTime,
     pub last_duration: Duration,
     pub counter: usize,
+}
+
+impl std::fmt::Debug for InternalHuntState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("InternalHuntState")
+            .field("toggle", &self.toggle)
+            .field("atomic", &self.atomic)
+            .field("counter", &self.counter)
+            .field("duration", &self.last_duration)
+            .finish()
+    }
 }
 
 impl InternalHuntState {

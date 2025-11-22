@@ -16,8 +16,8 @@ use crate::{
     app::states::Game,
     context::PkContext,
     vision::{
-        BotVision, ChannelDetectSettings, Processing, ProcessingResult, RegionDetectSettings,
-        WinInfo, compat,
+        BotVision, ChannelDetectSettings, ColourChannel, ColourChannelDetectSettings, Processing,
+        ProcessingResult, RegionDetectSettings, WinInfo, compat,
     },
 };
 
@@ -413,6 +413,67 @@ impl Vision {
         }
     }
 
+    fn colour_channel_detect(
+        &mut self,
+        settings: &ColourChannelDetectSettings,
+        frame: &Mat,
+    ) -> ProcessingResult {
+        let region = frame
+            .roi(opencv::core::Rect::new(
+                settings.x, settings.y, settings.w, settings.h,
+            ))
+            .expect("Failed to crop to region of interest")
+            .clone_pointee();
+        let mut greyscale = Mat::default();
+        let coi = match settings.colour {
+            ColourChannel::Blue => 0,
+            ColourChannel::Green => 1,
+            ColourChannel::Red => 2,
+        };
+        opencv::core::extract_channel(&region, &mut greyscale, coi)
+            .expect("Failed to extract colour");
+        let mut thresholded = Mat::default();
+        let typ = if settings.invert {
+            THRESH_BINARY_INV
+        } else {
+            THRESH_BINARY
+        };
+        opencv::imgproc::threshold(
+            &greyscale,
+            &mut thresholded,
+            settings.col_thresh,
+            255.0,
+            typ,
+        )
+        .expect("Failed to apply threshold");
+
+        let count = opencv::core::count_non_zero(&thresholded).unwrap();
+        let met = count > settings.num_thresh;
+        log::info!("got {} / {}", count, settings.num_thresh);
+        // for i in 150..250 {
+        //    let mut thresholded = Mat::default();
+
+        //    opencv::imgproc::threshold(
+        //        &greyscale,
+        //        &mut thresholded,
+        //        i.into(),
+        //        255.0,
+        //        typ,
+        //    )
+        //    .expect("Failed to apply threshold");
+
+        //    let count = opencv::core::count_non_zero(&thresholded).unwrap();
+        //    log::info!("at {} got {}", i, count);
+        // }
+
+        ProcessingResult {
+            process: Processing::ColourChannelDetect(settings.clone()),
+            met,
+            species: 0,
+            shiny: false,
+        }
+    }
+
     fn channel_detect(
         &mut self,
         settings: &ChannelDetectSettings,
@@ -451,6 +512,9 @@ impl Vision {
             }
             Processing::ChannelDetect(settings) => self.channel_detect(settings, frame),
             Processing::RegionDetect(settings) => self.region_detect(settings, frame),
+            Processing::ColourChannelDetect(settings) => {
+                self.colour_channel_detect(settings, frame)
+            }
             Processing::USUMShinyStar(_) => panic!("USUM Shiny Star incompatible with DS"),
             Processing::USUMBottomScreen(_) => panic!("USUM Bottom screen incompatible with DS"),
             Processing::USUMBottomScreenInv(_) => panic!("USUM Bottom screen incompatible with DS"),
