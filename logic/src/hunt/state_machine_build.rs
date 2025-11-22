@@ -997,4 +997,90 @@ where
 
         StateDescription::new(tag, vec![detect], vec![], 0..0, detect_checks)
     }
+
+    pub fn simple_sprite_state_3ds(
+        branch: Branch3<K>,
+        game: &Game,
+        method: &Method,
+        species: u32,
+        target: u32,
+    ) -> Self {
+        let Branch3 {
+            tag,
+            to_met,
+            to_not,
+        } = branch;
+        let mut detect_checks: HashMap<K, BoxedProcessFn> = HashMap::new();
+        let detect = Processing::Sprite3DS(game.clone(), vec![species]);
+
+        let shiny_closure = move |res: &Vec<ProcessingResult>| {
+            let sprite_results: Vec<&ProcessingResult> = res
+                .iter()
+                .filter(|r| matches!(r.process, Processing::Sprite3DS(_, _)))
+                .collect();
+            debug_assert_eq!(sprite_results.len(), 1, "Must have a single sprite result");
+            let sprite_result = *sprite_results
+                .first()
+                .expect("Must have a single sprite result");
+
+            let shiny_sprite = sprite_result.shiny;
+
+            log::info!("Detect results: shiny_sprite = {}", shiny_sprite);
+
+            (shiny_sprite, sprite_result.species)
+        };
+
+        let game_copy = game.clone();
+        let method_copy = method.clone();
+        detect_checks.insert(
+            to_met,
+            Box::new(move |res, _| {
+                let (shiny, found_species) = shiny_closure(res);
+
+                if shiny {
+                    if found_species == target {
+                        Some(HuntResult {
+                            transition: Some(RequestTransition {
+                                transition: Transition::FoundTarget,
+                                arg: None,
+                            }),
+                            incr_encounters: true,
+                        })
+                    } else {
+                        Some(HuntResult {
+                            transition: Some(RequestTransition {
+                                transition: Transition::FoundNonTarget,
+                                arg: Some(TransitionArg {
+                                    name: String::from(""),
+                                    species: found_species,
+                                    game: game_copy.clone(),
+                                    method: method_copy.clone(),
+                                }),
+                            }),
+                            incr_encounters: true,
+                        })
+                    }
+                } else {
+                    None
+                }
+            }),
+        );
+        detect_checks.insert(
+            to_not,
+            Box::new(move |res, _| {
+                let (shiny, _) = shiny_closure(res);
+
+                if shiny {
+                    None
+                } else {
+                    Some(HuntResult {
+                        transition: None,
+                        incr_encounters: true,
+                    })
+                }
+            }),
+        );
+
+        StateDescription::new(tag, vec![detect], vec![], 0..0, detect_checks)
+    }
 }

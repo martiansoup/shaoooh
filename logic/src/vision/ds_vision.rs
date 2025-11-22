@@ -239,6 +239,7 @@ impl Vision {
     }
 
     // TODO add a dummy "Detect" processing that just updates found sprite
+    // TODO use utils common version
     fn match_sprite(
         &mut self,
         game: &Game,
@@ -518,6 +519,10 @@ impl Vision {
             Processing::USUMShinyStar(_) => panic!("USUM Shiny Star incompatible with DS"),
             Processing::USUMBottomScreen(_) => panic!("USUM Bottom screen incompatible with DS"),
             Processing::USUMBottomScreenInv(_) => panic!("USUM Bottom screen incompatible with DS"),
+            Processing::ColourChannelDetect3DS(_) => {
+                panic!("ColourChannelDetect3DS incompatible with DS")
+            }
+            Processing::Sprite3DS(..) => panic!("Sprite3DS incompatible with DS"),
         }
     }
 

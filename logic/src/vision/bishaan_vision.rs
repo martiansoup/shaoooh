@@ -1,15 +1,24 @@
+use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
 
 use crate::app::ShaooohError;
-use crate::vision::{BotVision, ProcessingResult, compat};
+use crate::vision::{
+    BotVision, ColourChannel, ColourChannelDetect3DSSettings, ProcessingResult, compat,
+};
+
+use crate::{app::states::Game, context::PkContext};
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use opencv::core::Rect;
+use opencv::highgui;
+use opencv::imgcodecs::IMREAD_UNCHANGED;
+use opencv::imgproc::THRESH_BINARY_INV;
 use opencv::{
     core::{Point, Vector},
-    imgcodecs::IMREAD_GRAYSCALE,
-    imgproc::{THRESH_BINARY, TM_CCORR_NORMED},
+    imgcodecs::{IMREAD_COLOR, IMREAD_GRAYSCALE},
+    imgproc::{LINE_8, THRESH_BINARY, TM_CCORR_NORMED},
     prelude::*,
 };
 
@@ -34,6 +43,10 @@ pub struct BishaanVision {
     encoded_bottom: Vector<u8>,
     ref_shiny_star: Mat,
     shiny_star_mask: Mat,
+    // Reference, Shiny, Mask
+    reference: HashMap<u32, (Mat, Mat, Mat)>,
+    game: Game,
+    flipped: bool,
 }
 
 pub struct BishaanVisionSocket {
@@ -122,6 +135,9 @@ impl BishaanVision {
             encoded_bottom: Vector::default(),
             ref_shiny_star,
             shiny_star_mask,
+            reference: HashMap::new(),
+            game: Game::None,
+            flipped: false,
         }
     }
 
@@ -195,6 +211,234 @@ impl BishaanVision {
         }
     }
 
+    fn colour_channel_detect(
+        &mut self,
+        settings: &ColourChannelDetect3DSSettings,
+        frame: &Mat,
+    ) -> ProcessingResult {
+        let region = frame
+            .roi(opencv::core::Rect::new(
+                settings.x, settings.y, settings.w, settings.h,
+            ))
+            .expect("Failed to crop to region of interest")
+            .clone_pointee();
+        let mut greyscale = Mat::default();
+        let coi = match settings.colour {
+            ColourChannel::Blue => 0,
+            ColourChannel::Green => 1,
+            ColourChannel::Red => 2,
+        };
+        opencv::core::extract_channel(&region, &mut greyscale, coi)
+            .expect("Failed to extract colour");
+        let mut thresholded = Mat::default();
+        let typ = if settings.invert {
+            THRESH_BINARY_INV
+        } else {
+            THRESH_BINARY
+        };
+        opencv::imgproc::threshold(
+            &greyscale,
+            &mut thresholded,
+            settings.col_thresh,
+            255.0,
+            typ,
+        )
+        .expect("Failed to apply threshold");
+
+        let count = opencv::core::count_non_zero(&thresholded).unwrap();
+        let met = count > settings.num_thresh;
+        log::info!("got {} / {}", count, settings.num_thresh);
+
+        ProcessingResult {
+            process: Processing::ColourChannelDetect3DS(settings.clone()),
+            met,
+            species: 0,
+            shiny: false,
+        }
+    }
+
+    fn create_reference(game: &Game, flipped: &bool, species: u32) -> (Mat, Mat, Mat) {
+        let path_png = PkContext::get().sprite_path(game, species, false);
+        let path = if std::fs::exists(&path_png).unwrap() {
+            path_png
+        } else {
+            panic!("Couldn't get reference image {}", path_png)
+        };
+        let shiny_path_png = PkContext::get().sprite_path(game, species, true);
+        let shiny_path = if std::fs::exists(&shiny_path_png).unwrap() {
+            shiny_path_png
+        } else {
+            panic!("Couldn't get reference image {}", shiny_path_png)
+        };
+
+        let ref_img_raw_in =
+            opencv::imgcodecs::imread(&path, IMREAD_UNCHANGED).expect("Couldn't read image");
+        let ref_img_in =
+            opencv::imgcodecs::imread(&path, IMREAD_COLOR).expect("Couldn't read image");
+        let shi_img_in =
+            opencv::imgcodecs::imread(&shiny_path, IMREAD_COLOR).expect("Couldn't read image");
+
+        let mut ref_img_raw = Mat::default();
+        let mut ref_img = Mat::default();
+        let mut shi_img = Mat::default();
+
+        if *flipped {
+            opencv::core::flip(&ref_img_raw_in, &mut ref_img_raw, 1).expect("Failed to flip image");
+            opencv::core::flip(&ref_img_in, &mut ref_img, 1).expect("Failed to flip image");
+            opencv::core::flip(&shi_img_in, &mut shi_img, 1).expect("Failed to flip image");
+        } else {
+            ref_img_raw = ref_img_raw_in;
+            ref_img = ref_img_in;
+            shi_img = shi_img_in;
+        }
+
+        let mut channels: Vector<Mat> = Default::default();
+        opencv::core::split(&ref_img_raw, &mut channels).expect("Failed to split channels");
+        let alpha = channels.get(3).unwrap();
+
+        let mut mask = Mat::default();
+
+        opencv::imgproc::threshold(&alpha, &mut mask, 0.0, 255.0, THRESH_BINARY)
+            .expect("Failed to create mask");
+
+        (ref_img, shi_img, mask)
+    }
+
+    fn get_or_create_references(
+        &mut self,
+        game: &Game,
+        flipped: &bool,
+        species: u32,
+    ) -> &(Mat, Mat, Mat) {
+        if *game != self.game {
+            self.reference.clear();
+            self.game = game.clone();
+        }
+        if *flipped != self.flipped {
+            self.reference.clear();
+            self.flipped = *flipped;
+        }
+        self.reference
+            .entry(species)
+            .or_insert_with(|| Self::create_reference(game, flipped, species));
+        self.reference.get(&species).expect("Must be present")
+    }
+
+    // TODO add a dummy "Detect" processing that just updates found sprite
+    // TODO use utils common version
+    fn match_sprite(
+        &mut self,
+        game: &Game,
+        species: &Vec<u32>,
+        flipped: &bool,
+        frame: &Mat,
+    ) -> ProcessingResult {
+        let mut found_species = 0;
+        let mut max = 0.0;
+        let mut is_shiny_conv = false;
+        let mut found_location = Point::default();
+        let mut tpl_w = 0;
+        let mut tpl_h = 0;
+
+        for s in species {
+            let (reference, shiny, mask) = self.get_or_create_references(game, flipped, *s);
+
+            let mask_copy = mask.clone();
+            let mut result = Mat::default();
+            opencv::imgproc::match_template(
+                frame,
+                reference,
+                &mut result,
+                TM_CCORR_NORMED,
+                &mask_copy,
+            )
+            .expect("Failed to convolve");
+            let mut result_shiny = Mat::default();
+            opencv::imgproc::match_template(
+                frame,
+                shiny,
+                &mut result_shiny,
+                TM_CCORR_NORMED,
+                &mask_copy,
+            )
+            .expect("Failed to convolve");
+
+            let mut max_val = 0.0;
+            let mut max_val_shiny = 0.0;
+            let mut max_loc = Point::default();
+            let mut max_loc_shiny = Point::default();
+
+            opencv::core::min_max_loc(
+                &result,
+                None,
+                Some(&mut max_val),
+                None,
+                Some(&mut max_loc),
+                &opencv::core::no_array(),
+            )
+            .expect("min max failed");
+            opencv::core::min_max_loc(
+                &result_shiny,
+                None,
+                Some(&mut max_val_shiny),
+                None,
+                Some(&mut max_loc_shiny),
+                &opencv::core::no_array(),
+            )
+            .expect("min max failed");
+
+            log::info!(
+                "species = {}, val = {} (shiny = {})",
+                s,
+                max_val,
+                max_val_shiny
+            );
+
+            if max_val > max {
+                max = max_val;
+                found_species = *s;
+                is_shiny_conv = false;
+                found_location = max_loc;
+                tpl_w = reference.cols();
+                tpl_h = reference.rows();
+            }
+            if max_val_shiny > max {
+                max = max_val_shiny;
+                found_species = *s;
+                is_shiny_conv = true;
+                found_location = max_loc_shiny;
+                tpl_w = shiny.cols();
+                tpl_h = shiny.rows();
+            }
+        }
+
+        let mut for_rect = frame.clone();
+        let rect = Rect {
+            x: found_location.x,
+            y: found_location.y,
+            width: tpl_w,
+            height: tpl_h,
+        };
+
+        opencv::imgproc::rectangle(&mut for_rect, rect, 0.0.into(), 1, LINE_8, 0)
+            .expect("Failed to select rectangle");
+
+        // Display current find TODO should this be included?
+        highgui::imshow("FOUND", &for_rect);
+        //Self::show_window(Self::FOUND_WIN, &for_rect);
+        //Self::transform_window(Self::FOUND_WIN);
+
+        let is_shiny = is_shiny_conv;
+        let res = ProcessingResult {
+            process: Processing::Sprite3DS(game.clone(), species.clone()),
+            met: found_species != 0,
+            species: found_species,
+            shiny: is_shiny,
+        };
+        log::info!("Process results {:?}", res);
+        res
+    }
+
     fn process(
         &mut self,
         process: &Processing,
@@ -205,6 +449,17 @@ impl BishaanVision {
             Processing::USUMShinyStar(target) => self.shiny_star(top_frame, *target),
             Processing::USUMBottomScreen(threshold) => self.bottom(bot_frame, *threshold, false),
             Processing::USUMBottomScreenInv(threshold) => self.bottom(bot_frame, *threshold, true),
+            // Assumes top_frame for now
+            Processing::Sprite3DS(game, species) => {
+                self.match_sprite(game, species, &false, top_frame)
+            }
+            Processing::ColourChannelDetect3DS(settings) => {
+                if settings.top {
+                    self.colour_channel_detect(settings, top_frame)
+                } else {
+                    self.colour_channel_detect(settings, bot_frame)
+                }
+            }
             _ => unimplemented!("Processing not implemented for 3DS"),
         }
     }

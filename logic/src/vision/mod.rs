@@ -5,6 +5,7 @@ pub mod compat;
 mod ds_vision;
 mod nop_vision;
 mod ntr;
+mod utils;
 
 pub use bishaan_vision::{BishaanVision, BishaanVisionSocket};
 pub use ds_vision::Vision;
@@ -42,6 +43,19 @@ pub struct ColourChannelDetectSettings {
 }
 
 #[derive(PartialEq, Clone, Debug)]
+pub struct ColourChannelDetect3DSSettings {
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    pub col_thresh: f64,
+    pub num_thresh: i32,
+    pub invert: bool,
+    pub colour: ColourChannel,
+    pub top: bool,
+}
+
+#[derive(PartialEq, Clone, Debug)]
 pub struct ChannelDetectSettings {
     pub x: i32,
     pub y: i32,
@@ -60,8 +74,10 @@ pub struct ChannelDetectSettings {
 pub enum Processing {
     // List of sprites to check, and should it be flipped
     Sprite(Game, Vec<u32>, bool),
+    Sprite3DS(Game, Vec<u32>),
     RegionDetect(RegionDetectSettings),
     ColourChannelDetect(ColourChannelDetectSettings),
+    ColourChannelDetect3DS(ColourChannelDetect3DSSettings),
     ChannelDetect(ChannelDetectSettings),
     USUMShinyStar(u32),
     USUMBottomScreen(f64),
@@ -178,6 +194,18 @@ impl Processing {
             num_thresh: 5,
             invert: true,
             colour: ColourChannel::Blue,
+        });
+    pub const USUM_SHINY_STAR: Self =
+        Processing::ColourChannelDetect3DS(ColourChannelDetect3DSSettings {
+            x: 54,
+            y: 181,
+            w: 17,
+            h: 17,
+            col_thresh: 150.0,
+            num_thresh: 5,
+            invert: true,
+            colour: ColourChannel::Green,
+            top: false,
         });
     pub const FRLG_SHINY_STAR_OLD: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 106,

@@ -55,6 +55,25 @@ enum CheckSummary {
     NextAttempt,
 }
 
+// USUM Gift (Poipole)
+#[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
+enum StickyState {
+    DetectSprite,
+    StartMashB,
+    MashB,
+    CheckTimer,
+    OpenMenu,
+    ToParty,
+    ToLast,
+    Select,
+    OpenSummary,
+    DetectStar,
+    FoundTarget,
+    Done,
+    StopHeartbeat,
+    NextAttempt,
+}
+
 pub struct DetectionResolver {}
 
 impl DetectionResolver {
@@ -83,6 +102,8 @@ impl DetectionResolver {
             }
         } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetEncounter {
             Some(Self::gen7_legend(builder))
+        } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetGift {
+            Some(Self::gen7_gift(builder))
         } else if *game == Game::HeartGoldSoulSilver
             && *method == Method::SoftResetEncounter
             && builder.target() == 206
@@ -557,6 +578,87 @@ impl DetectionResolver {
                 vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
                 3000..9200,
             ),
+        ];
+
+        builder.add_states(states);
+        builder
+    }
+
+    pub fn gen7_gift(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        let game = builder.game();
+        let method = builder.method();
+        let species = builder.target();
+
+        // Detect sprite
+        // Mash B for 16 seconds
+        // Detect shiny star
+        // Back to start
+        let states = vec![
+            StateDescription::simple_sprite_state_3ds(
+               Branch3::new(
+                   StickyState::DetectSprite,
+                   StickyState::Done,
+                   StickyState::StartMashB,
+               ),
+               game,
+               method,
+               builder.target(),
+               builder.target(),
+            ),
+            StateDescription::start_timer_state(StickyState::StartMashB, StickyState::MashB),
+            StateDescription::linear_state(
+                StickyState::MashB,
+                vec![HuntStateOutput::button(Button::B)],
+                500..500,
+            ),
+            StateDescription::branch_delay_state(
+                Branch3::new(
+                    StickyState::CheckTimer,
+                    StickyState::OpenMenu,
+                    StickyState::MashB,
+                ),
+                18000,
+            ),
+            StateDescription::linear_state(
+                StickyState::OpenMenu,
+                vec![HuntStateOutput::button(Button::X)],
+                2000..2000,
+            ),
+            StateDescription::linear_state(
+                StickyState::ToParty,
+                vec![HuntStateOutput::button(Button::A)],
+                2000..2000,
+            ),
+            StateDescription::linear_state(
+                StickyState::Select,
+                vec![HuntStateOutput::button(Button::A)],
+                2000..2000,
+            ),
+            StateDescription::linear_state(
+                StickyState::OpenSummary,
+                vec![HuntStateOutput::button(Button::A)],
+                3000..3000,
+            ),
+            StateDescription::linear_state(
+                StickyState::ToLast,
+                vec![HuntStateOutput::button(Button::Up)],
+                2000..2000,
+            ),
+            StateDescription::simple_process_state_no_output3(
+                Branch3::new(
+                    StickyState::DetectStar,
+                    StickyState::FoundTarget,
+                    StickyState::StopHeartbeat,
+                ),
+                Processing::USUM_SHINY_STAR,
+            ),
+            StateDescription::found_target_state(StickyState::FoundTarget, StickyState::Done),
+            StateDescription::deadend_state(StickyState::Done),
+            StateDescription::clear_atomic_state(
+                StickyState::StopHeartbeat,
+                StickyState::NextAttempt,
+            ),
+            StateDescription::linear_state(StickyState::NextAttempt, vec![], 500..2000),
         ];
 
         builder.add_states(states);

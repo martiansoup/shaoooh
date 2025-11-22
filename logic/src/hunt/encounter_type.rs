@@ -128,6 +128,8 @@ impl EncounterTypeResolver {
             Self::gen4_softreset(builder)
         } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetEncounter {
             Self::gen7_softreset(builder)
+        } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetGift {
+            Self::gen7_softreset_gift(builder)
         } else if *game == Game::HeartGoldSoulSilver
             && *method == Method::SoftResetEncounter
             && builder.target() == 206
@@ -766,6 +768,70 @@ impl EncounterTypeResolver {
         match target {
             797 | 799 => builder.add_states(states_press),
             _ => builder.add_states(states_walk),
+        }
+
+        Some(builder)
+    }
+
+    pub fn gen7_softreset_gift(mut builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
+        let target = builder.target();
+        let sr_buttons = vec![
+            HuntStateOutput::new(Button::L, Delay::Half),
+            HuntStateOutput::new(Button::R, Delay::Half),
+            HuntStateOutput::new(Button::Start, Delay::Half),
+            HuntStateOutput::new(Button::Select, Delay::Half),
+        ];
+        let states = vec![
+            StateDescription::linear_state(USUM::SoftReset1, sr_buttons.clone(), 50..50),
+            StateDescription::linear_state(USUM::SoftReset2, sr_buttons, 11000..12000),
+            StateDescription::set_atomic_state(USUM::AllowHeartbeat, USUM::Title1),
+            StateDescription::linear_state(
+                USUM::Title1,
+                vec![HuntStateOutput::button(Button::A)],
+                2000..2250,
+            ),
+            StateDescription::linear_state(
+                USUM::Title2,
+                vec![HuntStateOutput::button(Button::A)],
+                2500..2750,
+            ),
+            StateDescription::linear_state(
+                USUM::Title3,
+                vec![HuntStateOutput::button(Button::A)],
+                2000..2250,
+            ),
+            StateDescription::linear_state(
+                USUM::Title4,
+                vec![HuntStateOutput::button(Button::A)],
+                2500..2750,
+            ),
+        ];
+        builder.add_states(states);
+
+        if builder.target() == 803 {
+            // Poipole
+            let states_get = vec![
+                StateDescription::set_counter_state(LoopState::ResetCounter, LoopState::PressA, 7),
+                StateDescription::linear_state(
+                    LoopState::PressA,
+                    vec![HuntStateOutput::button(Button::A)],
+                    2500..3000,
+                ),
+                StateDescription::decr_counter_state(
+                    LoopState::DecrCounter,
+                    LoopState::CheckCounter,
+                ),
+                StateDescription::choose_counter_state(
+                    LoopState::CheckCounter,
+                    LoopState::Done,
+                    LoopState::PressA,
+                ),
+                StateDescription::linear_state_no_delay(LoopState::Done, vec![]),
+            ];
+
+            builder.add_states(states_get);
+        } else {
+            return None;
         }
 
         Some(builder)
