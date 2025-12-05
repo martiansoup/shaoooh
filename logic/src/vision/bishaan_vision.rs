@@ -645,7 +645,7 @@ impl BishaanVisionSocket {
                                             let strings = str_conv.split('\n');
                                             for s in strings {
                                                 if s.len() > 0 {
-                                                    log::info!("[NTR] {}", s);
+                                                    log::info!("[NTR({})] {}", hdr.seq(), s);
                                                 }
                                             }
                                         }

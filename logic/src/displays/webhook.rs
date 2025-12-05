@@ -116,7 +116,9 @@ impl Webhook {
                                 match err {
                                     Ok(err) => {
                                        Self::error(err, &name, api_key.clone(), user_id.clone()).await;
-                                       false
+                                       // Getting an error will shut everything down, so exit the
+                                       // loop to prevent sending multiple notifications
+                                       true
                                     }
                                     Err(_) => true
                                 }

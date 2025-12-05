@@ -595,15 +595,15 @@ impl DetectionResolver {
         // Back to start
         let states = vec![
             StateDescription::simple_sprite_state_3ds(
-               Branch3::new(
-                   StickyState::DetectSprite,
-                   StickyState::Done,
-                   StickyState::StartMashB,
-               ),
-               game,
-               method,
-               builder.target(),
-               builder.target(),
+                Branch3::new(
+                    StickyState::DetectSprite,
+                    StickyState::Done,
+                    StickyState::StartMashB,
+                ),
+                game,
+                method,
+                builder.target(),
+                builder.target(),
             ),
             StateDescription::start_timer_state(StickyState::StartMashB, StickyState::MashB),
             StateDescription::linear_state(

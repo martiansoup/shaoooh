@@ -47,7 +47,11 @@ enum StartSoftResetEncounter {
 enum USUM {
     SoftReset1,
     SoftReset2,
+    Clear1,
+    Clear2,
+    Clear3,
     AllowHeartbeat,
+    WaitHeartbeat,
     Title1,
     Title2,
     Title3,
@@ -94,6 +98,7 @@ enum DelayState {
 enum LoopState {
     ResetCounter,
     PressA,
+    PressARetry,
     DecrCounter,
     CheckCounter,
     CheckToggle,
@@ -101,6 +106,7 @@ enum LoopState {
     PressB,
     Toggle,
     ToggleBack,
+    PressA2,
     Done,
 }
 
@@ -782,28 +788,45 @@ impl EncounterTypeResolver {
             HuntStateOutput::new(Button::Select, Delay::Half),
         ];
         let states = vec![
-            StateDescription::linear_state(USUM::SoftReset1, sr_buttons.clone(), 50..50),
-            StateDescription::linear_state(USUM::SoftReset2, sr_buttons, 11000..12000),
-            StateDescription::set_atomic_state(USUM::AllowHeartbeat, USUM::Title1),
+            StateDescription::linear_state(USUM::SoftReset1, sr_buttons, 50..50),
+            //StateDescription::linear_state(USUM::SoftReset2, sr_buttons, 50..50),
+            // Add states to clear button presses in case packet got missed
+            StateDescription::linear_state(
+                USUM::Clear1,
+                vec![HuntStateOutput::button(Button::Up)],
+                1000..2000,
+            ),
+            StateDescription::linear_state(
+                USUM::Clear2,
+                vec![HuntStateOutput::button(Button::Up)],
+                1000..2000,
+            ),
+            StateDescription::linear_state(
+                USUM::Clear3,
+                vec![HuntStateOutput::button(Button::Up)],
+                9000..8000,
+            ),
+            StateDescription::set_atomic_state(USUM::AllowHeartbeat, USUM::WaitHeartbeat),
+            StateDescription::linear_state(USUM::WaitHeartbeat, vec![], 2500..2500),
             StateDescription::linear_state(
                 USUM::Title1,
                 vec![HuntStateOutput::button(Button::A)],
-                2000..2250,
+                50..50,
             ),
             StateDescription::linear_state(
                 USUM::Title2,
                 vec![HuntStateOutput::button(Button::A)],
-                2500..2750,
+                2000..2250,
             ),
             StateDescription::linear_state(
                 USUM::Title3,
                 vec![HuntStateOutput::button(Button::A)],
-                2000..2250,
+                50..50,
             ),
             StateDescription::linear_state(
                 USUM::Title4,
                 vec![HuntStateOutput::button(Button::A)],
-                2500..2750,
+                2500..12750,
             ),
         ];
         builder.add_states(states);
@@ -811,11 +834,16 @@ impl EncounterTypeResolver {
         if builder.target() == 803 {
             // Poipole
             let states_get = vec![
-                StateDescription::set_counter_state(LoopState::ResetCounter, LoopState::PressA, 7),
+                StateDescription::set_counter_state(LoopState::ResetCounter, LoopState::PressA, 5),
                 StateDescription::linear_state(
                     LoopState::PressA,
                     vec![HuntStateOutput::button(Button::A)],
-                    2500..3000,
+                    50..50,
+                ),
+                StateDescription::linear_state(
+                    LoopState::PressARetry,
+                    vec![HuntStateOutput::button(Button::A)],
+                    2500..2500,
                 ),
                 StateDescription::decr_counter_state(
                     LoopState::DecrCounter,
@@ -823,8 +851,14 @@ impl EncounterTypeResolver {
                 ),
                 StateDescription::choose_counter_state(
                     LoopState::CheckCounter,
-                    LoopState::Done,
+                    LoopState::Wait,
                     LoopState::PressA,
+                ),
+                StateDescription::linear_state(LoopState::Wait, vec![], 5000..5000),
+                StateDescription::linear_state(
+                    LoopState::PressA2,
+                    vec![HuntStateOutput::button(Button::A)],
+                    3000..3000,
                 ),
                 StateDescription::linear_state_no_delay(LoopState::Done, vec![]),
             ];

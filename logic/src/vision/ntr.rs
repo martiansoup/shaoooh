@@ -83,6 +83,10 @@ impl NTRPacket {
         }
     }
 
+    pub fn seq(&self) -> u32 {
+        self.seq
+    }
+
     pub fn to_wire(&self) -> Vec<u8> {
         let mut buf = vec![];
 
