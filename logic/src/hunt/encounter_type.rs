@@ -377,6 +377,20 @@ impl EncounterTypeResolver {
             ];
 
             builder.add_states(states2);
+        } else if builder.target() == 133 {
+            // Eevee
+            let states2 = vec![
+                StateDescription::linear_state(LoopState::PressA,
+                    vec![HuntStateOutput::button(Button::A)],
+                    2000..2500,
+                ),
+                StateDescription::linear_state(LoopState::PressB,
+                    vec![HuntStateOutput::button(Button::B)],
+                    2000..2500,
+                ),
+            ];
+
+            builder.add_states(states2);
         } else {
             return None;
         }

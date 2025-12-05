@@ -433,9 +433,13 @@ impl DetectionResolver {
 
     pub fn frlg_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
         // TODO detection state builder
-        let shiny_threshold = Duration::from_millis(3250);
-        // TODO hardcoded for Route 1
-        let detect = Processing::Sprite(Game::FireRedLeafGreen, vec![16, 19], false);
+        let (detect, shiny_threshold) = if builder.target() == 37 || builder.target() == 27 {
+            // Route 8 vulpix/sandshrew
+            (Processing::Sprite(Game::FireRedLeafGreen, vec![16, 52, 37, 27], false), Duration::from_millis(2700))
+        } else { 
+            // TODO hardcoded for Route 1
+            (Processing::Sprite(Game::FireRedLeafGreen, vec![16, 19], false), Duration::from_millis(3250))
+        };
         let mut detect_checks: HashMap<Detection, BoxedProcessFn> = HashMap::new();
         let target = builder.target();
         let game = builder.game().clone();
@@ -551,7 +555,7 @@ impl DetectionResolver {
             StateDescription::linear_state(
                 Detection::Run4,
                 vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
-                3000..7200,
+                3000..9200,
             ),
         ];
 

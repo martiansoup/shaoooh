@@ -189,7 +189,10 @@
     <button onclick="frlg_snorlax()">FRLG Snorlax</button>
     <button onclick="hgss_start()">HGSS Starter</button>
     <!--<button onclick="frlg_omanyte()">FRLG Omanyte</button>-->
-    <button onclick="frlg_lapras()">FRLG Lapras</button>
+    <!--<button onclick="frlg_lapras()">FRLG Lapras</button>-->
+    <!--<button onclick="frlg_eevee()">FRLG Eevee</button>-->
+    <!--<button onclick="frlg_vulpix()">FRLG Vulpix</button>-->
+    <button onclick="frlg_sandshrew()">FRLG Sandshrew</button>
     <!--<button onclick="dp_shinx()">DP Cute Charm Shinx</button>-->
     <!--<button onclick="rs_oddish()">RS Oddish</button>-->
     <!--<button onclick="frlg_egg()">FRLG Eggs</button>-->
@@ -214,7 +217,7 @@
     let button = "/api/button";
 
     function current_hunt() {
-      frlg_lapras();
+      frlg_sandshrew();
     }
     function lostelle_hypno() {
       document.getElementById("arg_name").value = "LostelleHypno";
@@ -233,6 +236,24 @@
       document.getElementById("arg_species").value = "131";
       document.getElementById("arg_game").value = "FireRedLeafGreen";
       document.getElementById("arg_method").value = "SoftResetGift";
+    }
+    function frlg_eevee() {
+      document.getElementById("arg_name").value = "Eevee";
+      document.getElementById("arg_species").value = "133";
+      document.getElementById("arg_game").value = "FireRedLeafGreen";
+      document.getElementById("arg_method").value = "SoftResetGift";
+    }
+    function frlg_vulpix() {
+      document.getElementById("arg_name").value = "Vulpix";
+      document.getElementById("arg_species").value = "37";
+      document.getElementById("arg_game").value = "FireRedLeafGreen";
+      document.getElementById("arg_method").value = "RandomEncounter";
+    }
+    function frlg_sandshrew() {
+      document.getElementById("arg_name").value = "Sandshrew";
+      document.getElementById("arg_species").value = "27";
+      document.getElementById("arg_game").value = "FireRedLeafGreen";
+      document.getElementById("arg_method").value = "RandomEncounter";
     }
     function rs_beldum() {
       document.getElementById("arg_name").value = "StevenBeldum";
