@@ -14,6 +14,8 @@ use crate::{
 
 #[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
 enum Detection {
+    PrePreEnterEncounter,
+    WaitPrePreEnter,
     PreEnterEncounter,
     EnterEncounter,
     WaitEncounterReady,
@@ -104,6 +106,8 @@ impl DetectionResolver {
             Some(Self::gen7_legend(builder))
         } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetGift {
             Some(Self::gen7_gift(builder))
+        } else if *game == Game::UltraSunUltraMoon && *method == Method::RandomEncounter {
+            Some(Self::gen7_random_encounter(builder))
         } else if *game == Game::HeartGoldSoulSilver
             && *method == Method::SoftResetEncounter
             && builder.target() == 206
@@ -456,10 +460,16 @@ impl DetectionResolver {
         // TODO detection state builder
         let (detect, shiny_threshold) = if builder.target() == 37 || builder.target() == 27 {
             // Route 8 vulpix/sandshrew
-            (Processing::Sprite(Game::FireRedLeafGreen, vec![16, 52, 37, 27], false), Duration::from_millis(2700))
-        } else { 
+            (
+                Processing::Sprite(Game::FireRedLeafGreen, vec![16, 52, 37, 27], false),
+                Duration::from_millis(2700),
+            )
+        } else {
             // TODO hardcoded for Route 1
-            (Processing::Sprite(Game::FireRedLeafGreen, vec![16, 19], false), Duration::from_millis(3250))
+            (
+                Processing::Sprite(Game::FireRedLeafGreen, vec![16, 19], false),
+                Duration::from_millis(3250),
+            )
         };
         let mut detect_checks: HashMap<Detection, BoxedProcessFn> = HashMap::new();
         let target = builder.target();
@@ -659,6 +669,52 @@ impl DetectionResolver {
                 StickyState::NextAttempt,
             ),
             StateDescription::linear_state(StickyState::NextAttempt, vec![], 500..2000),
+        ];
+
+        builder.add_states(states);
+        builder
+    }
+
+    pub fn gen7_random_encounter(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        let game = builder.game();
+        let method = builder.method();
+        let species = builder.target();
+        let timer = 10400;
+
+        let states = vec![
+            StateDescription::simple_process_state_no_output(
+                Branch2::new(Detection::PrePreEnterEncounter, Detection::WaitPrePreEnter),
+                Processing::USUMBottomScreenInv(5.0),
+            ),
+            StateDescription::simple_process_state_no_output(
+                Branch2::new(Detection::WaitPrePreEnter, Detection::PreEnterEncounter),
+                Processing::USUMBottomScreen(5.0),
+            ),
+            StateDescription::simple_process_state_no_output(
+                Branch2::new(Detection::PreEnterEncounter, Detection::EnterEncounter),
+                Processing::USUMBottomScreenInv(5.0),
+            ),
+            StateDescription::simple_process_state_no_output_start_timer(
+                Branch2::new(Detection::EnterEncounter, Detection::Detect),
+                Processing::USUMBottomScreen(5.0),
+            ),
+            StateDescription::simple_process_state_no_output_end_timer(
+                Branch2::new(Detection::Detect, Detection::Run1),
+                Processing::USUMBottomScreen(60.0),
+            ),
+            StateDescription::branch_last_delay_state(
+                Branch3::new(Detection::Run1, Detection::Toggle, Detection::Run2),
+                timer,
+            ),
+            StateDescription::found_target_state(Detection::Toggle, Detection::Done),
+            StateDescription::deadend_state(Detection::Done),
+            StateDescription::incr_encounter_state(Detection::Run2, Detection::Run3),
+            StateDescription::linear_state(Detection::Run3, vec![], 1000..1000),
+            StateDescription::linear_state(
+                Detection::Run4,
+                vec![HuntStateOutput::button(Button::Touch(157, 224))],
+                8000..9000,
+            ),
         ];
 
         builder.add_states(states);

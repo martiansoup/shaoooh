@@ -63,6 +63,36 @@ enum USUM {
 }
 
 #[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
+enum USUMRandom {
+    CheckCounter,
+    StopHeartbeat,
+    SetCounter,
+    Wait,
+    SoftReset,
+    Clear1,
+    Clear2,
+    Clear3,
+    AllowHeartbeat,
+    WaitHeartbeat,
+    Title1,
+    Title2,
+    Title3,
+    Title4,
+    XToMenu,
+    Down,
+    AToBag,
+    Left1,
+    Left2,
+    Left3,
+    Jump,
+    AToHoney,
+    AToUse,
+    XToMenu2,
+    AToBag2,
+    DecrCounter,
+}
+
+#[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
 enum DarkCave {
     Start,
     CheckToggle,
@@ -136,6 +166,8 @@ impl EncounterTypeResolver {
             Self::gen7_softreset(builder)
         } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetGift {
             Self::gen7_softreset_gift(builder)
+        } else if *game == Game::UltraSunUltraMoon && *method == Method::RandomEncounter {
+            Self::gen7_random_encounter(builder)
         } else if *game == Game::HeartGoldSoulSilver
             && *method == Method::SoftResetEncounter
             && builder.target() == 206
@@ -388,11 +420,13 @@ impl EncounterTypeResolver {
         } else if builder.target() == 133 {
             // Eevee
             let states2 = vec![
-                StateDescription::linear_state(LoopState::PressA,
+                StateDescription::linear_state(
+                    LoopState::PressA,
                     vec![HuntStateOutput::button(Button::A)],
                     2000..2500,
                 ),
-                StateDescription::linear_state(LoopState::PressB,
+                StateDescription::linear_state(
+                    LoopState::PressB,
                     vec![HuntStateOutput::button(Button::B)],
                     2000..2500,
                 ),
@@ -868,6 +902,133 @@ impl EncounterTypeResolver {
             return None;
         }
 
+        Some(builder)
+    }
+
+    pub fn gen7_random_encounter(mut builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
+        let sr_buttons = vec![
+            HuntStateOutput::new(Button::L, Delay::Half),
+            HuntStateOutput::new(Button::R, Delay::Half),
+            HuntStateOutput::new(Button::Start, Delay::Half),
+            HuntStateOutput::new(Button::Select, Delay::Half),
+        ];
+
+        let states = vec![
+            StateDescription::choose_counter_state(
+                USUMRandom::CheckCounter,
+                USUMRandom::StopHeartbeat,
+                USUMRandom::XToMenu2,
+            ),
+            StateDescription::clear_atomic_state(USUMRandom::StopHeartbeat, USUMRandom::SetCounter),
+            StateDescription::set_counter_state(USUMRandom::SetCounter, USUMRandom::Wait, 64),
+            StateDescription::linear_state(USUMRandom::Wait, vec![], 500..1500),
+            // Do soft reset
+            StateDescription::linear_state(USUMRandom::SoftReset, sr_buttons, 50..50),
+            // Add states to clear button presses in case packet got missed
+            StateDescription::linear_state(
+                USUMRandom::Clear1,
+                vec![HuntStateOutput::button(Button::Up)],
+                1000..2000,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::Clear2,
+                vec![HuntStateOutput::button(Button::Up)],
+                1000..2000,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::Clear3,
+                vec![HuntStateOutput::button(Button::Up)],
+                9000..8000,
+            ),
+            StateDescription::set_atomic_state(
+                USUMRandom::AllowHeartbeat,
+                USUMRandom::WaitHeartbeat,
+            ),
+            StateDescription::linear_state(USUMRandom::WaitHeartbeat, vec![], 2500..2500),
+            StateDescription::linear_state(
+                USUMRandom::Title1,
+                vec![HuntStateOutput::button(Button::A)],
+                50..50,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::Title2,
+                vec![HuntStateOutput::button(Button::A)],
+                2000..2250,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::Title3,
+                vec![HuntStateOutput::button(Button::A)],
+                50..50,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::Title4,
+                vec![HuntStateOutput::button(Button::A)],
+                2500..12750,
+            ),
+            // Go to bag after soft reset
+            StateDescription::linear_state(
+                USUMRandom::XToMenu,
+                vec![HuntStateOutput::button(Button::X)],
+                1000..1500,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::Down,
+                vec![HuntStateOutput::button(Button::Down)],
+                500..1000,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::AToBag,
+                vec![HuntStateOutput::button(Button::A)],
+                1500..2000,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::Left1,
+                vec![HuntStateOutput::button(Button::Left)],
+                500..1000,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::Left2,
+                vec![HuntStateOutput::button(Button::Left)],
+                500..1000,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::Left3,
+                vec![HuntStateOutput::button(Button::Left)],
+                500..1000,
+            ),
+            StateDescription::branch_state(USUMRandom::Jump, USUMRandom::AToHoney, 50..50),
+            // Go to bag after running
+            StateDescription::linear_state(
+                USUMRandom::XToMenu2,
+                vec![HuntStateOutput::button(Button::X)],
+                1000..1500,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::AToBag2,
+                vec![HuntStateOutput::button(Button::A)],
+                1500..2000,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::AToHoney,
+                vec![HuntStateOutput::button(Button::A)],
+                500..1000,
+            ),
+            StateDescription::decr_counter_state(USUMRandom::DecrCounter, USUMRandom::AToUse),
+            StateDescription::linear_state(
+                USUMRandom::AToUse,
+                vec![HuntStateOutput::button(Button::A)],
+                500..500,
+            ),
+        ];
+
+        builder.add_states(states);
+        // If counter non-zero
+        // Go to bag, press honey
+        //   X, A, A
+        // If counter zero
+        // Soft reset
+        // Set counter 64
+        // Go to bag, press honey
         Some(builder)
     }
 }

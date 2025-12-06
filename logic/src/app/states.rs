@@ -10,6 +10,7 @@ pub enum Transition {
     Fail,
     Caught,
     FalseDetect,
+    Phased,
 }
 
 #[derive(Clone, Serialize, Debug, PartialEq)]
@@ -92,6 +93,12 @@ impl HuntState {
                 },
                 StateTransition {
                     transition: Transition::Fail,
+                    next_state: Self::Hunt,
+                    needs_arg: false,
+                    automatic: false,
+                },
+                StateTransition {
+                    transition: Transition::Phased,
                     next_state: Self::Hunt,
                     needs_arg: false,
                     automatic: false,

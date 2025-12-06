@@ -183,7 +183,8 @@
     <!--<button onclick="usum_zekrom()">USUM Zekrom</button>-->
     <!--<button onclick="usum_cresselia()">USUM Cresselia</button>-->
     <!--<button onclick="usum_mewtwo()">USUM Mewtwo</button>-->
-    <button onclick="usum_poipole()">USUM Poipole</button>
+    <!--<button onclick="usum_poipole()">USUM Poipole</button>-->
+    <button onclick="usum_minior()">USUM Minior</button>
     <button onclick="rs_beldum()">Beldum</button>
     <!--<button onclick="dp_giratina()">DP Giratina</button>-->
     <!--<button onclick="hgss_dunsparse()">Three Segment</button>-->
@@ -218,7 +219,7 @@
     let button = "/api/button";
 
     function current_hunt() {
-      usum_poipole();
+      usum_minior();
     }
     function lostelle_hypno() {
       document.getElementById("arg_name").value = "LostelleHypno";
@@ -327,6 +328,12 @@
       document.getElementById("arg_species").value = "803";
       document.getElementById("arg_game").value = "UltraSunUltraMoon";
       document.getElementById("arg_method").value = "SoftResetGift";
+    }
+    function usum_minior() {
+      document.getElementById("arg_name").value = "Minior";
+      document.getElementById("arg_species").value = "774";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "RandomEncounter";
     }
     function usum_entei() {
       document.getElementById("arg_name").value = "WormholeEntei";
