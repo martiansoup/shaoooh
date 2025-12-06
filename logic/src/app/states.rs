@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use strum_macros::{EnumCount, EnumString, IntoStaticStr};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum Transition {
@@ -122,7 +123,18 @@ pub(crate) struct TransitionArg {
     pub(crate) method: Method,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(
+    Clone,
+    Serialize,
+    Deserialize,
+    Debug,
+    PartialEq,
+    EnumString,
+    IntoStaticStr,
+    EnumCount,
+    Hash,
+    std::cmp::Eq,
+)]
 pub enum Game {
     None,
     RubySapphire,
