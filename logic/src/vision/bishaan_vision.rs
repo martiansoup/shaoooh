@@ -24,7 +24,7 @@ use opencv::{
 
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpStream, UdpSocket, tcp::OwnedWriteHalf},
+    net::{TcpStream, UdpSocket},
     sync::{broadcast, watch},
 };
 
@@ -42,7 +42,6 @@ pub struct BishaanVision {
     encoded_top: Vector<u8>,
     encoded_bottom: Vector<u8>,
     ref_shiny_star: Mat,
-    shiny_star_mask: Mat,
     // Reference, Shiny, Mask
     reference: HashMap<u32, (Mat, Mat, Mat)>,
     game: Game,
@@ -134,7 +133,6 @@ impl BishaanVision {
             encoded_top: Vector::default(),
             encoded_bottom: Vector::default(),
             ref_shiny_star,
-            shiny_star_mask,
             reference: HashMap::new(),
             game: Game::None,
             flipped: false,
@@ -148,7 +146,8 @@ impl BishaanVision {
         let mut thresholded_ylw = Mat::default();
         let lower = Vector::from_slice(&[25.0, 32.0, 100.0]);
         let upper = Vector::from_slice(&[40.0, 200.0, 255.0]);
-        opencv::core::in_range(&hsv, &lower, &upper, &mut thresholded_ylw);
+        opencv::core::in_range(&hsv, &lower, &upper, &mut thresholded_ylw)
+            .expect("Failed to calculate range");
 
         let mut result = Mat::default();
         opencv::imgproc::match_template(
@@ -424,7 +423,7 @@ impl BishaanVision {
             .expect("Failed to select rectangle");
 
         // Display current find TODO should this be included?
-        highgui::imshow("FOUND", &for_rect);
+        highgui::imshow("FOUND", &for_rect).expect("Failed to show found window");
         //Self::show_window(Self::FOUND_WIN, &for_rect);
         //Self::transform_window(Self::FOUND_WIN);
 
@@ -572,7 +571,8 @@ impl BishaanVisionSocket {
                                 &s,
                                 &mut m2,
                                 opencv::core::ROTATE_90_COUNTERCLOCKWISE,
-                            );
+                            )
+                            .expect("Failed to rotate");
                             frame = Frame::Top(m2);
                         }
                     } else {
@@ -585,7 +585,8 @@ impl BishaanVisionSocket {
                                 &s,
                                 &mut m2,
                                 opencv::core::ROTATE_90_COUNTERCLOCKWISE,
-                            );
+                            )
+                            .expect("Failed to rotate");
                             frame = Frame::Bottom(m2);
                         }
                     }
@@ -640,7 +641,7 @@ impl BishaanVisionSocket {
                                     let mut extra_buf = vec![0u8; hdr.extra_len()];
                                     let e_res = read.read(&mut extra_buf).await;
                                     match e_res {
-                                        Ok(n) => {
+                                        Ok(_n) => {
                                             let str_conv = String::from_utf8_lossy(&extra_buf);
                                             let strings = str_conv.split('\n');
                                             for s in strings {

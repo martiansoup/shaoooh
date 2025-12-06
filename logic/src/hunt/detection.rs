@@ -368,8 +368,6 @@ impl DetectionResolver {
     }
 
     pub fn gen7_legend(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
-        let game = builder.game();
-        let method = builder.method();
         let species = builder.target();
         let timer = match species {
             144 => 16750, // Articuno
@@ -597,7 +595,6 @@ impl DetectionResolver {
     pub fn gen7_gift(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
         let game = builder.game();
         let method = builder.method();
-        let species = builder.target();
 
         // Detect sprite
         // Mash B for 16 seconds
@@ -676,9 +673,6 @@ impl DetectionResolver {
     }
 
     pub fn gen7_random_encounter(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
-        let game = builder.game();
-        let method = builder.method();
-        let species = builder.target();
         let timer = 10400;
 
         let states = vec![

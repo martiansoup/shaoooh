@@ -16,11 +16,7 @@ use axum::{
 use chrono::{DateTime, Utc};
 use opencv::core::Mat;
 use serde::{Deserialize, Serialize};
-use tokio::sync::{
-    broadcast, mpsc,
-    oneshot::{self, error::TryRecvError},
-    watch,
-};
+use tokio::sync::{broadcast, mpsc, watch};
 use tokio_util::sync::CancellationToken;
 use tower_http::services::ServeDir;
 pub(crate) mod error;
@@ -77,7 +73,6 @@ pub struct Shaoooh {
     rx_conn: watch::Receiver<bool>,
     button_rx: mpsc::Receiver<(Button, Delay)>,
     error_tx: Arc<broadcast::Sender<ShaooohError>>,
-    error_rx: broadcast::Receiver<ShaooohError>,
     image: Arc<Mutex<Vec<u8>>>,
     image2: Arc<Mutex<Vec<u8>>>,
     config: Config,
@@ -113,7 +108,8 @@ impl Shaoooh {
         let image_mutex = Arc::new(Mutex::new(Vec::new()));
         let image_mutex2 = Arc::new(Mutex::new(Vec::new()));
         let atomic = Arc::new(AtomicBool::new(true));
-        let (error_tx_chnl, error_rx) = broadcast::channel(32);
+        // RX will subscribe later from TX reference
+        let (error_tx_chnl, _error_rx) = broadcast::channel(32);
         let error_tx = Arc::new(error_tx_chnl);
 
         // Support 3ds features
@@ -144,7 +140,6 @@ impl Shaoooh {
             rx: transition_rx,
             rx_conn: conn_rx,
             button_rx,
-            error_rx,
             error_tx,
             image: image_mutex,
             image2: image_mutex2,
@@ -597,7 +592,7 @@ impl Shaoooh {
         );
         log::info!("Main thread complete");
 
-        handle.join();
+        handle.join().expect("Error from server thread");
         // TODO should wait for all threads including 3ds communication threads
 
         for handle in handles {

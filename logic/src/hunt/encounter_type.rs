@@ -814,7 +814,6 @@ impl EncounterTypeResolver {
     }
 
     pub fn gen7_softreset_gift(mut builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
-        let target = builder.target();
         let sr_buttons = vec![
             HuntStateOutput::new(Button::L, Delay::Half),
             HuntStateOutput::new(Button::R, Delay::Half),
