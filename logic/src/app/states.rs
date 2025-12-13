@@ -217,6 +217,14 @@ impl Config {
         }
     }
 
+    pub fn short(&self) -> String {
+        match self {
+            Self::Shaoooh(..) => "Shaoooh".to_string(),
+            Self::Bishaan(..) => "Bishaan".to_string(),
+            Self::Ditto => "Ditto".to_string(),
+        }
+    }
+
     pub fn info(&self) -> String {
         match self {
             Self::Shaoooh(cfg) => {

@@ -19,6 +19,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, mpsc, watch};
 use tokio_util::sync::CancellationToken;
 use tower_http::services::ServeDir;
+use uuid::{Uuid, uuid};
 pub(crate) mod error;
 pub(crate) mod main;
 pub(crate) mod states;
@@ -426,8 +427,21 @@ impl Shaoooh {
     #[cfg(not(all(target_arch = "aarch64", target_os = "linux")))]
     fn add_lights_display(_: &mut Vec<DisplayWrapper>) {}
 
+    pub fn get_service(&self) -> async_zeroconf::Service {
+        let mut txt = async_zeroconf::TxtRecord::new();
+        txt.add("info".to_string(), self.config.info().clone());
+        txt.add("descr".to_string(), self.config.description().clone());
+        txt.add("emoji".to_string(), self.config.emoji().clone());
+
+        let namespace = uuid!("3eb75a82-cc0a-4e21-8db1-4936e5ee03a8");
+        let uuid = Uuid::new_v5(&namespace, self.config.short().as_bytes());
+        let uuid_str = format!("{}", uuid);
+        txt.add("uuid".to_string(), uuid_str);
+        async_zeroconf::Service::new_with_txt(&self.config.name(), "_shaoooh._tcp", 3000, txt)
+    }
+
     pub fn serve(mut self, skip_conn: bool) -> std::io::Result<()> {
-        let service = async_zeroconf::Service::new(&self.config.name(), "_shaoooh._tcp", 3000);
+        let service = self.get_service();
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()
