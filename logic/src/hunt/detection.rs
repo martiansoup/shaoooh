@@ -462,6 +462,12 @@ impl DetectionResolver {
                 Processing::Sprite(Game::FireRedLeafGreen, vec![16, 52, 37, 27], false),
                 Duration::from_millis(2700),
             )
+        } else if builder.target() == 10 {
+            // Viridian forest caterpie
+            (
+                Processing::Sprite(Game::FireRedLeafGreen, vec![10, 11, 13, 14, 25], false),
+                Duration::from_millis(2700),
+            )
         } else {
             // TODO hardcoded for Route 1
             (
