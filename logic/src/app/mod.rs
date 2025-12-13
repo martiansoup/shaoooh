@@ -427,11 +427,21 @@ impl Shaoooh {
     fn add_lights_display(_: &mut Vec<DisplayWrapper>) {}
 
     pub fn serve(mut self, skip_conn: bool) -> std::io::Result<()> {
+        let service = async_zeroconf::Service::new(&self.config.name(), "_shaoooh._tcp", 3000);
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()
             .unwrap();
         let _guard = runtime.enter();
+
+        let (service_ref, task, service_ok) =
+            service.publish_task().expect("Failed to create service");
+
+        runtime.spawn(task);
+
+        runtime
+            .block_on(service_ok)
+            .expect("Failed to publish service");
 
         log::info!(
             "Selected configuration: {} {}",
@@ -689,7 +699,10 @@ async fn post_button(
 async fn get_frame(State(state): State<ApiState>) -> impl IntoResponse {
     let headers = [
         (header::CONTENT_TYPE, "image/png"),
-        (header::CACHE_CONTROL, "max-age=0, must-revalidate"),
+        (
+            header::CACHE_CONTROL,
+            "no-cache, must-revalidate, max-age=0, no-store",
+        ),
     ];
 
     if let Ok(img_rd) = state.image.lock() {
@@ -704,7 +717,10 @@ async fn get_frame(State(state): State<ApiState>) -> impl IntoResponse {
 async fn get_frame2(State(state): State<ApiState>) -> impl IntoResponse {
     let headers = [
         (header::CONTENT_TYPE, "image/png"),
-        (header::CACHE_CONTROL, "max-age=0, must-revalidate"),
+        (
+            header::CACHE_CONTROL,
+            "no-cache, must-revalidate, max-age=0, no-store",
+        ),
     ];
 
     if let Ok(img_rd) = state.image2.lock() {
