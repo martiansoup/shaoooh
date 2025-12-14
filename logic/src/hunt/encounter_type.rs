@@ -962,7 +962,7 @@ impl EncounterTypeResolver {
             StateDescription::linear_state(
                 USUMRandom::Title4,
                 vec![HuntStateOutput::button(Button::A)],
-                2500..12750,
+                5500..12750,
             ),
             // Go to bag after soft reset
             StateDescription::linear_state(
