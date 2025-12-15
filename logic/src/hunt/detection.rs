@@ -113,6 +113,9 @@ impl DetectionResolver {
             && builder.target() == 206
         {
             Some(Self::hgss_darkcave(builder))
+        } else if *method == Method::Utility {
+            // If Utility, skip by default
+            Some(builder)
         } else {
             None
         }

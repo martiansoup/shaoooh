@@ -140,6 +140,36 @@ enum LoopState {
     Done,
 }
 
+#[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
+enum UtilityState {
+    Init,
+    StartTimer,
+    UpdateTimer,
+    CheckTimer,
+    Up,
+    Down,
+    Left,
+    Right,
+    Entering,
+    DownTo,
+    Wait,
+    UpToBattle,
+    AToBattle,
+    Down1,
+    Down2,
+    AForHappy,
+    AForBall,
+    Wait2,
+    AToBattle2,
+    RightToPay,
+    AForPay,
+    Wait3,
+    IncrCounter,
+    CheckCounter,
+    Notify,
+    Done,
+}
+
 pub struct EncounterTypeResolver {}
 
 impl EncounterTypeResolver {
@@ -173,6 +203,8 @@ impl EncounterTypeResolver {
             && builder.target() == 206
         {
             Some(Self::hgss_darkcave(builder))
+        } else if *method == Method::Utility {
+            Self::utility(builder)
         } else {
             None
         }
@@ -1029,5 +1061,186 @@ impl EncounterTypeResolver {
         // Set counter 64
         // Go to bag, press honey
         Some(builder)
+    }
+
+    pub fn utility(mut builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
+        let target = builder.target();
+        let g7_move = 750;
+
+        let states = if target == 1 {
+            // Get money in ORAS using HappyHour/PayDay
+            Some(vec![
+                StateDescription::linear_state(
+                    UtilityState::Left,
+                    vec![HuntStateOutput::button(Button::Left)],
+                    g7_move..g7_move,
+                ),
+                StateDescription::start_timer_state(UtilityState::StartTimer, UtilityState::Up),
+                StateDescription::linear_state(
+                    UtilityState::Up,
+                    vec![HuntStateOutput::button(Button::Up)],
+                    g7_move..g7_move,
+                ),
+                StateDescription::linear_state(
+                    UtilityState::Down,
+                    vec![HuntStateOutput::button(Button::Down)],
+                    g7_move..g7_move,
+                ),
+                StateDescription::update_timer_state(
+                    UtilityState::UpdateTimer,
+                    UtilityState::CheckTimer,
+                ),
+                StateDescription::branch_last_delay_state(
+                    Branch3::new(
+                        UtilityState::CheckTimer,
+                        UtilityState::Wait,
+                        UtilityState::Up,
+                    ),
+                    8000,
+                ),
+                StateDescription::linear_state(UtilityState::Wait, vec![], 10000..10000),
+                StateDescription::linear_state(
+                    UtilityState::UpToBattle,
+                    vec![HuntStateOutput::button(Button::Up)],
+                    1000..1000,
+                ),
+                StateDescription::linear_state(
+                    UtilityState::AToBattle,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1000,
+                ),
+                StateDescription::linear_state(
+                    UtilityState::AForHappy,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1000,
+                ),
+                StateDescription::linear_state(UtilityState::Wait2, vec![], 15000..15000),
+                StateDescription::linear_state(
+                    UtilityState::AToBattle2,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1000,
+                ),
+                StateDescription::linear_state(
+                    UtilityState::RightToPay,
+                    vec![HuntStateOutput::button(Button::Right)],
+                    1000..1000,
+                ),
+                StateDescription::linear_state(
+                    UtilityState::AForPay,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1000,
+                ),
+                StateDescription::linear_state(
+                    UtilityState::Wait3,
+                    vec![HuntStateOutput::button(Button::A)],
+                    15000..15000,
+                ),
+                StateDescription::incr_counter_state(
+                    UtilityState::IncrCounter,
+                    UtilityState::CheckCounter,
+                ),
+                StateDescription::choose_counter_state_val(
+                    UtilityState::CheckCounter,
+                    UtilityState::Notify,
+                    UtilityState::Left,
+                    20,
+                ),
+                StateDescription::found_target_state(UtilityState::Notify, UtilityState::Done),
+                StateDescription::deadend_state(UtilityState::Done),
+            ])
+        } else if target == 2 {
+            // Catch (when guaranteed)
+            Some(vec![
+                StateDescription::linear_state(
+                    UtilityState::Left,
+                    vec![HuntStateOutput::button(Button::Left)],
+                    g7_move..g7_move,
+                ),
+                //StateDescription::start_timer_state(UtilityState::StartTimer, UtilityState::Up),
+                StateDescription::simple_process_state(
+                    Branch3::new(UtilityState::Up, UtilityState::Entering, UtilityState::Down),
+                    Processing::USUMBottomScreenInv(5.0),
+                    HuntStateOutput::button(Button::Up),
+                    g7_move..g7_move,
+                ),
+                StateDescription::simple_process_state(
+                    Branch3::new(UtilityState::Down, UtilityState::Entering, UtilityState::Up),
+                    Processing::USUMBottomScreenInv(5.0),
+                    HuntStateOutput::button(Button::Down),
+                    g7_move..g7_move,
+                ),
+                //StateDescription::linear_state(UtilityState::Up, vec![HuntStateOutput::button(Button::Up)], g7_move..g7_move),
+                //StateDescription::linear_state(UtilityState::Down, vec![HuntStateOutput::button(Button::Down)], g7_move..g7_move),
+                //StateDescription::update_timer_state(UtilityState::UpdateTimer, UtilityState::CheckTimer),
+                //StateDescription::branch_last_delay_state(Branch3::new(UtilityState::CheckTimer, UtilityState::Wait, UtilityState::Up), 8000),
+                StateDescription::simple_process_state_no_output(
+                    Branch2::new(UtilityState::Entering, UtilityState::Wait),
+                    Processing::USUMBottomScreen(5.0),
+                ),
+                StateDescription::linear_state(UtilityState::Wait, vec![], 1000..1000),
+                // DownToBag
+                StateDescription::linear_state(
+                    UtilityState::UpToBattle,
+                    vec![HuntStateOutput::button(Button::Down)],
+                    1000..1000,
+                ),
+                // AToBag
+                StateDescription::linear_state(
+                    UtilityState::AToBattle,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1000,
+                ),
+                StateDescription::linear_state(
+                    UtilityState::Down1,
+                    vec![HuntStateOutput::button(Button::Down)],
+                    1000..1000,
+                ),
+                StateDescription::linear_state(
+                    UtilityState::Down2,
+                    vec![HuntStateOutput::button(Button::Down)],
+                    1000..1000,
+                ),
+                // AToUseBall
+                StateDescription::linear_state(
+                    UtilityState::AForHappy,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1000,
+                ),
+                StateDescription::linear_state(
+                    UtilityState::AForBall,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1000,
+                ),
+                StateDescription::linear_state(UtilityState::Wait2, vec![], 22000..22000),
+                // B to not nickname
+                StateDescription::linear_state(
+                    UtilityState::AToBattle2,
+                    vec![HuntStateOutput::button(Button::B)],
+                    3000..3000,
+                ),
+                // B to done
+                StateDescription::linear_state(
+                    UtilityState::RightToPay,
+                    vec![HuntStateOutput::button(Button::B)],
+                    3000..3000,
+                ),
+                StateDescription::incr_encounter_state(UtilityState::AForPay, UtilityState::Wait3),
+                StateDescription::linear_state(
+                    UtilityState::Wait3,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1000..1000,
+                ),
+            ])
+        } else {
+            None
+        };
+
+        match states {
+            Some(s) => {
+                builder.add_states(s);
+                Some(builder)
+            }
+            None => None,
+        }
     }
 }

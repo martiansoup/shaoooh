@@ -154,6 +154,7 @@ pub enum Method {
     SoftResetEncounter,
     SoftResetGift,
     SafariZone,
+    Utility,
 }
 
 // State of application, shared between main thread and API

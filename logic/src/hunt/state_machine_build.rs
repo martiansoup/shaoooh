@@ -258,6 +258,20 @@ where
         Self::new(tag, vec![], vec![], 0..0, branch_state)
     }
 
+    pub fn update_timer_state(tag: K, to: K) -> Self {
+        let mut branch_state: HashMap<K, BoxedProcessFn> = HashMap::new();
+
+        branch_state.insert(
+            to,
+            Box::new(move |_, int| {
+                int.last_duration = int.time.elapsed().unwrap();
+                Some(HuntResult::default())
+            }),
+        );
+
+        Self::new(tag, vec![], vec![], 0..0, branch_state)
+    }
+
     pub fn branch_delay_state(branch: Branch3<K>, delay: u64) -> Self {
         let mut branch_check: HashMap<K, BoxedProcessFn> = HashMap::new();
         let duration = Duration::from_millis(delay);
@@ -353,12 +367,53 @@ where
         Self::new(tag, vec![], vec![], 0..0, count_check)
     }
 
+    pub fn choose_counter_state_val(tag: K, equal: K, nonequal: K, value: usize) -> Self {
+        let mut count_check: HashMap<K, BoxedProcessFn> = HashMap::new();
+
+        count_check.insert(
+            equal,
+            Box::new(move |_, int| {
+                if int.counter == value {
+                    Some(HuntResult::default())
+                } else {
+                    None
+                }
+            }),
+        );
+        count_check.insert(
+            nonequal,
+            Box::new(move |_, int| {
+                if int.counter != value {
+                    Some(HuntResult::default())
+                } else {
+                    None
+                }
+            }),
+        );
+
+        Self::new(tag, vec![], vec![], 0..0, count_check)
+    }
+
     pub fn decr_counter_state(tag: K, to: K) -> Self {
         let mut count_check: HashMap<K, BoxedProcessFn> = HashMap::new();
         count_check.insert(
             to,
             Box::new(|_: &Vec<ProcessingResult>, int: &mut InternalHuntState| {
                 int.counter -= 1;
+
+                Some(HuntResult::default())
+            }),
+        );
+
+        Self::new(tag, vec![], vec![], 0..0, count_check)
+    }
+
+    pub fn incr_counter_state(tag: K, to: K) -> Self {
+        let mut count_check: HashMap<K, BoxedProcessFn> = HashMap::new();
+        count_check.insert(
+            to,
+            Box::new(|_: &Vec<ProcessingResult>, int: &mut InternalHuntState| {
+                int.counter += 1;
 
                 Some(HuntResult::default())
             }),
