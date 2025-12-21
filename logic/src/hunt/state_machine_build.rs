@@ -340,6 +340,57 @@ where
         Self::new(branch.tag, vec![], vec![], 0..0, branch_check)
     }
 
+    pub fn branch_last_delay_state_plus_range(
+        branch: Branch3<K>,
+        delay: u64,
+        second: Range<u64>,
+    ) -> Self {
+        let mut branch_check: HashMap<K, BoxedProcessFn> = HashMap::new();
+        let duration = Duration::from_millis(delay);
+        let dur2 = duration.clone();
+        let second_dur = Duration::from_millis(second.start)..Duration::from_millis(second.end);
+        let second_dur2 = second_dur.clone();
+
+        branch_check.insert(
+            branch.to_met,
+            Box::new(
+                move |_: &Vec<ProcessingResult>, int: &mut InternalHuntState| {
+                    if int.last_duration > duration || second_dur.contains(&int.last_duration) {
+                        log::info!(
+                            "Timer met ({:?} > {:?}) or {:?}",
+                            int.last_duration,
+                            duration,
+                            second_dur
+                        );
+                        Some(HuntResult::default())
+                    } else {
+                        None
+                    }
+                },
+            ),
+        );
+        branch_check.insert(
+            branch.to_not,
+            Box::new(
+                move |_: &Vec<ProcessingResult>, int: &mut InternalHuntState| {
+                    if int.last_duration > dur2 || second_dur2.contains(&int.last_duration) {
+                        None
+                    } else {
+                        log::info!(
+                            "Timer not met ({:?} < {:?}) or {:?}",
+                            int.last_duration,
+                            dur2,
+                            second_dur2
+                        );
+                        Some(HuntResult::default())
+                    }
+                },
+            ),
+        );
+
+        Self::new(branch.tag, vec![], vec![], 0..0, branch_check)
+    }
+
     pub fn choose_counter_state(tag: K, zero: K, nonzero: K) -> Self {
         let mut count_check: HashMap<K, BoxedProcessFn> = HashMap::new();
 

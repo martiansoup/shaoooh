@@ -836,9 +836,53 @@ impl EncounterTypeResolver {
                 250..250,
             ),
         ];
+        let states_honey = vec![
+            StateDescription::linear_state(USUMRandom::Wait, vec![], 5000..12500),
+            StateDescription::linear_state(
+                USUMRandom::XToMenu,
+                vec![HuntStateOutput::button(Button::X)],
+                1000..1500,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::Down,
+                vec![HuntStateOutput::button(Button::Down)],
+                500..1000,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::AToBag,
+                vec![HuntStateOutput::button(Button::A)],
+                1500..2000,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::Left1,
+                vec![HuntStateOutput::button(Button::Left)],
+                500..1000,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::Left2,
+                vec![HuntStateOutput::button(Button::Left)],
+                500..1000,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::Left3,
+                vec![HuntStateOutput::button(Button::Left)],
+                500..1000,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::AToHoney,
+                vec![HuntStateOutput::button(Button::A)],
+                500..1000,
+            ),
+            StateDescription::linear_state(
+                USUMRandom::AToUse,
+                vec![HuntStateOutput::button(Button::A)],
+                500..500,
+            ),
+        ];
         builder.add_states(states);
         match target {
             797 | 799 => builder.add_states(states_press),
+            806 => builder.add_states(states_honey),
             _ => builder.add_states(states_walk),
         }
 

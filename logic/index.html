@@ -203,7 +203,9 @@
     <!--<button onclick="hgss_ditto()">HGSS Ditto</button>-->
     <!--<button onclick="rs_registeel()">RS Registeel</button>-->
     <!--<button onclick="bw2_latios()">BW2 Latios</button>-->
+    <button onclick="usum_blacephalon()">USUM Blacephalon</button>
     <button onclick="usum_money()">Utility - Money</button>
+    <button onclick="usum_catch()">Utility - Catch</button>
   </div>
 
   <div class="status-panel">
@@ -221,7 +223,7 @@
     let button = "/api/button";
 
     function current_hunt() {
-      usum_catch();
+      usum_blacephalon();
     }
     function lostelle_hypno() {
       document.getElementById("arg_name").value = "LostelleHypno";
@@ -336,6 +338,12 @@
       document.getElementById("arg_species").value = "803";
       document.getElementById("arg_game").value = "UltraSunUltraMoon";
       document.getElementById("arg_method").value = "SoftResetGift";
+    }
+    function usum_blacephalon() {
+      document.getElementById("arg_name").value = "UBBurst";
+      document.getElementById("arg_species").value = "806";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
     }
     function usum_minior() {
       document.getElementById("arg_name").value = "Minior";
