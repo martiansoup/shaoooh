@@ -184,18 +184,20 @@
     <!--<button onclick="usum_cresselia()">USUM Cresselia</button>-->
     <!--<button onclick="usum_mewtwo()">USUM Mewtwo</button>-->
     <!--<button onclick="usum_poipole()">USUM Poipole</button>-->
-    <button onclick="usum_minior()">USUM Minior</button>
-    <button onclick="rs_beldum()">Beldum</button>
+    <!--<button onclick="usum_minior()">USUM Minior</button>-->
+    <!--<button onclick="rs_beldum()">Beldum</button>-->
     <!--<button onclick="dp_giratina()">DP Giratina</button>-->
     <!--<button onclick="hgss_dunsparse()">Three Segment</button>-->
-    <button onclick="frlg_snorlax()">FRLG Snorlax</button>
-    <button onclick="hgss_start()">HGSS Starter</button>
+    <!--<button onclick="frlg_snorlax()">FRLG Snorlax</button>-->
+    <!--<button onclick="frlg_hitmonlee()">FRLG Hitmonlee</button>-->
+    <!--<button onclick="hgss_start()">HGSS Starter</button>-->
+    <button onclick="frlg_aerodactyl()">FRLG Aerodactyl</button>
     <!--<button onclick="frlg_omanyte()">FRLG Omanyte</button>-->
     <!--<button onclick="frlg_lapras()">FRLG Lapras</button>-->
     <!--<button onclick="frlg_eevee()">FRLG Eevee</button>-->
     <!--<button onclick="frlg_vulpix()">FRLG Vulpix</button>-->
     <!--<button onclick="frlg_sandshrew()">FRLG Sandshrew</button>-->
-    <button onclick="frlg_caterpie()">FRLG Caterpie</button>
+    <!--<button onclick="frlg_caterpie()">FRLG Caterpie</button>-->
     <!--<button onclick="dp_shinx()">DP Cute Charm Shinx</button>-->
     <!--<button onclick="rs_oddish()">RS Oddish</button>-->
     <!--<button onclick="frlg_egg()">FRLG Eggs</button>-->
@@ -223,7 +225,7 @@
     let button = "/api/button";
 
     function current_hunt() {
-      usum_blacephalon();
+      frlg_aerodactyl();
     }
     function lostelle_hypno() {
       document.getElementById("arg_name").value = "LostelleHypno";
@@ -237,9 +239,21 @@
       document.getElementById("arg_game").value = "FireRedLeafGreen";
       document.getElementById("arg_method").value = "SoftResetGift";
     }
+    function frlg_aerodactyl() {
+      document.getElementById("arg_name").value = "Aerodactyl";
+      document.getElementById("arg_species").value = "142";
+      document.getElementById("arg_game").value = "FireRedLeafGreen";
+      document.getElementById("arg_method").value = "SoftResetGift";
+    }
     function frlg_lapras() {
       document.getElementById("arg_name").value = "SilphLapras";
       document.getElementById("arg_species").value = "131";
+      document.getElementById("arg_game").value = "FireRedLeafGreen";
+      document.getElementById("arg_method").value = "SoftResetGift";
+    }
+    function frlg_hitmonlee() {
+      document.getElementById("arg_name").value = "DojoHitmonlee";
+      document.getElementById("arg_species").value = "106";
       document.getElementById("arg_game").value = "FireRedLeafGreen";
       document.getElementById("arg_method").value = "SoftResetGift";
     }

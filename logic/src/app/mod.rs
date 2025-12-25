@@ -261,7 +261,9 @@ impl Shaoooh {
                 && *transition != Transition::FalseDetect);
         if phased {
             // If phased transition - species was unknown as came via FoundTarget, has to be fixed manually
-            log::warn!("Unknown species for phase, needs manual update");
+            if *transition == Transition::Phased {
+              log::warn!("Unknown species for phase, needs manual update");
+            }
             let phase = Phase {
                 caught: *transition == Transition::Caught,
                 species: if *transition == Transition::Phased {

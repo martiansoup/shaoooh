@@ -383,7 +383,7 @@ impl EncounterTypeResolver {
             builder.add_states(delay_state);
         }
 
-        if builder.target() == 374 || builder.target() == 138 {
+        if builder.target() == 374 || builder.target() == 138 || builder.target() == 140 || builder.target() == 142 {
             // Beldum/Fossil Sequence
             let states2 = vec![
                 StateDescription::linear_state(
@@ -456,6 +456,27 @@ impl EncounterTypeResolver {
                     LoopState::PressA,
                     vec![HuntStateOutput::button(Button::A)],
                     2000..2500,
+                ),
+                StateDescription::linear_state(
+                    LoopState::PressB,
+                    vec![HuntStateOutput::button(Button::B)],
+                    2000..2500,
+                ),
+            ];
+
+            builder.add_states(states2);
+        } else if builder.target() == 106 || builder.target() == 107 {
+            // Hitmon(s)
+            let states2 = vec![
+                StateDescription::linear_state(
+                    LoopState::PressA,
+                    vec![HuntStateOutput::button(Button::A)],
+                    2000..2500,
+                ),
+                StateDescription::linear_state(
+                    LoopState::PressA2,
+                    vec![HuntStateOutput::button(Button::A)],
+                    2500..3000,
                 ),
                 StateDescription::linear_state(
                     LoopState::PressB,
