@@ -172,6 +172,9 @@
     <!--<button onclick="lostelle_hypno()">Hypno</button>-->
     <!--<button onclick="usum_legend()">USUM Articuno</button>-->
     <!--<button onclick="usum_entei()">USUM Entei</button>-->
+    <!--<button onclick="usum_raikou()">USUM Raikou</button>-->
+    <!--<button onclick="usum_reshiram()">USUM Reshiram</button>-->
+    <button onclick="usum_suicune()">USUM Suicune</button>
     <!--<button onclick="usum_kyogre()">USUM Kyogre</button>-->
     <!--<button onclick="usum_latias()">USUM Latias</button>-->
     <!--<button onclick="usum_zapdos()">USUM Zapdos</button>-->
@@ -226,8 +229,9 @@
     let button = "/api/button";
 
     function current_hunt() {
-      frlg_articuno();
+      usum_suicune();
     }
+
     function lostelle_hypno() {
       document.getElementById("arg_name").value = "LostelleHypno";
       document.getElementById("arg_species").value = "97";
@@ -377,6 +381,24 @@
       document.getElementById("arg_species").value = "774";
       document.getElementById("arg_game").value = "UltraSunUltraMoon";
       document.getElementById("arg_method").value = "RandomEncounter";
+    }
+    function usum_raikou() {
+      document.getElementById("arg_name").value = "WormholeRaikou";
+      document.getElementById("arg_species").value = "243";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function usum_suicune() {
+      document.getElementById("arg_name").value = "WormholeSuicune";
+      document.getElementById("arg_species").value = "245";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function usum_reshiram() {
+      document.getElementById("arg_name").value = "WormholeReshiram";
+      document.getElementById("arg_species").value = "643";
+      document.getElementById("arg_game").value = "UltraSunUltraMoon";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
     }
     function usum_entei() {
       document.getElementById("arg_name").value = "WormholeEntei";
@@ -558,18 +580,35 @@
       .catch(err => console.log(err));
     }
 
-    function buildControls(transitions) {
-      var controls = document.getElementById("controls");
-      controls.innerHTML = "";
+    var old_transitions = null;
 
-      transitions.forEach(element => {
-        var b = document.createElement("button");
-        b.onclick = stateButton;
-        b.innerText = element.transition;
-        b.value = element.transition;
-        b.dataset.needsArg = element.needs_arg;
-        controls.appendChild(b);
-      });
+    function transitionsEqual(a, b) {
+      if (a === b) return true;
+      if (a == null || b == null) return false;
+      if (a.length != b.length) return false;
+
+      for (var i = 0; i < a.length; i++) {
+        if (a[i].transition != b[i].transition) return false;
+      }
+      return true;
+    }
+
+    function buildControls(transitions) {
+      if (!transitionsEqual(transitions, old_transitions)) {
+        console.log("Transitions updated, rebuilding controls");
+        var controls = document.getElementById("controls");
+        controls.innerHTML = "";
+
+        transitions.forEach(element => {
+          var b = document.createElement("button");
+          b.onclick = stateButton;
+          b.innerText = element.transition;
+          b.value = element.transition;
+          b.dataset.needsArg = element.needs_arg;
+          controls.appendChild(b);
+        });
+      }
+      old_transitions = transitions;
     }
 
     var errorCount = 0;
