@@ -64,6 +64,7 @@ struct ApiState {
     image: Arc<Mutex<Vec<u8>>>,
     image2: Arc<Mutex<Vec<u8>>>,
     mode: ResponseMode,
+    default_arg: TransitionArg
 }
 
 pub struct Shaoooh {
@@ -94,7 +95,7 @@ pub struct HuntInformation {
 }
 
 impl Shaoooh {
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: Config, default_arg: TransitionArg) -> Self {
         let app = AppState {
             state: HuntState::Idle,
             arg: None,
@@ -133,6 +134,7 @@ impl Shaoooh {
             image: image_mutex.clone(),
             image2: image_mutex2.clone(),
             mode,
+            default_arg
         };
         Self {
             api: Some(api),
@@ -160,6 +162,7 @@ impl Shaoooh {
             .route("/api/frame", get(get_frame))
             .route("/api/frame2", get(get_frame2))
             .route("/api/mode", get(get_mode))
+            .route("/api/default", get(get_default_arg))
             .with_state(state)
     }
 
@@ -750,6 +753,11 @@ async fn get_frame2(State(state): State<ApiState>) -> impl IntoResponse {
 #[axum::debug_handler]
 async fn get_mode(State(state): State<ApiState>) -> Json<ResponseMode> {
     Json(state.mode)
+}
+
+#[axum::debug_handler]
+async fn get_default_arg(State(state): State<ApiState>) -> Json<TransitionArg> {
+    Json(state.default_arg)
 }
 
 async fn shutdown(

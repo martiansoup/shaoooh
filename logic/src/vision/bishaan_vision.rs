@@ -560,7 +560,9 @@ impl BishaanVisionSocket {
                             if self.last_fps.elapsed().expect("Failed to get time")
                                 > Duration::from_secs(1)
                             {
-                                log::info!("Last FPS: {}", self.last_frame_count);
+                                if self.last_frame_count > 33 || self.last_frame_count < 27 {
+                                    log::info!("Last FPS: {}", self.last_frame_count);
+                                }
 
                                 self.last_frame_count = 0;
                                 self.last_fps = SystemTime::now();

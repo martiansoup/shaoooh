@@ -116,11 +116,22 @@ impl HuntState {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub(crate) struct TransitionArg {
+pub struct TransitionArg {
     pub(crate) name: String,
     pub(crate) species: u32,
     pub(crate) game: Game,
     pub(crate) method: Method,
+}
+
+impl TransitionArg {
+    pub fn new(name: &str, species: u32, game: Game, method: Method) -> Self {
+        Self {
+            name: name.to_string(),
+            species,
+            game,
+            method
+        }
+    }
 }
 
 #[derive(

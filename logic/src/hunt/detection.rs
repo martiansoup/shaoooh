@@ -382,6 +382,7 @@ impl DetectionResolver {
             244 => 16650, // Entei
             245 => 13350, // Suicune
             382 => 16975, // Kyogre
+            383 => 15700, // Groudon
             380 => 10500, // Latias
             717 => 16750, // Yveltal
             797 => 20460, // Celesteela

@@ -167,48 +167,8 @@
     <label for="game">Game</label> <input name="game" id="arg_game" value="FireRedLeafGreen" />
     <label for="method">Method</label> <input name="method" id="arg_method" value="SoftResetGift" />
     <br /><br />
-    <!--<button onclick="frlg_bulba()">FRLG Bulbasaur</button>-->
-    <!--<button onclick="frlg_rat()">FRLG Ratatta</button>-->
-    <!--<button onclick="lostelle_hypno()">Hypno</button>-->
-    <!--<button onclick="usum_legend()">USUM Articuno</button>-->
-    <!--<button onclick="usum_entei()">USUM Entei</button>-->
-    <!--<button onclick="usum_raikou()">USUM Raikou</button>-->
-    <!--<button onclick="usum_reshiram()">USUM Reshiram</button>-->
     <button onclick="usum_suicune()">USUM Suicune</button>
-    <!--<button onclick="usum_kyogre()">USUM Kyogre</button>-->
-    <!--<button onclick="usum_latias()">USUM Latias</button>-->
-    <!--<button onclick="usum_zapdos()">USUM Zapdos</button>-->
-    <!--<button onclick="usum_moltres()">USUM Moltres</button>-->
-    <!--<button onclick="usum_yveltal()">USUM Yveltal</button>-->
-    <!--<button onclick="usum_guzzlord()">USUM Guzzlord</button>-->
-    <!--<button onclick="usum_celesteela()">USUM Celesteela</button>-->
-    <!--<button onclick="usum_lugia()">USUM Lugia</button>-->
-    <!--<button onclick="usum_zekrom()">USUM Zekrom</button>-->
-    <!--<button onclick="usum_cresselia()">USUM Cresselia</button>-->
-    <!--<button onclick="usum_mewtwo()">USUM Mewtwo</button>-->
-    <!--<button onclick="usum_poipole()">USUM Poipole</button>-->
-    <!--<button onclick="usum_minior()">USUM Minior</button>-->
-    <!--<button onclick="rs_beldum()">Beldum</button>-->
-    <!--<button onclick="dp_giratina()">DP Giratina</button>-->
-    <!--<button onclick="hgss_dunsparse()">Three Segment</button>-->
-    <!--<button onclick="frlg_snorlax()">FRLG Snorlax</button>-->
-    <!--<button onclick="frlg_hitmonlee()">FRLG Hitmonlee</button>-->
-    <!--<button onclick="hgss_start()">HGSS Starter</button>-->
-    <!--<button onclick="frlg_aerodactyl()">FRLG Aerodactyl</button>-->
     <button onclick="rs_spinda()">RS Spinda</button>
-    <!--<button onclick="frlg_omanyte()">FRLG Omanyte</button>-->
-    <!--<button onclick="frlg_lapras()">FRLG Lapras</button>-->
-    <!--<button onclick="frlg_eevee()">FRLG Eevee</button>-->
-    <!--<button onclick="frlg_vulpix()">FRLG Vulpix</button>-->
-    <!--<button onclick="frlg_sandshrew()">FRLG Sandshrew</button>-->
-    <!--<button onclick="frlg_caterpie()">FRLG Caterpie</button>-->
-    <!--<button onclick="dp_shinx()">DP Cute Charm Shinx</button>-->
-    <!--<button onclick="rs_oddish()">RS Oddish</button>-->
-    <!--<button onclick="frlg_egg()">FRLG Eggs</button>-->
-    <!--<button onclick="hgss_rat()">HGSS Ratatta</button>-->
-    <!--<button onclick="hgss_ditto()">HGSS Ditto</button>-->
-    <!--<button onclick="rs_registeel()">RS Registeel</button>-->
-    <!--<button onclick="bw2_latios()">BW2 Latios</button>-->
     <button onclick="usum_blacephalon()">USUM Blacephalon</button>
     <button onclick="usum_money()">Utility - Money</button>
     <button onclick="usum_catch()">Utility - Catch</button>
@@ -227,10 +187,6 @@
     var last_blob2 = "";
     let state = "/api/state";
     let button = "/api/button";
-
-    function current_hunt() {
-      usum_suicune();
-    }
 
     function lostelle_hypno() {
       document.getElementById("arg_name").value = "LostelleHypno";
@@ -694,8 +650,22 @@
         });
     }
 
+    function getDefaultHunt() {
+      fetch("/api/default")
+        .then(res => res.json())
+        .then(json => {
+          document.getElementById("arg_name").value = json.name;
+          document.getElementById("arg_species").value = json.species;
+          document.getElementById("arg_game").value = json.game;
+          document.getElementById("arg_method").value = json.method;
+        })
+        .catch(err => {
+          console.log(err);
+        });
+    }  
+
     window.onload = function() {
-      current_hunt();
+      getDefaultHunt();
       updateMode();
       updateState();
       updateFrame();

@@ -1,7 +1,7 @@
 use clap::Parser;
 use simple_logger::SimpleLogger;
 
-use crate::app::Shaoooh;
+use crate::app::{Shaoooh, TransitionArg};
 
 /// Shaoooh - Shiny Hunting Automaton On Original Hardware
 #[derive(Parser, Debug)]
@@ -21,7 +21,7 @@ struct Args {
     skip_conn: bool,
 }
 
-pub fn main(cfg_fn: &dyn Fn() -> crate::app::Config) {
+pub fn main(cfg_fn: &dyn Fn() -> crate::app::Config, default_arg: TransitionArg) {
     let args = Args::parse();
     let log_level = if args.quiet {
         log::Level::Info.to_level_filter()
@@ -47,7 +47,7 @@ pub fn main(cfg_fn: &dyn Fn() -> crate::app::Config) {
     } else {
         log::info!("Starting Shaoooh Bot");
 
-        let app = Shaoooh::new(config);
+        let app = Shaoooh::new(config, default_arg);
 
         match app.serve(args.skip_conn) {
             Ok(_) => log::info!("Shaoooh done"),
