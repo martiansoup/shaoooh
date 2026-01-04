@@ -86,6 +86,8 @@ impl DetectionResolver {
 
         if *game == Game::FireRedLeafGreen && *method == Method::RandomEncounter {
             Some(Self::frlg_random(builder))
+        } else if *game == Game::RubySapphire && *method == Method::RandomEncounter {
+            Some(Self::rs_random(builder))
         } else if *game == Game::FireRedLeafGreen && *method == Method::SoftResetEncounter {
             Some(Self::frlg_softreset(builder))
         } else if (*game == Game::RubySapphire || *game == Game::FireRedLeafGreen)
@@ -502,6 +504,71 @@ impl DetectionResolver {
     }
 
     const RUN_DELAY: u64 = 500;
+
+    pub fn rs_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        let target = builder.target();
+        let game = builder.game().clone();
+        let method = builder.method().clone();
+        let shiny_threshold = Duration::from_millis(2381);
+
+        let targets = if target == 327 {
+            vec![327, 27, 227]
+        } else {
+            vec![target]
+        };
+
+        let states = vec![
+            StateDescription::toggle_state(Detection::Toggle, Detection::EnterEncounter),
+            StateDescription::simple_process_state_no_output_start_timer(
+                Branch2::new(Detection::EnterEncounter, Detection::WaitEncounterReady),
+                Processing::FRLG_IN_ENCOUNTER,
+            ),
+            StateDescription::simple_process_state_no_output_end_timer(
+                Branch2::new(Detection::WaitEncounterReady, Detection::PressA),
+                Processing::FRLG_ENCOUNTER_READY,
+            ),
+            StateDescription::linear_state(
+                Detection::PressA,
+                vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
+                3000..3000,
+            ),
+            // Detect
+            StateDescription::sprite_state_delay_targets(
+                Branch3::new(Detection::Detect, Detection::Done, Detection::Run1),
+                &game,
+                &method,
+                targets,
+                target,
+                shiny_threshold,
+            ),
+            // Done
+            StateDescription::deadend_state(Detection::Done),
+            // Run
+            StateDescription::linear_state(
+                Detection::Run1,
+                vec![HuntStateOutput::new(Button::Down, Delay::Tenth)],
+                Self::RUN_DELAY..Self::RUN_DELAY,
+            ),
+            StateDescription::linear_state(
+                Detection::Run2,
+                vec![HuntStateOutput::new(Button::Right, Delay::Tenth)],
+                Self::RUN_DELAY..Self::RUN_DELAY,
+            ),
+            StateDescription::linear_state(
+                Detection::Run3,
+                vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
+                Self::RUN_DELAY..Self::RUN_DELAY,
+            ),
+            StateDescription::linear_state(
+                Detection::Run4,
+                vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
+                3000..9200,
+            ),
+        ];
+
+        builder.add_states(states);
+        builder
+    }
 
     pub fn frlg_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
         // TODO detection state builder

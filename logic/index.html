@@ -191,7 +191,8 @@
     <!--<button onclick="frlg_snorlax()">FRLG Snorlax</button>-->
     <!--<button onclick="frlg_hitmonlee()">FRLG Hitmonlee</button>-->
     <!--<button onclick="hgss_start()">HGSS Starter</button>-->
-    <button onclick="frlg_aerodactyl()">FRLG Aerodactyl</button>
+    <!--<button onclick="frlg_aerodactyl()">FRLG Aerodactyl</button>-->
+    <button onclick="rs_spinda()">RS Spinda</button>
     <!--<button onclick="frlg_omanyte()">FRLG Omanyte</button>-->
     <!--<button onclick="frlg_lapras()">FRLG Lapras</button>-->
     <!--<button onclick="frlg_eevee()">FRLG Eevee</button>-->
@@ -225,7 +226,7 @@
     let button = "/api/button";
 
     function current_hunt() {
-      frlg_aerodactyl();
+      frlg_articuno();
     }
     function lostelle_hypno() {
       document.getElementById("arg_name").value = "LostelleHypno";
@@ -279,6 +280,18 @@
       document.getElementById("arg_name").value = "Caterpie";
       document.getElementById("arg_species").value = "10";
       document.getElementById("arg_game").value = "FireRedLeafGreen";
+      document.getElementById("arg_method").value = "RandomEncounter";
+    }
+    function frlg_articuno() {
+      document.getElementById("arg_name").value = "Articuno";
+      document.getElementById("arg_species").value = "144";
+      document.getElementById("arg_game").value = "FireRedLeafGreen";
+      document.getElementById("arg_method").value = "SoftResetEncounter";
+    }
+    function rs_spinda() {
+      document.getElementById("arg_name").value = "AllTheSpindaPt2";
+      document.getElementById("arg_species").value = "327";
+      document.getElementById("arg_game").value = "RubySapphire";
       document.getElementById("arg_method").value = "RandomEncounter";
     }
     function rs_beldum() {

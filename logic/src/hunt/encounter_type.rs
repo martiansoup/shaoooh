@@ -182,6 +182,8 @@ impl EncounterTypeResolver {
 
         if *game == Game::FireRedLeafGreen && *method == Method::RandomEncounter {
             Some(Self::frlg_random(builder))
+        } else if *game == Game::RubySapphire && *method == Method::RandomEncounter {
+            Some(Self::rs_random(builder))
         } else if *game == Game::FireRedLeafGreen && *method == Method::SoftResetEncounter {
             Self::gen3_softreset(builder)
         } else if (*game == Game::RubySapphire || *game == Game::FireRedLeafGreen)
@@ -501,21 +503,21 @@ impl EncounterTypeResolver {
             HuntStateOutput::new(Button::Select, Delay::Tenth),
         ];
         let states = vec![
-            StateDescription::linear_state(SoftResetProcess::SoftReset, sr_buttons, 3750..3750),
+            StateDescription::linear_state(SoftResetProcess::SoftReset, sr_buttons, 3750..4250),
             StateDescription::linear_state(
                 SoftResetProcess::Title1,
                 vec![HuntStateOutput::button(Button::A)],
-                5000..5000,
+                5000..5500,
             ),
             StateDescription::linear_state(
                 SoftResetProcess::Title2,
                 vec![HuntStateOutput::button(Button::A)],
-                3750..3750,
+                3750..4250,
             ),
             StateDescription::linear_state(
                 SoftResetProcess::Title3,
                 vec![HuntStateOutput::button(Button::A)],
-                2500..2500,
+                2500..3000,
             ),
             StateDescription::linear_state(
                 SoftResetProcess::SkipMemory,
@@ -547,6 +549,32 @@ impl EncounterTypeResolver {
                 ),
                 StateDescription::linear_state(
                     StartSoftResetEncounter::Press4,
+                    vec![HuntStateOutput::button(Button::A)],
+                    0..0,
+                ),
+                StateDescription::simple_process_state_no_output(
+                    Branch2::new(
+                        StartSoftResetEncounter::IsEntering,
+                        StartSoftResetEncounter::Entering,
+                    ),
+                    Processing::FRLG_START_ENCOUNTER,
+                ),
+                StateDescription::linear_state_no_delay(StartSoftResetEncounter::Entering, vec![]),
+            ];
+
+            builder.add_states(states2);
+        } else if species >= 144 && species <= 146 {
+            // Articuno/Zapdos/Moltres
+            let states2 = vec![
+                // Extra delay to try to improve randomness space
+                StateDescription::linear_state(StartSoftResetEncounter::Delay, vec![], 2500..15000),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press1,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1500..1500,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press2,
                     vec![HuntStateOutput::button(Button::A)],
                     0..0,
                 ),
@@ -737,6 +765,60 @@ impl EncounterTypeResolver {
     }
 
     pub fn frlg_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        let states = vec![
+            StateDescription::choose_toggle_state(
+                TryGetEncounter::Init,
+                TryGetEncounter::Up,
+                TryGetEncounter::Left,
+            ),
+            StateDescription::simple_process_state(
+                Branch3::new(
+                    TryGetEncounter::Up,
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Down,
+                ),
+                Processing::FRLG_START_ENCOUNTER,
+                HuntStateOutput::new(Button::Up, Delay::Tenth),
+                Self::MOVE_DELAY..Self::MOVE_DELAY,
+            ),
+            StateDescription::simple_process_state(
+                Branch3::new(
+                    TryGetEncounter::Down,
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Up,
+                ),
+                Processing::FRLG_START_ENCOUNTER,
+                HuntStateOutput::new(Button::Down, Delay::Tenth),
+                Self::MOVE_DELAY..Self::MOVE_DELAY,
+            ),
+            StateDescription::simple_process_state(
+                Branch3::new(
+                    TryGetEncounter::Left,
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Right,
+                ),
+                Processing::FRLG_START_ENCOUNTER,
+                HuntStateOutput::new(Button::Left, Delay::Tenth),
+                Self::MOVE_DELAY..Self::MOVE_DELAY,
+            ),
+            StateDescription::simple_process_state(
+                Branch3::new(
+                    TryGetEncounter::Right,
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Left,
+                ),
+                Processing::FRLG_START_ENCOUNTER,
+                HuntStateOutput::new(Button::Right, Delay::Tenth),
+                Self::MOVE_DELAY..Self::MOVE_DELAY,
+            ),
+            StateDescription::linear_state_no_delay(TryGetEncounter::Entering, vec![]),
+        ];
+
+        builder.add_states(states);
+        builder
+    }
+
+    pub fn rs_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
         let states = vec![
             StateDescription::choose_toggle_state(
                 TryGetEncounter::Init,
