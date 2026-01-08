@@ -24,6 +24,9 @@ use crate::{
 pub struct Vision {
     cam: VideoCapture,
     encoded: Vector<u8>,
+    found: Vector<u8>,
+    found_mat: Mat,
+    found_updated: bool,
     raw_frame: Arc<Mutex<Mat>>,
     game: Game,
     flipped: bool,
@@ -84,6 +87,15 @@ impl BotVision for Vision {
     fn read_frame2(&self) -> &[u8] {
         self.encoded.as_slice()
     }
+
+    fn read_found(&mut self) -> &[u8] {
+        self.found_updated = false;
+        self.found.as_slice()
+    }
+
+    fn new_found(&self) -> bool {
+        self.found_updated
+    }
 }
 
 impl Vision {
@@ -108,6 +120,12 @@ impl Vision {
     const FOUND_WIN: WinInfo = WinInfo {
         name: "found",
         x: 32,
+        y: 464,
+        scale: 1,
+    };
+    const FOUND_LAST_WIN: WinInfo = WinInfo {
+        name: "found_last",
+        x: 32+256,
         y: 464,
         scale: 1,
     };
@@ -157,11 +175,15 @@ impl Vision {
         log::info!("Opening windows");
         Self::create_window(Self::CAPTURE_WIN, false);
         Self::create_window(Self::FOUND_WIN, false);
+        Self::create_window(Self::FOUND_LAST_WIN, false);
         highgui::wait_key(1).expect("Event loop failed");
 
         Self {
             cam,
             encoded: Vector::default(),
+            found: Vector::default(),
+            found_mat: Mat::default(),
+            found_updated: false,
             raw_frame: raw_frame_mutex,
             reference: HashMap::new(),
             game: Game::None,
@@ -351,6 +373,19 @@ impl Vision {
         Self::show_window(Self::FOUND_WIN, &for_rect);
         Self::transform_window(Self::FOUND_WIN);
 
+        // Save to encoded frame
+        opencv::imgcodecs::imencode(".png", &for_rect, &mut self.found, &Vector::new())
+            .expect("Failed to encode frame");
+        self.found_updated = true;
+        
+        if !self.found_mat.empty() {
+            Self::show_window(Self::FOUND_LAST_WIN, &self.found_mat);
+            Self::transform_window(Self::FOUND_LAST_WIN);
+        }
+
+        self.found_mat = for_rect.clone();
+
+
         let is_shiny = is_shiny_conv;
         let res = ProcessingResult {
             process: Processing::Sprite(game.clone(), species.clone(), *flipped),
@@ -526,7 +561,4 @@ impl Vision {
         }
     }
 
-    pub fn get_raw_frame_mutex(&self) -> Arc<Mutex<Mat>> {
-        self.raw_frame.clone()
-    }
 }

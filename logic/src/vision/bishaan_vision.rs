@@ -108,6 +108,15 @@ impl BotVision for BishaanVision {
     fn read_frame2(&self) -> &[u8] {
         self.encoded_bottom.as_slice()
     }
+
+    fn read_found(&mut self) -> &[u8] {
+        // TODO
+        self.encoded_top.as_slice()
+    }
+
+    fn new_found(&self) -> bool {
+        false
+    }
 }
 
 impl BishaanVision {

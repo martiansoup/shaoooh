@@ -63,6 +63,7 @@ struct ApiState {
     button_tx: mpsc::Sender<(Button, Delay)>,
     image: Arc<Mutex<Vec<u8>>>,
     image2: Arc<Mutex<Vec<u8>>>,
+    found: Arc<Mutex<crate::vision::found::FoundToggle>>,
     mode: ResponseMode,
     default_arg: TransitionArg
 }
@@ -77,6 +78,7 @@ pub struct Shaoooh {
     error_tx: Arc<broadcast::Sender<ShaooohError>>,
     image: Arc<Mutex<Vec<u8>>>,
     image2: Arc<Mutex<Vec<u8>>>,
+    found: Arc<Mutex<crate::vision::found::FoundToggle>>,
     config: Config,
     atomic: Arc<AtomicBool>,
 }
@@ -109,6 +111,7 @@ impl Shaoooh {
         let (conn_tx, conn_rx) = watch::channel(false);
         let image_mutex = Arc::new(Mutex::new(Vec::new()));
         let image_mutex2 = Arc::new(Mutex::new(Vec::new()));
+        let found_mutex = Arc::new(Mutex::new(crate::vision::found::FoundToggle::new()));
         let atomic = Arc::new(AtomicBool::new(true));
         // RX will subscribe later from TX reference
         let (error_tx_chnl, _error_rx) = broadcast::channel(32);
@@ -133,6 +136,7 @@ impl Shaoooh {
             button_tx,
             image: image_mutex.clone(),
             image2: image_mutex2.clone(),
+            found: found_mutex.clone(),
             mode,
             default_arg
         };
@@ -146,6 +150,7 @@ impl Shaoooh {
             error_tx,
             image: image_mutex,
             image2: image_mutex2,
+            found: found_mutex,
             config,
             atomic,
         }
@@ -161,6 +166,8 @@ impl Shaoooh {
             .route("/api/button", post(post_button))
             .route("/api/frame", get(get_frame))
             .route("/api/frame2", get(get_frame2))
+            .route("/api/found", get(get_found))
+            .route("/api/found-last", get(get_found_last))
             .route("/api/mode", get(get_mode))
             .route("/api/default", get(get_default_arg))
             .with_state(state)
@@ -395,6 +402,11 @@ impl Shaoooh {
                 if let Ok(mut img_wr) = self.image2.try_lock() {
                     img_wr.clear();
                     img_wr.extend(vision.read_frame2());
+                }
+                if vision.new_found() {
+                    if let Ok(mut found_guard) = self.found.try_lock() {
+                        found_guard.update(vision.read_found());
+                    }
                 }
             } else if !self.rx.is_closed() {
                 log::warn!("Failed to process frame");
@@ -728,7 +740,7 @@ async fn get_frame(State(state): State<ApiState>) -> impl IntoResponse {
         (StatusCode::OK, headers, (*img_rd).clone())
     } else {
         let vec = Vec::new();
-        (StatusCode::INTERNAL_SERVER_ERROR, headers, vec.clone())
+        (StatusCode::INTERNAL_SERVER_ERROR, headers, vec)
     }
 }
 
@@ -746,7 +758,43 @@ async fn get_frame2(State(state): State<ApiState>) -> impl IntoResponse {
         (StatusCode::OK, headers, (*img_rd).clone())
     } else {
         let vec = Vec::new();
-        (StatusCode::INTERNAL_SERVER_ERROR, headers, vec.clone())
+        (StatusCode::INTERNAL_SERVER_ERROR, headers, vec)
+    }
+}
+
+#[axum::debug_handler]
+async fn get_found(State(state): State<ApiState>) -> impl IntoResponse {
+    let headers = [
+        (header::CONTENT_TYPE, "image/png"),
+        (
+            header::CACHE_CONTROL,
+            "no-cache, must-revalidate, max-age=0, no-store",
+        ),
+    ];
+
+    if let Ok(img_toggle) = state.found.lock() {
+        (StatusCode::OK, headers, (*img_toggle).latest().to_vec())
+    } else {
+        let vec = Vec::new();
+        (StatusCode::INTERNAL_SERVER_ERROR, headers, vec)
+    }
+}
+
+#[axum::debug_handler]
+async fn get_found_last(State(state): State<ApiState>) -> impl IntoResponse {
+    let headers = [
+        (header::CONTENT_TYPE, "image/png"),
+        (
+            header::CACHE_CONTROL,
+            "no-cache, must-revalidate, max-age=0, no-store",
+        ),
+    ];
+
+    if let Ok(img_toggle) = state.found.lock() {
+        (StatusCode::OK, headers, (*img_toggle).last().to_vec())
+    } else {
+        let vec = Vec::new();
+        (StatusCode::INTERNAL_SERVER_ERROR, headers, vec)
     }
 }
 

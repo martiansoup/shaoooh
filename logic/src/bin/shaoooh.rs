@@ -13,7 +13,7 @@ fn get_config() -> shaoooh::app::Config {
 }
 
 fn default_arg() -> shaoooh::app::TransitionArg {
-    shaoooh::app::TransitionArg::new("Articuno", 144, shaoooh::app::Game::FireRedLeafGreen, shaoooh::app::Method::SoftResetEncounter)
+    shaoooh::app::TransitionArg::new("Zapdos", 145, shaoooh::app::Game::FireRedLeafGreen, shaoooh::app::Method::SoftResetEncounter)
 }
 
 fn main() {

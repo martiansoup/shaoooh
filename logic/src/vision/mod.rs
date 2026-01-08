@@ -6,6 +6,7 @@ mod ds_vision;
 mod nop_vision;
 mod ntr;
 mod utils;
+pub mod found;
 
 pub use bishaan_vision::{BishaanVision, BishaanVisionSocket};
 pub use ds_vision::Vision;
@@ -269,4 +270,6 @@ pub trait BotVision {
     fn process_next_frame(&mut self, processing: &[Processing]) -> Option<Vec<ProcessingResult>>;
     fn read_frame(&self) -> &[u8];
     fn read_frame2(&self) -> &[u8];
+    fn read_found(&mut self) -> &[u8];
+    fn new_found(&self) -> bool;
 }
