@@ -22,6 +22,8 @@ enum Detection {
     PressA,
     Detect,
     Done,
+    DlyScreen,
+    SetFound,
     Run1,
     Run2,
     Run3,
@@ -109,7 +111,7 @@ impl DetectionResolver {
         } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetEncounter {
             Some(Self::gen7_legend(builder))
         } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetGift {
-            Some(Self::gen7_gift(builder))
+            Self::gen7_gift(builder)
         } else if *game == Game::UltraSunUltraMoon && *method == Method::RandomEncounter {
             Some(Self::gen7_random_encounter(builder))
         } else if *game == Game::HeartGoldSoulSilver
@@ -387,6 +389,7 @@ impl DetectionResolver {
             382 => 16975, // Kyogre
             383 => 15700, // Groudon
             380 => 10500, // Latias
+            716 => 13350, // Xerneas
             717 => 16750, // Yveltal
             797 => 20460, // Celesteela
             799 => 21070, // Guzzlord
@@ -394,6 +397,7 @@ impl DetectionResolver {
             249 => 13610, // Lugia
             643 => 13370, // Reshiram
             644 => 14400, // Zekrom
+            646 => 13350, // Kyurem
             488 => 10400, // Cresselia
             150 => 13750, // Mewtwo
             _ => 100,
@@ -425,8 +429,13 @@ impl DetectionResolver {
                     Processing::USUMBottomScreen(5.0),
                 ),
                 StateDescription::simple_process_state_no_output_end_timer(
-                    Branch2::new(Detection::Detect, Detection::Run1),
+                    Branch2::new(Detection::Detect, Detection::DlyScreen),
                     Processing::USUMBottomScreen(60.0),
+                ),
+                StateDescription::linear_state(Detection::DlyScreen, vec![], 0..250),
+                StateDescription::simple_process_state_no_output(
+                    Branch2::new(Detection::SetFound, Detection::Run1),
+                    Processing::SetFound(true),
                 ),
                 StateDescription::branch_last_delay_state_plus_range(
                     Branch3::new(Detection::Run1, Detection::Toggle, Detection::Run2),
@@ -454,8 +463,13 @@ impl DetectionResolver {
                     Processing::USUMBottomScreen(5.0),
                 ),
                 StateDescription::simple_process_state_no_output_end_timer(
-                    Branch2::new(Detection::Detect, Detection::Run1),
+                    Branch2::new(Detection::Detect, Detection::DlyScreen),
                     Processing::USUMBottomScreen(60.0),
+                ),
+                StateDescription::linear_state(Detection::DlyScreen, vec![], 0..250),
+                StateDescription::simple_process_state_no_output(
+                    Branch2::new(Detection::SetFound, Detection::Run1),
+                    Processing::SetFound(true),
                 ),
                 StateDescription::branch_last_delay_state(
                     Branch3::new(Detection::Run1, Detection::Toggle, Detection::Run2),
@@ -786,7 +800,7 @@ impl DetectionResolver {
         builder
     }
 
-    pub fn gen7_gift(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+    pub fn gen7_gift(mut builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
         let game = builder.game();
         let method = builder.method();
 
@@ -794,76 +808,105 @@ impl DetectionResolver {
         // Mash B for 16 seconds
         // Detect shiny star
         // Back to start
-        let states = vec![
-            StateDescription::simple_sprite_state_3ds(
-                Branch3::new(
-                    StickyState::DetectSprite,
-                    StickyState::Done,
-                    StickyState::StartMashB,
+        if builder.target() == 803 {
+            // Poipole
+            let states = vec![
+                StateDescription::simple_sprite_state_3ds(
+                    Branch3::new(
+                        StickyState::DetectSprite,
+                        StickyState::Done,
+                        StickyState::StartMashB,
+                    ),
+                    game,
+                    method,
+                    builder.target(),
+                    builder.target(),
                 ),
-                game,
-                method,
-                builder.target(),
-                builder.target(),
-            ),
-            StateDescription::start_timer_state(StickyState::StartMashB, StickyState::MashB),
-            StateDescription::linear_state(
-                StickyState::MashB,
-                vec![HuntStateOutput::button(Button::B)],
-                500..500,
-            ),
-            StateDescription::branch_delay_state(
-                Branch3::new(
-                    StickyState::CheckTimer,
-                    StickyState::OpenMenu,
+                StateDescription::start_timer_state(StickyState::StartMashB, StickyState::MashB),
+                StateDescription::linear_state(
                     StickyState::MashB,
+                    vec![HuntStateOutput::button(Button::B)],
+                    500..500,
                 ),
-                18000,
-            ),
-            StateDescription::linear_state(
-                StickyState::OpenMenu,
-                vec![HuntStateOutput::button(Button::X)],
-                2000..2000,
-            ),
-            StateDescription::linear_state(
-                StickyState::ToParty,
-                vec![HuntStateOutput::button(Button::A)],
-                2000..2000,
-            ),
-            StateDescription::linear_state(
-                StickyState::Select,
-                vec![HuntStateOutput::button(Button::A)],
-                2000..2000,
-            ),
-            StateDescription::linear_state(
-                StickyState::OpenSummary,
-                vec![HuntStateOutput::button(Button::A)],
-                3000..3000,
-            ),
-            StateDescription::linear_state(
-                StickyState::ToLast,
-                vec![HuntStateOutput::button(Button::Up)],
-                2000..2000,
-            ),
-            StateDescription::simple_process_state_no_output3(
-                Branch3::new(
-                    StickyState::DetectStar,
-                    StickyState::FoundTarget,
+                StateDescription::branch_delay_state(
+                    Branch3::new(
+                        StickyState::CheckTimer,
+                        StickyState::OpenMenu,
+                        StickyState::MashB,
+                    ),
+                    18000,
+                ),
+                StateDescription::linear_state(
+                    StickyState::OpenMenu,
+                    vec![HuntStateOutput::button(Button::X)],
+                    2000..2000,
+                ),
+                StateDescription::linear_state(
+                    StickyState::ToParty,
+                    vec![HuntStateOutput::button(Button::A)],
+                    2000..2000,
+                ),
+                StateDescription::linear_state(
+                    StickyState::Select,
+                    vec![HuntStateOutput::button(Button::A)],
+                    2000..2000,
+                ),
+                StateDescription::linear_state(
+                    StickyState::OpenSummary,
+                    vec![HuntStateOutput::button(Button::A)],
+                    3000..3000,
+                ),
+                StateDescription::linear_state(
+                    StickyState::ToLast,
+                    vec![HuntStateOutput::button(Button::Up)],
+                    2000..2000,
+                ),
+                StateDescription::simple_process_state_no_output3(
+                    Branch3::new(
+                        StickyState::DetectStar,
+                        StickyState::FoundTarget,
+                        StickyState::StopHeartbeat,
+                    ),
+                    Processing::USUM_SHINY_STAR,
+                ),
+                StateDescription::found_target_state(StickyState::FoundTarget, StickyState::Done),
+                StateDescription::deadend_state(StickyState::Done),
+                StateDescription::clear_atomic_state(
                     StickyState::StopHeartbeat,
+                    StickyState::NextAttempt,
                 ),
-                Processing::USUM_SHINY_STAR,
-            ),
-            StateDescription::found_target_state(StickyState::FoundTarget, StickyState::Done),
-            StateDescription::deadend_state(StickyState::Done),
-            StateDescription::clear_atomic_state(
-                StickyState::StopHeartbeat,
-                StickyState::NextAttempt,
-            ),
-            StateDescription::linear_state(StickyState::NextAttempt, vec![], 500..2000),
-        ];
+                StateDescription::linear_state(StickyState::NextAttempt, vec![], 500..2000),
+            ];
 
-        builder.add_states(states);
-        builder
+            builder.add_states(states);
+            Some(builder)
+        } else if builder.target() == 772 {
+            // Type:Null
+            let states = vec![
+                StateDescription::simple_sprite_state_3ds(
+                    Branch3::new(
+                        StickyState::DetectSprite,
+                        StickyState::Done,
+                        StickyState::StopHeartbeat,
+                    ),
+                    game,
+                    method,
+                    builder.target(),
+                    builder.target(),
+                ),
+                StateDescription::deadend_state(StickyState::Done),
+                StateDescription::clear_atomic_state(
+                    StickyState::StopHeartbeat,
+                    StickyState::NextAttempt,
+                ),
+                StateDescription::linear_state(StickyState::NextAttempt, vec![], 500..2000),
+            ];
+
+            builder.add_states(states);
+            Some(builder)
+        } else {
+            None
+        }
     }
 
     pub fn gen7_random_encounter(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {

@@ -41,6 +41,8 @@ pub struct BishaanVision {
     rx_bottom: watch::Receiver<Mat>,
     encoded_top: Vector<u8>,
     encoded_bottom: Vector<u8>,
+    found: Vector<u8>,
+    found_updated: bool,
     ref_shiny_star: Mat,
     // Reference, Shiny, Mask
     reference: HashMap<u32, (Mat, Mat, Mat)>,
@@ -110,12 +112,12 @@ impl BotVision for BishaanVision {
     }
 
     fn read_found(&mut self) -> &[u8] {
-        // TODO
-        self.encoded_top.as_slice()
+        self.found_updated = false;
+        self.found.as_slice()
     }
 
     fn new_found(&self) -> bool {
-        false
+        self.found_updated
     }
 }
 
@@ -141,6 +143,8 @@ impl BishaanVision {
             rx_bottom,
             encoded_top: Vector::default(),
             encoded_bottom: Vector::default(),
+            found: Vector::default(),
+            found_updated: false,
             ref_shiny_star,
             reference: HashMap::new(),
             game: Game::None,
@@ -431,6 +435,10 @@ impl BishaanVision {
         opencv::imgproc::rectangle(&mut for_rect, rect, 0.0.into(), 1, LINE_8, 0)
             .expect("Failed to select rectangle");
 
+        self.found_updated = true;
+        opencv::imgcodecs::imencode(".png", &for_rect, &mut self.found, &Vector::new())
+            .expect("Failed to encode frame");
+
         // Display current find TODO should this be included?
         highgui::imshow("FOUND", &for_rect).expect("Failed to show found window");
         //Self::show_window(Self::FOUND_WIN, &for_rect);
@@ -447,6 +455,19 @@ impl BishaanVision {
         res
     }
 
+    fn set_found(&mut self, frame: &Mat, top: bool) -> ProcessingResult {
+        self.found_updated = true;
+        opencv::imgcodecs::imencode(".png", &frame, &mut self.found, &Vector::new())
+            .expect("Failed to encode frame");
+
+        ProcessingResult {
+            process: Processing::SetFound(top),
+            met: true,
+            species: 0,
+            shiny: false,
+        }
+    }
+
     fn process(
         &mut self,
         process: &Processing,
@@ -457,6 +478,13 @@ impl BishaanVision {
             Processing::USUMShinyStar(target) => self.shiny_star(top_frame, *target),
             Processing::USUMBottomScreen(threshold) => self.bottom(bot_frame, *threshold, false),
             Processing::USUMBottomScreenInv(threshold) => self.bottom(bot_frame, *threshold, true),
+            Processing::SetFound(top) => {
+                if *top {
+                    self.set_found(top_frame, *top)
+                } else {
+                    self.set_found(bot_frame, *top)
+                }
+            }
             // Assumes top_frame for now
             Processing::Sprite3DS(game, species) => {
                 self.match_sprite(game, species, &false, top_frame)

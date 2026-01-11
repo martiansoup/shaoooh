@@ -370,21 +370,7 @@ impl Vision {
             }
         }
 
-        // Display current find TODO should this be included?
-        Self::show_window(Self::FOUND_WIN, &for_rect);
-        Self::transform_window(Self::FOUND_WIN);
-
-        // Save to encoded frame
-        opencv::imgcodecs::imencode(".png", &for_rect, &mut self.found, &Vector::new())
-            .expect("Failed to encode frame");
-        self.found_updated = true;
-
-        if !self.found_mat.empty() {
-            Self::show_window(Self::FOUND_LAST_WIN, &self.found_mat);
-            Self::transform_window(Self::FOUND_LAST_WIN);
-        }
-
-        self.found_mat = for_rect.clone();
+        let _ = self.set_found(&for_rect, false);
 
         let is_shiny = is_shiny_conv;
         let process = if threshold == 0.0 {
@@ -549,6 +535,30 @@ impl Vision {
         }
     }
 
+    fn set_found(&mut self, frame: &Mat, top: bool) -> ProcessingResult {
+        Self::show_window(Self::FOUND_WIN, &frame);
+        Self::transform_window(Self::FOUND_WIN);
+
+        // Save to encoded frame
+        opencv::imgcodecs::imencode(".png", &frame, &mut self.found, &Vector::new())
+            .expect("Failed to encode frame");
+        self.found_updated = true;
+
+        if !self.found_mat.empty() {
+            Self::show_window(Self::FOUND_LAST_WIN, &self.found_mat);
+            Self::transform_window(Self::FOUND_LAST_WIN);
+        }
+
+        self.found_mat = frame.clone();
+
+        ProcessingResult {
+            process: Processing::SetFound(top),
+            met: true,
+            species: 0,
+            shiny: false,
+        }
+    }
+
     fn process(&mut self, process: &Processing, frame: &Mat) -> ProcessingResult {
         match process {
             Processing::Sprite(game, species_list, flipped) => {
@@ -562,6 +572,7 @@ impl Vision {
             Processing::ColourChannelDetect(settings) => {
                 self.colour_channel_detect(settings, frame)
             }
+            Processing::SetFound(top) => self.set_found(frame, *top),
             Processing::USUMShinyStar(_) => panic!("USUM Shiny Star incompatible with DS"),
             Processing::USUMBottomScreen(_) => panic!("USUM Bottom screen incompatible with DS"),
             Processing::USUMBottomScreenInv(_) => panic!("USUM Bottom screen incompatible with DS"),

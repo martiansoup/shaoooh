@@ -138,6 +138,10 @@ enum LoopState {
     ToggleBack,
     PressA2,
     Done,
+    Press1,
+    Press2,
+    Press3,
+    Press4,
 }
 
 #[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
@@ -1273,6 +1277,33 @@ impl EncounterTypeResolver {
                     3000..3000,
                 ),
                 StateDescription::linear_state_no_delay(LoopState::Done, vec![]),
+            ];
+
+            builder.add_states(states_get);
+        } else if builder.target() == 772 {
+            // Type:Null
+            let states_get = vec![
+                StateDescription::linear_state(LoopState::ResetCounter, vec![], 2500..5000),
+                StateDescription::linear_state(
+                    LoopState::Press1,
+                    vec![HuntStateOutput::button(Button::A)],
+                    3500..3500,
+                ),
+                StateDescription::linear_state(
+                    LoopState::Press2,
+                    vec![HuntStateOutput::button(Button::A)],
+                    3500..3500,
+                ),
+                StateDescription::linear_state(
+                    LoopState::Press3,
+                    vec![HuntStateOutput::button(Button::A)],
+                    6500..6500,
+                ),
+                StateDescription::linear_state(
+                    LoopState::Press4,
+                    vec![HuntStateOutput::button(Button::A)],
+                    3500..3500,
+                ),
             ];
 
             builder.add_states(states_get);

@@ -84,6 +84,7 @@ pub enum Processing {
     USUMShinyStar(u32),
     USUMBottomScreen(f64),
     USUMBottomScreenInv(f64),
+    SetFound(bool),
 }
 
 impl Processing {
