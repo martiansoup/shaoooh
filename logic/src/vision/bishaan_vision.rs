@@ -43,6 +43,7 @@ pub struct BishaanVision {
     encoded_bottom: Vector<u8>,
     found: Vector<u8>,
     found_updated: bool,
+    last_found: Option<Mat>,
     ref_shiny_star: Mat,
     // Reference, Shiny, Mask
     reference: HashMap<u32, (Mat, Mat, Mat)>,
@@ -145,6 +146,7 @@ impl BishaanVision {
             encoded_bottom: Vector::default(),
             found: Vector::default(),
             found_updated: false,
+            last_found: None,
             ref_shiny_star,
             reference: HashMap::new(),
             game: Game::None,
@@ -439,6 +441,44 @@ impl BishaanVision {
         opencv::imgcodecs::imencode(".png", &for_rect, &mut self.found, &Vector::new())
             .expect("Failed to encode frame");
 
+        let mut too_diff = false;
+
+        // If only a single target compare against previous sprite
+        if species.len() == 1 {
+            if let Some(last_found) = &self.last_found {
+                let cur_subset = for_rect.roi(rect).expect("Failed to crop").clone_pointee();
+                let last_subset = last_found
+                    .roi(rect)
+                    .expect("Failed to crop")
+                    .clone_pointee();
+
+                let mut diff = Mat::default();
+                opencv::core::absdiff(&cur_subset, &last_subset, &mut diff);
+
+                let sum = opencv::core::sum_elems(&diff);
+
+                match sum {
+                    Ok(v) => {
+                        let tot = v[0] + v[1] + v[2];
+                        let area: f64 = rect.area().into();
+                        let norm = tot / area;
+
+                        if norm > 25.0 {
+                            too_diff = true;
+                            log::info!("normalized diff = {} (DIFFERENCE)", norm);
+                        } else {
+                            log::info!("normalized diff = {} (no difference)", norm);
+                        }
+                    }
+                    Err(e) => {
+                        log::error!("Failed to get sum: {}", e);
+                    }
+                }
+            }
+
+            self.last_found = Some(for_rect.clone());
+        }
+
         // Display current find TODO should this be included?
         highgui::imshow("FOUND", &for_rect).expect("Failed to show found window");
         //Self::show_window(Self::FOUND_WIN, &for_rect);
@@ -447,9 +487,9 @@ impl BishaanVision {
         let is_shiny = is_shiny_conv;
         let res = ProcessingResult {
             process: Processing::Sprite3DS(game.clone(), species.clone()),
-            met: found_species != 0,
+            met: found_species != 0 || too_diff,
             species: found_species,
-            shiny: is_shiny,
+            shiny: is_shiny || too_diff,
         };
         log::info!("Process results {:?}", res);
         res
