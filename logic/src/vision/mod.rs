@@ -3,10 +3,10 @@ use crate::app::states::Game;
 mod bishaan_vision;
 pub mod compat;
 mod ds_vision;
+pub mod found;
 mod nop_vision;
 mod ntr;
 mod utils;
-pub mod found;
 
 pub use bishaan_vision::{BishaanVision, BishaanVisionSocket};
 pub use ds_vision::Vision;
@@ -248,6 +248,42 @@ impl Processing {
         s_hi: 255.0,
         v_hi: 255.0,
         num_thresh: 10,
+    });
+    pub const RS_FISHING_ACTIVE: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 23,
+        y: 153,
+        w: 213,
+        h: 17,
+        col_thresh: 210.0,
+        num_thresh: 3010,
+        invert: false,
+    });
+    pub const RS_FISHING_BITE: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 23,
+        y: 153,
+        w: 213,
+        h: 17,
+        col_thresh: 210.0,
+        num_thresh: 10,
+        invert: true,
+    });
+    pub const RS_FISHING_ON_HOOK: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 126,
+        y: 138,
+        w: 26,
+        h: 15,
+        col_thresh: 210.0,
+        num_thresh: 1,
+        invert: true,
+    });
+    pub const RS_FISHING_NO_NIBBLE: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 22,
+        y: 138,
+        w: 9,
+        h: 14,
+        col_thresh: 210.0,
+        num_thresh: 1,
+        invert: true,
     });
 }
 

@@ -65,7 +65,7 @@ struct ApiState {
     image2: Arc<Mutex<Vec<u8>>>,
     found: Arc<Mutex<crate::vision::found::FoundToggle>>,
     mode: ResponseMode,
-    default_arg: TransitionArg
+    default_arg: TransitionArg,
 }
 
 pub struct Shaoooh {
@@ -138,7 +138,7 @@ impl Shaoooh {
             image2: image_mutex2.clone(),
             found: found_mutex.clone(),
             mode,
-            default_arg
+            default_arg,
         };
         Self {
             api: Some(api),
@@ -267,12 +267,11 @@ impl Shaoooh {
             && *transition != Transition::FalseDetect)
             || (self.app.state != HuntState::FoundTarget
                 && from == HuntState::FoundTarget
-                && *transition != Transition::Fail
                 && *transition != Transition::FalseDetect);
         if phased {
             // If phased transition - species was unknown as came via FoundTarget, has to be fixed manually
             if *transition == Transition::Phased {
-              log::warn!("Unknown species for phase, needs manual update");
+                log::warn!("Unknown species for phase, needs manual update");
             }
             let phase = Phase {
                 caught: *transition == Transition::Caught,

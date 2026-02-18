@@ -101,7 +101,7 @@ impl DetectionResolver {
             }
         } else if *game == Game::DiamondPearl && *method == Method::SoftResetEncounter {
             match builder.target() {
-                486 | 487 => Some(Self::gen4_legend(builder)),
+                442 | 486 | 487 => Some(Self::gen4_legend(builder)),
                 _ => None,
             }
         } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetEncounter {
@@ -338,6 +338,7 @@ impl DetectionResolver {
 
     pub fn gen4_legend(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
         let duration = match builder.target() {
+            442 => 8500, // Spiritomb
             486 => 7750, // Regigigas
             487 => 6600, // Giratina
             _ => 5000,

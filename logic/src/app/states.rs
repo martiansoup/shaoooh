@@ -129,7 +129,7 @@ impl TransitionArg {
             name: name.to_string(),
             species,
             game,
-            method
+            method,
         }
     }
 }

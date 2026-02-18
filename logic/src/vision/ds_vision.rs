@@ -125,7 +125,7 @@ impl Vision {
     };
     const FOUND_LAST_WIN: WinInfo = WinInfo {
         name: "found_last",
-        x: 32+256,
+        x: 32 + 256,
         y: 464,
         scale: 1,
     };
@@ -377,14 +377,13 @@ impl Vision {
         opencv::imgcodecs::imencode(".png", &for_rect, &mut self.found, &Vector::new())
             .expect("Failed to encode frame");
         self.found_updated = true;
-        
+
         if !self.found_mat.empty() {
             Self::show_window(Self::FOUND_LAST_WIN, &self.found_mat);
             Self::transform_window(Self::FOUND_LAST_WIN);
         }
 
         self.found_mat = for_rect.clone();
-
 
         let is_shiny = is_shiny_conv;
         let res = ProcessingResult {
@@ -424,7 +423,10 @@ impl Vision {
 
         let count = opencv::core::count_non_zero(&thresholded).unwrap();
         let met = count > settings.num_thresh;
-        //log::info!("got {} / {}", count, settings.num_thresh);
+        //if settings.invert {
+        //    log::info!("got {} / {}", count, settings.num_thresh);
+        //    highgui::imshow("FISH", &thresholded);
+        //}
         // for i in 150..250 {
         //    let mut thresholded = Mat::default();
 
@@ -560,5 +562,4 @@ impl Vision {
             Processing::Sprite3DS(..) => panic!("Sprite3DS incompatible with DS"),
         }
     }
-
 }

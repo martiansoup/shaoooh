@@ -1,8 +1,7 @@
-
 pub struct FoundToggle {
     entry0: Vec<u8>,
     entry1: Vec<u8>,
-    toggle: bool
+    toggle: bool,
 }
 
 impl FoundToggle {
@@ -16,7 +15,7 @@ impl FoundToggle {
         Self {
             entry0: frame.clone(),
             entry1: frame,
-            toggle: false
+            toggle: false,
         }
     }
 

@@ -170,6 +170,21 @@ enum UtilityState {
     Done,
 }
 
+#[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
+enum FishingStates {
+    TryFish,
+    WaitFishActive,
+    ShouldPressA,
+    Delay,
+    PressA,
+    CheckOnHook,
+    CheckNoNibble,
+    NoNibble,
+    ToStart,
+    StartEncounter,
+    WaitEncounterReady,
+    ToDetect,
+}
 pub struct EncounterTypeResolver {}
 
 impl EncounterTypeResolver {
@@ -385,7 +400,11 @@ impl EncounterTypeResolver {
             builder.add_states(delay_state);
         }
 
-        if builder.target() == 374 || builder.target() == 138 || builder.target() == 140 || builder.target() == 142 {
+        if builder.target() == 374
+            || builder.target() == 138
+            || builder.target() == 140
+            || builder.target() == 142
+        {
             // Beldum/Fossil Sequence
             let states2 = vec![
                 StateDescription::linear_state(
@@ -563,15 +582,21 @@ impl EncounterTypeResolver {
             ];
 
             builder.add_states(states2);
-        } else if species >= 144 && species <= 146 {
-            // Articuno/Zapdos/Moltres
+        } else if species >= 144 && species <= 146 || species == 150 {
+            // Articuno/Zapdos/Moltres/Mewtwo
+
+            let delay = if species == 150 {
+                2000..2000
+            } else {
+                1500..1500
+            };
             let states2 = vec![
                 // Extra delay to try to improve randomness space
                 StateDescription::linear_state(StartSoftResetEncounter::Delay, vec![], 2500..15000),
                 StateDescription::linear_state(
                     StartSoftResetEncounter::Press1,
                     vec![HuntStateOutput::button(Button::A)],
-                    1500..1500,
+                    delay,
                 ),
                 StateDescription::linear_state(
                     StartSoftResetEncounter::Press2,
@@ -690,7 +715,56 @@ impl EncounterTypeResolver {
                 builder.add_states(states2);
                 Some(builder)
             }
-            486 | 487 => {
+            442 => {
+                // Spiritomb
+                let states2 = vec![
+                    StateDescription::linear_state(
+                        StartSoftResetEncounter::SkipMemory,
+                        vec![HuntStateOutput::button(Button::Start)],
+                        1500..2000,
+                    ),
+                    StateDescription::linear_state(
+                        StartSoftResetEncounter::Delay,
+                        vec![HuntStateOutput::button(Button::B)],
+                        1500..2000,
+                    ),
+                    StateDescription::simple_process_state(
+                        Branch3::new(
+                            StartSoftResetEncounter::Press1,
+                            StartSoftResetEncounter::IsEntering,
+                            StartSoftResetEncounter::Press2,
+                        ),
+                        Processing::DP_START_ENCOUNTER,
+                        HuntStateOutput::button(Button::A),
+                        100..100,
+                    ),
+                    StateDescription::simple_process_state(
+                        Branch3::new(
+                            StartSoftResetEncounter::Press2,
+                            StartSoftResetEncounter::IsEntering,
+                            StartSoftResetEncounter::Press1,
+                        ),
+                        Processing::DP_START_ENCOUNTER,
+                        HuntStateOutput::button(Button::A),
+                        100..100,
+                    ),
+                    StateDescription::simple_process_state_no_output(
+                        Branch2::new(
+                            StartSoftResetEncounter::IsEntering,
+                            StartSoftResetEncounter::Entering,
+                        ),
+                        Processing::DP_START_ENCOUNTER,
+                    ),
+                    StateDescription::linear_state_no_delay(
+                        StartSoftResetEncounter::Entering,
+                        vec![],
+                    ),
+                ];
+
+                builder.add_states(states2);
+                Some(builder)
+            }
+            442 | 486 | 487 => {
                 // Legendaries
                 // Needs Setup/Decide/Decr
                 // Count button press method
@@ -818,7 +892,76 @@ impl EncounterTypeResolver {
         builder
     }
 
+    pub fn rs_fishing(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        let states = vec![
+            StateDescription::linear_state(
+                FishingStates::TryFish,
+                vec![HuntStateOutput::button(Button::Select)],
+                100..100,
+            ),
+            StateDescription::simple_process_state_no_output(
+                Branch2::new(FishingStates::WaitFishActive, FishingStates::ShouldPressA),
+                Processing::RS_FISHING_ACTIVE,
+            ),
+            StateDescription::simple_process_state_no_output3(
+                Branch3::new(
+                    FishingStates::ShouldPressA,
+                    FishingStates::PressA,
+                    FishingStates::Delay,
+                ),
+                Processing::RS_FISHING_BITE,
+            ),
+            StateDescription::linear_state(
+                FishingStates::PressA,
+                vec![HuntStateOutput::button(Button::A)],
+                500..500,
+            ),
+            StateDescription::linear_state(FishingStates::Delay, vec![], 50..50),
+            StateDescription::simple_process_state_no_output3(
+                Branch3::new(
+                    FishingStates::CheckOnHook,
+                    FishingStates::StartEncounter,
+                    FishingStates::CheckNoNibble,
+                ),
+                Processing::RS_FISHING_ON_HOOK,
+            ),
+            StateDescription::linear_state(
+                FishingStates::NoNibble,
+                vec![HuntStateOutput::button(Button::A)],
+                2500..3500,
+            ),
+            StateDescription::branch_state(FishingStates::ToStart, FishingStates::TryFish, 50..50),
+            StateDescription::simple_process_state_no_output3(
+                Branch3::new(
+                    FishingStates::CheckNoNibble,
+                    FishingStates::NoNibble,
+                    FishingStates::ShouldPressA,
+                ),
+                Processing::RS_FISHING_NO_NIBBLE,
+            ),
+            StateDescription::linear_state(
+                FishingStates::StartEncounter,
+                vec![HuntStateOutput::button(Button::A)],
+                100..100,
+            ),
+            StateDescription::simple_process_state_no_output(
+                Branch2::new(FishingStates::WaitEncounterReady, FishingStates::ToDetect),
+                Processing::FRLG_START_ENCOUNTER,
+            ),
+            StateDescription::linear_state(FishingStates::ToDetect, vec![], 50..50),
+        ];
+
+        builder.add_states(states);
+
+        builder
+    }
+
     pub fn rs_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        if builder.target() == 320 {
+            // Wailmer
+            return Self::rs_fishing(builder);
+        }
+
         let states = vec![
             StateDescription::choose_toggle_state(
                 TryGetEncounter::Init,
