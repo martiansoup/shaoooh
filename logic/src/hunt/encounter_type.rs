@@ -1188,7 +1188,7 @@ impl EncounterTypeResolver {
         ];
         builder.add_states(states);
         match target {
-            797 | 799 => builder.add_states(states_press),
+            793 | 794 | 795 | 796 | 797 | 798 | 799 => builder.add_states(states_press),
             806 => builder.add_states(states_honey),
             _ => builder.add_states(states_walk),
         }

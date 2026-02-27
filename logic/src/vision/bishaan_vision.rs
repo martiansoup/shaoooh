@@ -463,7 +463,7 @@ impl BishaanVision {
                         let area: f64 = rect.area().into();
                         let norm = tot / area;
 
-                        if norm > 25.0 {
+                        if norm > 0.0 {
                             too_diff = true;
                             log::info!("normalized diff = {} (DIFFERENCE)", norm);
                         } else {

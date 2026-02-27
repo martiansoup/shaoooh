@@ -63,6 +63,7 @@ enum CheckSummary {
 #[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
 enum StickyState {
     DetectSprite,
+    PressB,
     StartMashB,
     MashB,
     CheckTimer,
@@ -383,23 +384,25 @@ impl DetectionResolver {
             144 => 16750, // Articuno
             145 => 16750, // Zapdos
             146 => 16750, // Moltres
+            150 => 13750, // Mewtwo
             243 => 13350, // Raikou
             244 => 16650, // Entei
             245 => 13350, // Suicune
+            249 => 13610, // Lugia
             382 => 16975, // Kyogre
             383 => 15700, // Groudon
+            384 => 13350, // Rayquaza
             380 => 10500, // Latias
-            716 => 13350, // Xerneas
-            717 => 16750, // Yveltal
-            797 => 20460, // Celesteela
-            799 => 21070, // Guzzlord
-            806 => 16390, // Blacephalon
-            249 => 13610, // Lugia
+            488 => 10400, // Cresselia
             643 => 13370, // Reshiram
             644 => 14400, // Zekrom
             646 => 13350, // Kyurem
-            488 => 10400, // Cresselia
-            150 => 13750, // Mewtwo
+            716 => 13350, // Xerneas
+            717 => 16750, // Yveltal
+            794 => 19550, // Buzzwole
+            797 => 20460, // Celesteela
+            799 => 21070, // Guzzlord
+            806 => 16390, // Blacephalon
             _ => 100,
         };
 
@@ -883,10 +886,10 @@ impl DetectionResolver {
         } else if builder.target() == 772 {
             // Type:Null
             let states = vec![
-                StateDescription::simple_sprite_state_3ds(
+                StateDescription::simple_sprite_state_3ds_no_transition(
                     Branch3::new(
                         StickyState::DetectSprite,
-                        StickyState::Done,
+                        StickyState::PressB, // Think shiny, check party to confirm
                         StickyState::StopHeartbeat,
                     ),
                     game,
@@ -894,6 +897,59 @@ impl DetectionResolver {
                     builder.target(),
                     builder.target(),
                 ),
+                StateDescription::linear_state(
+                    StickyState::PressB,
+                    vec![HuntStateOutput::button(Button::B)],
+                    500..500,
+                ),
+                StateDescription::start_timer_state(StickyState::StartMashB, StickyState::MashB),
+                StateDescription::linear_state(
+                    StickyState::MashB,
+                    vec![HuntStateOutput::button(Button::A)],
+                    500..500,
+                ),
+                StateDescription::branch_delay_state(
+                    Branch3::new(
+                        StickyState::CheckTimer,
+                        StickyState::OpenMenu,
+                        StickyState::MashB,
+                    ),
+                    37000,
+                ),
+                StateDescription::linear_state(
+                    StickyState::OpenMenu,
+                    vec![HuntStateOutput::button(Button::X)],
+                    2000..2000,
+                ),
+                StateDescription::linear_state(
+                    StickyState::ToParty,
+                    vec![HuntStateOutput::button(Button::A)],
+                    2000..2000,
+                ),
+                StateDescription::linear_state(
+                    StickyState::Select,
+                    vec![HuntStateOutput::button(Button::A)],
+                    2000..2000,
+                ),
+                StateDescription::linear_state(
+                    StickyState::OpenSummary,
+                    vec![HuntStateOutput::button(Button::A)],
+                    3000..3000,
+                ),
+                StateDescription::linear_state(
+                    StickyState::ToLast,
+                    vec![HuntStateOutput::button(Button::Up)],
+                    2000..2000,
+                ),
+                StateDescription::simple_process_state_no_output3(
+                    Branch3::new(
+                        StickyState::DetectStar,
+                        StickyState::FoundTarget,
+                        StickyState::StopHeartbeat,
+                    ),
+                    Processing::USUM_SHINY_STAR,
+                ),
+                StateDescription::found_target_state(StickyState::FoundTarget, StickyState::Done),
                 StateDescription::deadend_state(StickyState::Done),
                 StateDescription::clear_atomic_state(
                     StickyState::StopHeartbeat,

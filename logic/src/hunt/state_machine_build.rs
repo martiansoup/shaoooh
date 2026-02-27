@@ -1205,6 +1205,27 @@ pub fn sprite_state_delay_targets_threshold(
         species: u32,
         target: u32,
     ) -> Self {
+        Self::simple_sprite_state_3ds_inner(branch, game, method, species, target, true)
+    }
+
+    pub fn simple_sprite_state_3ds_no_transition(
+        branch: Branch3<K>,
+        game: &Game,
+        method: &Method,
+        species: u32,
+        target: u32,
+    ) -> Self {
+        Self::simple_sprite_state_3ds_inner(branch, game, method, species, target, false)
+    }
+
+    fn simple_sprite_state_3ds_inner(
+        branch: Branch3<K>,
+        game: &Game,
+        method: &Method,
+        species: u32,
+        target: u32,
+        do_transition: bool,
+    ) -> Self {
         let Branch3 {
             tag,
             to_met,
@@ -1239,26 +1260,42 @@ pub fn sprite_state_delay_targets_threshold(
 
                 if shiny {
                     if found_species == target {
-                        Some(HuntResult {
-                            transition: Some(RequestTransition {
-                                transition: Transition::FoundTarget,
-                                arg: None,
-                            }),
-                            incr_encounters: true,
-                        })
-                    } else {
-                        Some(HuntResult {
-                            transition: Some(RequestTransition {
-                                transition: Transition::FoundNonTarget,
-                                arg: Some(TransitionArg {
-                                    name: String::from(""),
-                                    species: found_species,
-                                    game: game_copy.clone(),
-                                    method: method_copy.clone(),
+                        let transition = if do_transition {
+                            HuntResult {
+                                transition: Some(RequestTransition {
+                                    transition: Transition::FoundTarget,
+                                    arg: None,
                                 }),
-                            }),
-                            incr_encounters: true,
-                        })
+                                incr_encounters: true,
+                            }
+                        } else {
+                            HuntResult {
+                                transition: None,
+                                incr_encounters: true,
+                            }
+                        };
+                        Some(transition)
+                    } else {
+                        let transition = if do_transition {
+                            HuntResult {
+                                transition: Some(RequestTransition {
+                                    transition: Transition::FoundNonTarget,
+                                    arg: Some(TransitionArg {
+                                        name: String::from(""),
+                                        species: found_species,
+                                        game: game_copy.clone(),
+                                        method: method_copy.clone(),
+                                    }),
+                                }),
+                                incr_encounters: true,
+                            }
+                        } else {
+                            HuntResult {
+                                transition: None,
+                                incr_encounters: true,
+                            }
+                        };
+                        Some(transition)
                     }
                 } else {
                     None
