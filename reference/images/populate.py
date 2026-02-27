@@ -13,6 +13,17 @@ def try_get_images(root_url, destination, limit, suffix):
         if not os.path.exists(dest):
             urllib.request.urlretrieve(url, dest)
 
+def try_get_images_dp(root_url, destination, limit, suffix):
+    s = "" if len(suffix) == 0 else f"_{suffix}"
+    for x in range(1, limit+1):
+        zero_padded = f"{x:03}"
+        dest = os.path.join(destination, f"{zero_padded}{s}.png")
+        if x == 422:
+            zero_padded += "-w"
+        url = f"{root_url}{zero_padded}.png"
+        if not os.path.exists(dest):
+            urllib.request.urlretrieve(url, dest)
+
 def try_get_images_rs(root_url, destination, limit, suffix):
     s = "" if len(suffix) == 0 else f"_{suffix}"
     with open("../pokeapi/data/v2/csv/pokemon_dex_numbers.csv") as f:
@@ -52,8 +63,8 @@ def diamond_pearl():
     last_in_dex = 493 # Arceus
     if not os.path.exists(destination):
         os.mkdir(destination)
-    try_get_images("https://www.serebii.net/pokearth/sprites/dp/", destination, last_in_dex, "")
-    try_get_images("https://www.serebii.net/Shiny/DP/", destination, last_in_dex, "shiny")
+    try_get_images_dp("https://www.serebii.net/pokearth/sprites/dp/", destination, last_in_dex, "")
+    try_get_images_dp("https://www.serebii.net/Shiny/DP/", destination, last_in_dex, "shiny")
 
 def hgss():
     destination = "hgss"

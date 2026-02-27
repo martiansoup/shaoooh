@@ -189,6 +189,7 @@ pub struct EncounterTypeResolver {}
 
 impl EncounterTypeResolver {
     const MOVE_DELAY: u64 = 75;
+    const MOVE_DELAY_DP: u64 = 300;
 
     pub fn add_states(builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
         let game = builder.game();
@@ -199,6 +200,8 @@ impl EncounterTypeResolver {
             Some(Self::frlg_random(builder))
         } else if *game == Game::RubySapphire && *method == Method::RandomEncounter {
             Some(Self::rs_random(builder))
+        } else if *game == Game::DiamondPearl && *method == Method::RandomEncounter {
+            Some(Self::dp_random(builder))
         } else if *game == Game::FireRedLeafGreen && *method == Method::SoftResetEncounter {
             Self::gen3_softreset(builder)
         } else if (*game == Game::RubySapphire || *game == Game::FireRedLeafGreen)
@@ -1007,6 +1010,60 @@ impl EncounterTypeResolver {
                 Processing::FRLG_START_ENCOUNTER,
                 HuntStateOutput::new(Button::Right, Delay::Tenth),
                 Self::MOVE_DELAY..Self::MOVE_DELAY,
+            ),
+            StateDescription::linear_state_no_delay(TryGetEncounter::Entering, vec![]),
+        ];
+
+        builder.add_states(states);
+        builder
+    }
+
+ pub fn dp_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        let states = vec![
+            StateDescription::choose_toggle_state(
+                TryGetEncounter::Init,
+                TryGetEncounter::Up,
+                TryGetEncounter::Left,
+            ),
+            StateDescription::simple_process_state(
+                Branch3::new(
+                    TryGetEncounter::Up,
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Down,
+                ),
+                Processing::DP_START_ENCOUNTER,
+                HuntStateOutput::new(Button::Up, Delay::Twentieth),
+                Self::MOVE_DELAY_DP..Self::MOVE_DELAY_DP,
+            ),
+            StateDescription::simple_process_state(
+                Branch3::new(
+                    TryGetEncounter::Down,
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Up,
+                ),
+                Processing::DP_START_ENCOUNTER,
+                HuntStateOutput::new(Button::Down, Delay::Twentieth),
+                Self::MOVE_DELAY_DP..Self::MOVE_DELAY_DP,
+            ),
+            StateDescription::simple_process_state(
+                Branch3::new(
+                    TryGetEncounter::Left,
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Right,
+                ),
+                Processing::DP_START_ENCOUNTER,
+                HuntStateOutput::new(Button::Left, Delay::Twentieth),
+                Self::MOVE_DELAY_DP..Self::MOVE_DELAY_DP,
+            ),
+            StateDescription::simple_process_state(
+                Branch3::new(
+                    TryGetEncounter::Right,
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Left,
+                ),
+                Processing::DP_START_ENCOUNTER,
+                HuntStateOutput::new(Button::Right, Delay::Twentieth),
+                Self::MOVE_DELAY_DP..Self::MOVE_DELAY_DP,
             ),
             StateDescription::linear_state_no_delay(TryGetEncounter::Entering, vec![]),
         ];

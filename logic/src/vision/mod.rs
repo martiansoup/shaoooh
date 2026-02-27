@@ -75,6 +75,7 @@ pub struct ChannelDetectSettings {
 pub enum Processing {
     // List of sprites to check, and should it be flipped
     Sprite(Game, Vec<u32>, bool),
+    SpriteT(Game, Vec<u32>, bool, f64),
     Sprite3DS(Game, Vec<u32>),
     RegionDetect(RegionDetectSettings),
     ColourChannelDetect(ColourChannelDetectSettings),

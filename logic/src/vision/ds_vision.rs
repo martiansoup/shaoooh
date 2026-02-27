@@ -268,6 +268,7 @@ impl Vision {
         species: &Vec<u32>,
         flipped: &bool,
         frame: &Mat,
+        threshold: f64
     ) -> ProcessingResult {
         let mut found_species = 0;
         let mut max = 0.0;
@@ -338,7 +339,7 @@ impl Vision {
                 tpl_w = reference.cols();
                 tpl_h = reference.rows();
             }
-            if max_val_shiny > max {
+            if max_val_shiny > max && ((max_val_shiny - max_val) > threshold) {
                 max = max_val_shiny;
                 found_species = *s;
                 is_shiny_conv = true;
@@ -386,8 +387,13 @@ impl Vision {
         self.found_mat = for_rect.clone();
 
         let is_shiny = is_shiny_conv;
+        let process = if threshold == 0.0 {
+            Processing::Sprite(game.clone(), species.clone(), *flipped)
+        } else {
+            Processing::SpriteT(game.clone(), species.clone(), *flipped, threshold)
+        };
         let res = ProcessingResult {
-            process: Processing::Sprite(game.clone(), species.clone(), *flipped),
+            process,
             met: found_species != 0,
             species: found_species,
             shiny: is_shiny,
@@ -546,7 +552,10 @@ impl Vision {
     fn process(&mut self, process: &Processing, frame: &Mat) -> ProcessingResult {
         match process {
             Processing::Sprite(game, species_list, flipped) => {
-                self.match_sprite(game, species_list, flipped, frame)
+                self.match_sprite(game, species_list, flipped, frame, 0.0)
+            }
+            Processing::SpriteT(game, species_list, flipped, threshold) => {
+                self.match_sprite(game, species_list, flipped, frame, *threshold)
             }
             Processing::ChannelDetect(settings) => self.channel_detect(settings, frame),
             Processing::RegionDetect(settings) => self.region_detect(settings, frame),

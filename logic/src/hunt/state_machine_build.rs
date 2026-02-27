@@ -1010,6 +1010,100 @@ where
         StateDescription::new(tag, vec![detect], vec![], 0..0, detect_checks)
     }
 
+pub fn sprite_state_delay_targets_threshold(
+        branch: Branch3<K>,
+        game: &Game,
+        method: &Method,
+        species: Vec<u32>,
+        target: u32,
+        threshold: Duration,
+    ) -> Self {
+        let Branch3 {
+            tag,
+            to_met,
+            to_not,
+        } = branch;
+        let mut detect_checks: HashMap<K, BoxedProcessFn> = HashMap::new();
+        let detect = Processing::SpriteT(game.clone(), species, false, 0.0007);
+
+        let shiny_closure = move |res: &Vec<ProcessingResult>, int: &mut InternalHuntState| {
+            let sprite_results: Vec<&ProcessingResult> = res
+                .iter()
+                .filter(|r| matches!(r.process, Processing::SpriteT(_, _, _, _)))
+                .collect();
+            debug_assert_eq!(sprite_results.len(), 1, "Must have a single sprite result");
+            let sprite_result = *sprite_results
+                .first()
+                .expect("Must have a single sprite result");
+
+            let shiny_sprite = sprite_result.shiny;
+            let shiny_duration = int.last_duration > threshold;
+
+            log::info!(
+                "Detect results: shiny_sprite = {}, shiny_duration = {} ({:?}/{:?})",
+                shiny_sprite,
+                shiny_duration,
+                int.last_duration,
+                threshold
+            );
+
+            (shiny_sprite | shiny_duration, sprite_result.species)
+        };
+
+        let game_copy = game.clone();
+        let method_copy = method.clone();
+        detect_checks.insert(
+            to_met,
+            Box::new(move |res, int| {
+                let (shiny, found_species) = shiny_closure(res, int);
+
+                if shiny {
+                    if found_species == target {
+                        Some(HuntResult {
+                            transition: Some(RequestTransition {
+                                transition: Transition::FoundTarget,
+                                arg: None,
+                            }),
+                            incr_encounters: true,
+                        })
+                    } else {
+                        Some(HuntResult {
+                            transition: Some(RequestTransition {
+                                transition: Transition::FoundNonTarget,
+                                arg: Some(TransitionArg {
+                                    name: String::from(""),
+                                    species: found_species,
+                                    game: game_copy.clone(),
+                                    method: method_copy.clone(),
+                                }),
+                            }),
+                            incr_encounters: true,
+                        })
+                    }
+                } else {
+                    None
+                }
+            }),
+        );
+        detect_checks.insert(
+            to_not,
+            Box::new(move |res, int| {
+                let (shiny, _) = shiny_closure(res, int);
+
+                if shiny {
+                    None
+                } else {
+                    Some(HuntResult {
+                        transition: None,
+                        incr_encounters: true,
+                    })
+                }
+            }),
+        );
+
+        StateDescription::new(tag, vec![detect], vec![], 0..0, detect_checks)
+    }
+
     pub fn sprite_state_delay_targets(
         branch: Branch3<K>,
         game: &Game,
