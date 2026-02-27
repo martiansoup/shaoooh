@@ -1072,7 +1072,7 @@ where
         StateDescription::new(tag, vec![detect], vec![], 0..0, detect_checks)
     }
 
-pub fn sprite_state_delay_targets_threshold(
+    pub fn sprite_state_delay_targets_threshold(
         branch: Branch3<K>,
         game: &Game,
         method: &Method,

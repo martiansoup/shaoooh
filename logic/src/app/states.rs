@@ -212,12 +212,10 @@ pub enum Config {
     Shaoooh(CaptureControlPaths),
     // Any - 3DS - NTR Stream, InputRedirection
     Bishaan(core::net::Ipv4Addr),
+    // Linux - Switch/GC/Wii - V4L2 Capture, Control Proxy (nxbt)
+    Gyaaas(CaptureControlPaths),
     // Dummy config for testing
-    Ditto, // TODO
-           // Any? - DS Lite - V4L2 Capture, Serial Control (Wireless)
-           //Gyaaas(CaptureControlPaths),
-           // Any? - GC/Wii - V4L2 Capture, Serial Control (?)
-           //ZutZutt(CaptureControlPaths),
+    Ditto,
 }
 
 impl Config {
@@ -225,6 +223,7 @@ impl Config {
         match self {
             Self::Shaoooh(..) => "Shaoooh ショオーッ".to_string(),
             Self::Bishaan(..) => "Bishaan ビシアーン".to_string(),
+            Self::Gyaaas(..) => "Gyaaas ギャーアアス".to_string(),
             Self::Ditto => "Ditto メタモン".to_string(),
         }
     }
@@ -233,6 +232,7 @@ impl Config {
         match self {
             Self::Shaoooh(..) => "Shaoooh".to_string(),
             Self::Bishaan(..) => "Bishaan".to_string(),
+            Self::Gyaaas(..) => "Gyaaas".to_string(),
             Self::Ditto => "Ditto".to_string(),
         }
     }
@@ -249,6 +249,13 @@ impl Config {
             Self::Bishaan(ip) => {
                 format!("Bishaan ビシアーン : IP({})", ip)
             }
+            Self::Gyaaas(cfg) => {
+                format!(
+                    "Gyaaas ギャーアアス : Video({}) Control({})",
+                    cfg.video(),
+                    cfg.control()
+                )
+            }
             Self::Ditto => "Ditto メタモン : Metamon".to_string(),
         }
     }
@@ -257,6 +264,7 @@ impl Config {
         match self {
             Self::Shaoooh(_) => "DS-Lite with video mod".to_string(),
             Self::Bishaan(_) => "New 2DS XL".to_string(),
+            Self::Gyaaas(_) => "Console".to_string(),
             Self::Ditto => "Test configuration".to_string(),
         }
     }
@@ -265,6 +273,7 @@ impl Config {
         match self {
             Self::Shaoooh(_) => "🐦‍🔥".to_string(),
             Self::Bishaan(_) => "👾".to_string(),
+            Self::Gyaaas(_) => "🪼".to_string(),
             Self::Ditto => "🍙".to_string(),
         }
     }

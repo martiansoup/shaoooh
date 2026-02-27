@@ -25,11 +25,12 @@ pub(crate) mod main;
 pub(crate) mod states;
 use crate::{
     control::{
-        BishaanControl, BishaanControlSocket, BotControl, Button, Delay, NopControl, ShaooohControl,
+        BishaanControl, BishaanControlSocket, BotControl, Button, Delay, GyaaasControlSocket,
+        NopControl, ShaooohControl,
     },
     displays::{DisplayWrapper, GfxDisplay, Webhook},
     hunt::{HuntBuild, HuntFSM},
-    vision::{BishaanVision, BishaanVisionSocket, BotVision, NopVision, Vision},
+    vision::{self, BishaanVision, BishaanVisionSocket, BotVision, NopVision, Vision},
 };
 pub use error::*;
 pub use states::*;
@@ -360,11 +361,19 @@ impl Shaoooh {
         {
             Config::Shaoooh(ref cfg) => (
                 Box::new(ShaooohControl::new(cfg.control())),
-                Box::new(Vision::new(cfg.video(), raw_frame_mutex)),
+                Box::new(Vision::new(cfg.video(), vision::RESIZE_DS, raw_frame_mutex)),
             ),
             Config::Bishaan(_) => (
                 Box::new(BishaanControl::new(button_tx)),
                 Box::new(BishaanVision::new(top_frame_rx, bottom_frame_rx)),
+            ),
+            Config::Gyaaas(ref cfg) => (
+                Box::new(BishaanControl::new(button_tx)),
+                Box::new(Vision::new(
+                    cfg.video(),
+                    vision::RESIZE_SWITCH,
+                    raw_frame_mutex,
+                )),
             ),
             Config::Ditto => (Box::new(NopControl::new()), Box::new(NopVision::new())),
         };
@@ -597,6 +606,18 @@ impl Shaoooh {
                                 log::error!("Error from control thread: {:?}", e);
                             }
                         }
+                    }
+                });
+            }
+            Config::Gyaaas(ref cfg) => {
+                let ctrl_path = cfg.control().to_string();
+                runtime.spawn(async move {
+                    log::info!("- Button tx thread");
+                    let control = GyaaasControlSocket::new(&ctrl_path, button_rx);
+                    let control_handle = tokio::spawn(control.task());
+
+                    if let Err(e) = control_handle.await {
+                        log::error!("Error from control thread: {:?}", e);
                     }
                 });
             }

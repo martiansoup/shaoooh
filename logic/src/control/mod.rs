@@ -2,10 +2,12 @@ use serde::{Deserialize, Serialize};
 
 mod bishaan_control;
 mod nop_control;
+mod pipe_control;
 mod serial_control;
 
 pub use bishaan_control::{BishaanControl, BishaanControlSocket};
 pub use nop_control::NopControl;
+pub use pipe_control::GyaaasControlSocket;
 pub use serial_control::ShaooohControl;
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]

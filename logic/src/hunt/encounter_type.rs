@@ -520,6 +520,46 @@ impl EncounterTypeResolver {
             ];
 
             builder.add_states(states2);
+        } else if builder.target() == 1 || builder.target() == 4 || builder.target() == 7 {
+            let states2 = vec![
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press1,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1500..1500,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press2,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1500..1500,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press3,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1500..1500,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press4,
+                    vec![HuntStateOutput::button(Button::A)],
+                    1500..1500,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press5,
+                    vec![HuntStateOutput::button(Button::A)],
+                    5000..5000,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press6,
+                    vec![HuntStateOutput::button(Button::B)],
+                    3000..3000,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press7,
+                    vec![HuntStateOutput::button(Button::A)],
+                    6000..6000,
+                ),
+            ];
+
+            builder.add_states(states2);
         } else {
             return None;
         }
@@ -1092,7 +1132,7 @@ impl EncounterTypeResolver {
         builder
     }
 
- pub fn dp_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+    pub fn dp_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
         let states = vec![
             StateDescription::choose_toggle_state(
                 TryGetEncounter::Init,

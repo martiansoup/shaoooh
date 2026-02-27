@@ -5,7 +5,7 @@ use std::{
 
 use opencv::{
     core::{Point, Rect, Size, ToInputArray, Vector},
-    highgui::{self, WINDOW_GUI_NORMAL, WINDOW_KEEPRATIO, WINDOW_NORMAL},
+    highgui::{self, WINDOW_FREERATIO, WINDOW_GUI_NORMAL, WINDOW_KEEPRATIO, WINDOW_NORMAL},
     imgcodecs::{IMREAD_COLOR, IMREAD_UNCHANGED},
     imgproc::{LINE_8, THRESH_BINARY, THRESH_BINARY_INV, TM_CCORR_NORMED},
     prelude::*,
@@ -21,8 +21,76 @@ use crate::{
     },
 };
 
+pub struct ResizeProfile {
+    vid_in_w: i32,
+    vid_in_h: i32,
+    resize_in: Option<(i32, i32)>,
+    border_keep: i32,
+    border_lr: i32,
+    border_tb: i32,
+    resize_out: (i32, i32),
+    brightness: f64,
+}
+
+pub const RESIZE_DS: ResizeProfile = ResizeProfile {
+    vid_in_w: 320,
+    vid_in_h: 240,
+    resize_in: None,
+    border_keep: 0,
+    border_lr: 16,
+    border_tb: 20,
+    resize_out: (256, 192),
+    brightness: 50.0,
+};
+
+pub const RESIZE_SWITCH: ResizeProfile = ResizeProfile {
+    vid_in_w: 1280,
+    vid_in_h: 720,
+    resize_in: Some((342, 192)),
+    border_keep: 0,
+    border_lr: 43,
+    border_tb: 0,
+    resize_out: (256, 192),
+    brightness: 10.0,
+};
+
+impl ResizeProfile {
+    pub const fn width(&self) -> i32 {
+        if let Some((w, _h)) = self.resize_in {
+            w
+        } else {
+            self.vid_in_w
+        }
+    }
+
+    pub const fn height(&self) -> i32 {
+        if let Some((_w, h)) = self.resize_in {
+            h
+        } else {
+            self.vid_in_h
+        }
+    }
+
+    pub const fn x0(&self) -> i32 {
+        self.border_lr - self.border_keep
+    }
+
+    pub const fn y0(&self) -> i32 {
+        self.border_tb - self.border_keep
+    }
+
+    pub const fn w1(&self) -> i32 {
+        (self.width() - (self.border_lr * 2)) + (self.border_keep * 2)
+    }
+
+    pub const fn h1(&self) -> i32 {
+        (self.height() - (self.border_tb * 2)) + (self.border_keep * 2)
+    }
+}
+
 pub struct Vision {
     cam: VideoCapture,
+    resize: ResizeProfile,
     encoded: Vector<u8>,
     found: Vector<u8>,
     found_mat: Mat,
@@ -45,20 +113,43 @@ impl BotVision for Vision {
         if input_frame.empty() {
             return None;
         }
-        let unsized_frame = input_frame
+
+        let resized_frame = if let Some((w, h)) = self.resize.resize_in {
+            let mut resized_frame = Mat::default();
+            let resize_size = Size {
+                width: w,
+                height: h,
+            };
+            opencv::imgproc::resize(
+                &input_frame,
+                &mut resized_frame,
+                resize_size,
+                0.0,
+                0.0,
+                opencv::imgproc::INTER_LINEAR,
+            )
+            .expect("Failed to resize image");
+            resized_frame
+        } else {
+            input_frame
+        };
+
+        let unsized_frame = resized_frame
             .roi(opencv::core::Rect::new(
-                Self::X0,
-                Self::Y0,
-                Self::W1,
-                Self::H1,
+                self.resize.x0(),
+                self.resize.y0(),
+                self.resize.w1(),
+                self.resize.h1(),
             ))
             .expect("Failed to crop")
             .clone_pointee();
+
         let mut frame = Mat::default();
+
         opencv::imgproc::resize(
             &unsized_frame,
             &mut frame,
-            Size::new(Self::DS_W, Self::DS_H),
+            Size::new(self.resize.resize_out.0, self.resize.resize_out.1),
             0.0,
             0.0,
             0,
@@ -74,7 +165,7 @@ impl BotVision for Vision {
             .expect("Failed to encode frame");
 
         Self::show_window(Self::CAPTURE_WIN, &frame);
-        Self::transform_window(Self::CAPTURE_WIN);
+        Self::transform_window(Self::CAPTURE_WIN, &self.resize);
         highgui::wait_key(1).expect("Event loop failed");
 
         Some(processing.iter().map(|p| self.process(p, &frame)).collect())
@@ -99,17 +190,6 @@ impl BotVision for Vision {
 }
 
 impl Vision {
-    const WIDTH: i32 = 320;
-    const HEIGHT: i32 = 240;
-    const BORDER_KEEP: i32 = 0;
-    const BORDER_LR: i32 = 16;
-    const BORDER_TB: i32 = 20;
-    const X0: i32 = Vision::BORDER_LR - Vision::BORDER_KEEP;
-    const Y0: i32 = Vision::BORDER_TB - Vision::BORDER_KEEP;
-    const W1: i32 = (Vision::WIDTH - (Vision::BORDER_LR * 2)) + (Vision::BORDER_KEEP * 2);
-    const H1: i32 = (Vision::HEIGHT - (Vision::BORDER_TB * 2)) + (Vision::BORDER_KEEP * 2);
-    const DS_W: i32 = 256;
-    const DS_H: i32 = 192;
     const MAX_IMAGES: u32 = 256;
     const CAPTURE_WIN: WinInfo = WinInfo {
         name: "capture",
@@ -135,14 +215,18 @@ impl Vision {
             .unwrap_or_else(|_| panic!("Failed to show '{}' window", win.name));
     }
 
-    fn transform_window(win: WinInfo) {
+    fn transform_window(win: WinInfo, resize: &ResizeProfile) {
         opencv::highgui::move_window(win.name, win.x, win.y)
             .unwrap_or_else(|_| panic!("Failed to move '{}' window", win.name));
-        opencv::highgui::resize_window(win.name, Self::DS_W * win.scale, Self::DS_H * win.scale)
-            .unwrap_or_else(|_| panic!("Failed to resize '{}' window", win.name));
+        opencv::highgui::resize_window(
+            win.name,
+            resize.resize_out.0 * win.scale,
+            resize.resize_out.1 * win.scale,
+        )
+        .unwrap_or_else(|_| panic!("Failed to resize '{}' window", win.name));
     }
 
-    fn create_window(win: WinInfo, en_dbg: bool) {
+    fn create_window(win: WinInfo, resize: &ResizeProfile, en_dbg: bool) {
         let flags = if en_dbg {
             0
         } else {
@@ -150,36 +234,46 @@ impl Vision {
         };
         opencv::highgui::named_window(win.name, flags)
             .unwrap_or_else(|_| panic!("Failed to create '{}' window", win.name));
-        Self::transform_window(win);
+        Self::transform_window(win, resize);
     }
 
-    pub fn new(path: &str, raw_frame_mutex: Arc<Mutex<Mat>>) -> Self {
+    pub fn new(path: &str, resize: ResizeProfile, raw_frame_mutex: Arc<Mutex<Mat>>) -> Self {
         log::info!("Starting video capture");
         let mut cam = VideoCapture::from_file(path, CAP_V4L2).expect("Couldn't open video");
-        log::debug!("Video capture opened");
+        let init_width = cam
+            .get(opencv::videoio::CAP_PROP_FRAME_WIDTH)
+            .expect("Failed to get width");
+        let init_height = cam
+            .get(opencv::videoio::CAP_PROP_FRAME_HEIGHT)
+            .expect("Failed to get height");
+        log::debug!("Video capture opened @ {}x{}", init_width, init_height);
 
         cam.set(opencv::videoio::CAP_PROP_READ_TIMEOUT_MSEC, 2000.0)
             .expect("Failed to set property");
 
-        cam.set(opencv::videoio::CAP_PROP_BRIGHTNESS, 50.0)
-            .expect("Failed to set property");
-        cam.set(opencv::videoio::CAP_PROP_FRAME_WIDTH, Vision::WIDTH.into())
+        cam.set(opencv::videoio::CAP_PROP_BRIGHTNESS, resize.brightness)
             .expect("Failed to set property");
         cam.set(
+            opencv::videoio::CAP_PROP_FRAME_WIDTH,
+            resize.vid_in_w.into(),
+        )
+        .expect("Failed to set property");
+        cam.set(
             opencv::videoio::CAP_PROP_FRAME_HEIGHT,
-            Vision::HEIGHT.into(),
+            resize.vid_in_h.into(),
         )
         .expect("Failed to set property");
 
         // TODO allow debug mode without window flags
         log::info!("Opening windows");
-        Self::create_window(Self::CAPTURE_WIN, false);
-        Self::create_window(Self::FOUND_WIN, false);
-        Self::create_window(Self::FOUND_LAST_WIN, false);
+        Self::create_window(Self::CAPTURE_WIN, &resize, false);
+        Self::create_window(Self::FOUND_WIN, &resize, false);
+        Self::create_window(Self::FOUND_LAST_WIN, &resize, false);
         highgui::wait_key(1).expect("Event loop failed");
 
         Self {
             cam,
+            resize,
             encoded: Vector::default(),
             found: Vector::default(),
             found_mat: Mat::default(),
@@ -268,7 +362,7 @@ impl Vision {
         species: &Vec<u32>,
         flipped: &bool,
         frame: &Mat,
-        threshold: f64
+        threshold: f64,
     ) -> ProcessingResult {
         let mut found_species = 0;
         let mut max = 0.0;
@@ -542,7 +636,7 @@ impl Vision {
 
     fn set_found(&mut self, frame: &Mat, top: bool) -> ProcessingResult {
         Self::show_window(Self::FOUND_WIN, &frame);
-        Self::transform_window(Self::FOUND_WIN);
+        Self::transform_window(Self::FOUND_WIN, &self.resize);
 
         // Save to encoded frame
         opencv::imgcodecs::imencode(".png", &frame, &mut self.found, &Vector::new())
@@ -551,7 +645,7 @@ impl Vision {
 
         if !self.found_mat.empty() {
             Self::show_window(Self::FOUND_LAST_WIN, &self.found_mat);
-            Self::transform_window(Self::FOUND_LAST_WIN);
+            Self::transform_window(Self::FOUND_LAST_WIN, &self.resize);
         }
 
         self.found_mat = frame.clone();

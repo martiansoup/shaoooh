@@ -137,45 +137,70 @@ impl DetectionResolver {
         let target = builder.target();
         let game = builder.game().clone();
         let method = builder.method().clone();
-        let base = if game == Game::RubySapphire { 250 } else { 500 };
+        let base = if game == Game::RubySapphire { 250 } else { 600 };
 
-        let states = vec![
-            StateDescription::linear_state(
-                CheckSummary::Start,
-                vec![HuntStateOutput::button(Button::Start)],
-                (base * 2)..(base * 2),
-            ),
-            StateDescription::linear_state(
-                CheckSummary::Down,
-                vec![HuntStateOutput::button(Button::Down)],
-                (base * 1)..(base * 1),
-            ),
-            StateDescription::linear_state(
-                CheckSummary::ToPokemon,
-                vec![HuntStateOutput::button(Button::A)],
-                (base * 4)..(base * 4),
-            ),
-            StateDescription::linear_state(
-                CheckSummary::Up1,
-                vec![HuntStateOutput::button(Button::Up)],
-                (base * 1)..(base * 1),
-            ),
-            StateDescription::linear_state(
-                CheckSummary::Up2,
-                vec![HuntStateOutput::button(Button::Up)],
-                (base * 1)..(base * 1),
-            ),
-            StateDescription::linear_state(
-                CheckSummary::Select,
-                vec![HuntStateOutput::button(Button::A)],
-                (base * 2)..(base * 2),
-            ),
-            StateDescription::linear_state(
-                CheckSummary::ToSummary,
-                vec![HuntStateOutput::button(Button::A)],
-                (base * 4)..(base * 4),
-            ),
-        ];
+        let states = if target == 1 || target == 4 || target == 7 {
+            vec![
+                StateDescription::linear_state(
+                    CheckSummary::Start,
+                    vec![HuntStateOutput::button(Button::Start)],
+                    (base * 2)..(base * 2),
+                ),
+                StateDescription::linear_state(
+                    CheckSummary::ToPokemon,
+                    vec![HuntStateOutput::button(Button::A)],
+                    (base * 4)..(base * 4),
+                ),
+                StateDescription::linear_state(
+                    CheckSummary::Select,
+                    vec![HuntStateOutput::button(Button::A)],
+                    (base * 2)..(base * 2),
+                ),
+                StateDescription::linear_state(
+                    CheckSummary::ToSummary,
+                    vec![HuntStateOutput::button(Button::A)],
+                    (base * 6)..(base * 6),
+                ),
+            ]
+        } else {
+            vec![
+                StateDescription::linear_state(
+                    CheckSummary::Start,
+                    vec![HuntStateOutput::button(Button::Start)],
+                    (base * 2)..(base * 2),
+                ),
+                StateDescription::linear_state(
+                    CheckSummary::Down,
+                    vec![HuntStateOutput::button(Button::Down)],
+                    (base * 1)..(base * 1),
+                ),
+                StateDescription::linear_state(
+                    CheckSummary::ToPokemon,
+                    vec![HuntStateOutput::button(Button::A)],
+                    (base * 4)..(base * 4),
+                ),
+                StateDescription::linear_state(
+                    CheckSummary::Up1,
+                    vec![HuntStateOutput::button(Button::Up)],
+                    (base * 1)..(base * 1),
+                ),
+                StateDescription::linear_state(
+                    CheckSummary::Up2,
+                    vec![HuntStateOutput::button(Button::Up)],
+                    (base * 1)..(base * 1),
+                ),
+                StateDescription::linear_state(
+                    CheckSummary::Select,
+                    vec![HuntStateOutput::button(Button::A)],
+                    (base * 2)..(base * 2),
+                ),
+                StateDescription::linear_state(
+                    CheckSummary::ToSummary,
+                    vec![HuntStateOutput::button(Button::A)],
+                    (base * 4)..(base * 4),
+                ),
+            ]
+        };
 
         builder.add_states(states);
 
@@ -628,7 +653,7 @@ impl DetectionResolver {
         builder
     }
 
- pub fn dp_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+    pub fn dp_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
         let target = builder.target();
         let game = builder.game().clone();
         let method = builder.method().clone();

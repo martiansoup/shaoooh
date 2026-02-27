@@ -1,0 +1,12 @@
+[project]
+name = "switch-control"
+version = "0.1.0"
+description = "Switch control pipe"
+readme = "README.md"
+requires-python = "~=3.9.13"
+dependencies = [
+    "nxbt>=0.1.4",
+    "jinja2<3.1.0",
+    "itsdangerous==2.0.1",
+    "werkzeug==2.0.3",
+]

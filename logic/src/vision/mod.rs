@@ -13,6 +13,9 @@ pub use ds_vision::Vision;
 pub use nop_vision::NopVision;
 pub use ntr::NTRPacket;
 
+pub use ds_vision::RESIZE_DS;
+pub use ds_vision::RESIZE_SWITCH;
+
 #[derive(PartialEq, Clone, Debug)]
 pub struct RegionDetectSettings {
     pub x: i32,
