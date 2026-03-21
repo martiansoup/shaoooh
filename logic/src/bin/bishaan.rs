@@ -12,7 +12,7 @@ fn get_config() -> shaoooh::app::Config {
 
 fn default_arg() -> shaoooh::app::TransitionArg {
     shaoooh::app::TransitionArg::new(
-        "WormholeRayquaza",
+        "WormholeRayquaza2",
         384,
         shaoooh::app::Game::UltraSunUltraMoon,
         shaoooh::app::Method::SoftResetEncounter,

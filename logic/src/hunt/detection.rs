@@ -391,7 +391,7 @@ impl DetectionResolver {
             249 => 13610, // Lugia
             382 => 16975, // Kyogre
             383 => 15700, // Groudon
-            384 => 13350, // Rayquaza
+            384 => 13600, // Rayquaza
             380 => 10500, // Latias
             488 => 10400, // Cresselia
             643 => 13370, // Reshiram
