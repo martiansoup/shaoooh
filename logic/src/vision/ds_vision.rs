@@ -416,8 +416,13 @@ impl Vision {
         let count = opencv::core::count_non_zero(&thresholded).unwrap();
         let met = count > settings.num_thresh;
         //if settings.invert {
-        //    log::info!("got {} / {}", count, settings.num_thresh);
-        //    highgui::imshow("FISH", &thresholded);
+            log::info!("got {} / {}", count, settings.num_thresh);
+        // if settings.col_thresh == 75.0 {
+            // highgui::imshow("BAR", &region);
+        // }
+        // if settings.col_thresh == 50.0 {
+            // highgui::imshow("NEGA", &region);
+        // }
         //}
         // for i in 150..250 {
         //    let mut thresholded = Mat::default();
@@ -479,7 +484,7 @@ impl Vision {
 
         let count = opencv::core::count_non_zero(&thresholded).unwrap();
         let met = count > settings.num_thresh;
-        log::info!("got {} / {}", count, settings.num_thresh);
+        //log::info!("got {} / {}", count, settings.num_thresh);
         // for i in 150..250 {
         //    let mut thresholded = Mat::default();
 

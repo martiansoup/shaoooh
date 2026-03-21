@@ -89,6 +89,24 @@ pub enum Processing {
 }
 
 impl Processing {
+    pub const BW_HP_BAR_PRESENT: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 137,
+        y: 106,
+        w: 119,
+        h: 40,
+        col_thresh: 210.0,
+        num_thresh: 175,
+        invert: false
+    });
+    pub const BW_BALL_ANIMATION: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 68,
+        y: 61,
+        w: 99,
+        h: 84,
+        col_thresh: 210.0,
+        num_thresh: 300,
+        invert: false
+    });
     pub const BW2_BLACK_SCREEN: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 0,
         y: 0,

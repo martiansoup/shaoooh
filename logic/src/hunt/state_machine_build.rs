@@ -561,6 +561,68 @@ where
         Self::new(tag, Vec::new(), Vec::new(), 0..0, deadend_checks)
     }
 
+
+    pub fn process_and_not_state_no_output_end_timer(
+        branch: Branch2<K>,
+        processing: Processing,
+        not_processing: Processing,
+    ) -> Self {
+        let Branch2 { tag, to_met } = branch;
+        let to_not = tag.clone();
+
+        let mut process_checks: HashMap<K, BoxedProcessFn> = HashMap::new();
+        let proc_for_met = processing.clone();
+        let proc_for_not = processing.clone();
+        let not_proc_for_met = not_processing.clone();
+        let not_proc_for_not = not_processing.clone();
+        process_checks.insert(
+            to_met,
+            Box::new(
+                move |res: &Vec<ProcessingResult>, int: &mut InternalHuntState| {
+                    let res_pos = res
+                        .iter()
+                        .filter(|f| f.process == proc_for_met)
+                        .any(|f| f.met);
+                    let res_neg = res
+                        .iter()
+                        .filter(|f| f.process == not_proc_for_met)
+                        .any(|f| f.met);
+                    if res_pos && !res_neg
+                    {
+                        int.last_duration = int.time.elapsed().expect("Couldn't get duration");
+                        Some(HuntResult::default())
+                    } else {
+                        None
+                    }
+                },
+            ),
+        );
+        process_checks.insert(
+            to_not,
+            Box::new(
+                move |res: &Vec<ProcessingResult>, _: &mut InternalHuntState| {
+                    let res_pos = res
+                        .iter()
+                        .filter(|f| f.process == proc_for_not)
+                        .any(|f| f.met);
+                    let res_neg = res
+                        .iter()
+                        .filter(|f| f.process == not_proc_for_not)
+                        .any(|f| f.met);
+                    if !(res_pos && !res_neg)
+                    {
+                        Some(HuntResult::default())
+                    } else {
+                        None
+                    }
+                },
+            ),
+        );
+        StateDescription::new(tag, vec![processing, not_processing], vec![], 0..0, process_checks)
+
+
+    }
+
     fn simple_process_state_helper(
         branch: Branch3<K>,
         processing: Processing,
@@ -1017,6 +1079,7 @@ pub fn sprite_state_delay_targets_threshold(
         species: Vec<u32>,
         target: u32,
         threshold: Duration,
+        diff: f64
     ) -> Self {
         let Branch3 {
             tag,
@@ -1024,7 +1087,7 @@ pub fn sprite_state_delay_targets_threshold(
             to_not,
         } = branch;
         let mut detect_checks: HashMap<K, BoxedProcessFn> = HashMap::new();
-        let detect = Processing::SpriteT(game.clone(), species, false, 0.0007);
+        let detect = Processing::SpriteT(game.clone(), species, false, diff);
 
         let shiny_closure = move |res: &Vec<ProcessingResult>, int: &mut InternalHuntState| {
             let sprite_results: Vec<&ProcessingResult> = res

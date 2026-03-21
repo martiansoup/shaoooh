@@ -19,7 +19,7 @@ def try_get_images_dp(root_url, destination, limit, suffix):
         zero_padded = f"{x:03}"
         dest = os.path.join(destination, f"{zero_padded}{s}.png")
         if x == 422:
-            zero_padded += "-w"
+            zero_padded += "-e"
         url = f"{root_url}{zero_padded}.png"
         if not os.path.exists(dest):
             urllib.request.urlretrieve(url, dest)

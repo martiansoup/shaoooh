@@ -109,6 +109,11 @@ impl DetectionResolver {
                 442 | 486 | 487 => Some(Self::gen4_legend(builder)),
                 _ => None,
             }
+        } else if *game == Game::BlackWhite && *method == Method::SoftResetGift {
+            match builder.target() {
+                495 | 498 | 501 => Some(Self::gen5_starter(builder)),
+                _ => None,
+            }
         } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetEncounter {
             Some(Self::gen7_legend(builder))
         } else if *game == Game::UltraSunUltraMoon && *method == Method::SoftResetGift {
@@ -378,6 +383,35 @@ impl DetectionResolver {
         builder
     }
 
+    pub fn gen5_starter(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        let timer = 14750;
+
+        let states = vec![
+            StateDescription::start_timer_state(Detection::PrePreEnterEncounter, Detection::Detect),
+                StateDescription::process_and_not_state_no_output_end_timer(
+                    Branch2::new(Detection::Detect, Detection::SetFound),
+                    Processing::BW_HP_BAR_PRESENT,
+                    Processing::BW_BALL_ANIMATION,
+                ),
+                StateDescription::simple_process_state_no_output(
+                    Branch2::new(Detection::SetFound, Detection::Run1),
+                    Processing::SetFound(true),
+                ),
+                StateDescription::branch_last_delay_state(
+                    Branch3::new(Detection::Run1, Detection::Toggle, Detection::Run2),
+                    timer,
+                ),
+                StateDescription::found_target_state(Detection::Toggle, Detection::Done),
+                StateDescription::deadend_state(Detection::Done),
+                StateDescription::incr_encounter_state(Detection::Run2, Detection::Run3),
+                StateDescription::linear_state(Detection::Run3, vec![], 0..1500),
+        ];
+
+        builder.add_states(states);
+
+        builder
+    }
+
     pub fn gen7_legend(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
         let species = builder.target();
         let timer = match species {
@@ -629,6 +663,7 @@ impl DetectionResolver {
                 targets,
                 target,
                 shiny_threshold,
+                0.017
             ),
             // Done
             StateDescription::deadend_state(Detection::Done),
@@ -673,11 +708,17 @@ impl DetectionResolver {
                 Processing::Sprite(Game::FireRedLeafGreen, vec![10, 11, 13, 14, 25], false),
                 Duration::from_millis(2700),
             )
-        } else {
+        } else if builder.target() == 16 || builder.target() == 19 {
             // TODO hardcoded for Route 1
             (
                 Processing::Sprite(Game::FireRedLeafGreen, vec![16, 19], false),
                 Duration::from_millis(3250),
+            )
+        } else {
+            log::warn!("Defaulting to species list = target ({})", builder.target());
+            (
+                Processing::Sprite(Game::FireRedLeafGreen, vec![builder.target()], false),
+                Duration::from_millis(2750),
             )
         };
         let mut detect_checks: HashMap<Detection, BoxedProcessFn> = HashMap::new();
@@ -770,7 +811,7 @@ impl DetectionResolver {
             StateDescription::linear_state(
                 Detection::PressA,
                 vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
-                3000..3000,
+                3500..3500,
             ),
             // Detect
             StateDescription::new(Detection::Detect, vec![detect], vec![], 0..0, detect_checks),
