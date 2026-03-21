@@ -159,7 +159,7 @@ impl DetectionResolver {
                 StateDescription::linear_state(
                     CheckSummary::ToSummary,
                     vec![HuntStateOutput::button(Button::A)],
-                    (base * 6)..(base * 6),
+                    (base * 5)..(base * 5),
                 ),
             ]
         } else {

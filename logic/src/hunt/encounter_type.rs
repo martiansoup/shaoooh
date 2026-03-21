@@ -357,22 +357,22 @@ impl EncounterTypeResolver {
                 StateDescription::linear_state(
                     SoftResetProcess::Title1,
                     vec![HuntStateOutput::button(Button::A)],
-                    5000..5000,
+                    5000..5250,
                 ),
                 StateDescription::linear_state(
                     SoftResetProcess::Title2,
                     vec![HuntStateOutput::button(Button::A)],
-                    3750..3750,
+                    3750..4000,
                 ),
                 StateDescription::linear_state(
                     SoftResetProcess::Title3,
                     vec![HuntStateOutput::button(Button::A)],
-                    2500..2500,
+                    2500..2750,
                 ),
                 StateDescription::linear_state(
                     SoftResetProcess::SkipMemory,
                     vec![HuntStateOutput::button(Button::B)],
-                    3000..3500,
+                    3000..3750,
                 ),
             ]
         } else {
@@ -403,11 +403,17 @@ impl EncounterTypeResolver {
 
         builder.add_states(states);
 
+        let delay = if [1, 4, 7].contains(&builder.target()) {
+            500..10000
+        } else {
+            5000..15000
+        };
+
         if builder.game() == &Game::FireRedLeafGreen {
             let delay_state = vec![StateDescription::linear_state(
                 DelayState::Delay,
                 vec![],
-                5000..15000,
+                delay,
             )];
 
             builder.add_states(delay_state);
@@ -525,37 +531,37 @@ impl EncounterTypeResolver {
                 StateDescription::linear_state(
                     StartSoftResetEncounter::Press1,
                     vec![HuntStateOutput::button(Button::A)],
-                    1500..1500,
+                    1250..1350,
                 ),
                 StateDescription::linear_state(
                     StartSoftResetEncounter::Press2,
                     vec![HuntStateOutput::button(Button::A)],
-                    1500..1500,
+                    1250..1350,
                 ),
                 StateDescription::linear_state(
                     StartSoftResetEncounter::Press3,
                     vec![HuntStateOutput::button(Button::A)],
-                    1500..1500,
+                    1250..1350,
                 ),
                 StateDescription::linear_state(
                     StartSoftResetEncounter::Press4,
                     vec![HuntStateOutput::button(Button::A)],
-                    1500..1500,
+                    6500..6600,
                 ),
+                // StateDescription::linear_state(
+                //     StartSoftResetEncounter::Press5,
+                //     vec![HuntStateOutput::button(Button::A)],
+                //     5000..5000,
+                // ),
                 StateDescription::linear_state(
                     StartSoftResetEncounter::Press5,
-                    vec![HuntStateOutput::button(Button::A)],
-                    5000..5000,
+                    vec![HuntStateOutput::button(Button::B)],
+                    3000..3100,
                 ),
                 StateDescription::linear_state(
                     StartSoftResetEncounter::Press6,
-                    vec![HuntStateOutput::button(Button::B)],
-                    3000..3000,
-                ),
-                StateDescription::linear_state(
-                    StartSoftResetEncounter::Press7,
                     vec![HuntStateOutput::button(Button::A)],
-                    6000..6000,
+                    4500..4500,
                 ),
             ];
 

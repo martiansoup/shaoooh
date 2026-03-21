@@ -51,7 +51,7 @@ pub const RESIZE_SWITCH: ResizeProfile = ResizeProfile {
     border_lr: 43,
     border_tb: 0,
     resize_out: (256, 192),
-    brightness: 10.0,
+    brightness: 0.0,
 };
 
 impl ResizeProfile {
