@@ -17,3 +17,17 @@ impl Display for ShaooohError {
         write!(f, "{}", str)
     }
 }
+
+#[derive(Clone, Debug)]
+pub enum ShaooohWarning {
+    PossibleStall,
+}
+
+impl Display for ShaooohWarning {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            Self::PossibleStall => "Possible Stall",
+        };
+        write!(f, "{}", str)
+    }
+}

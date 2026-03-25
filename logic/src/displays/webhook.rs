@@ -2,7 +2,7 @@ use serde::Deserialize;
 use tokio::sync::{broadcast, watch};
 
 use crate::{
-    app::{AppState, HuntState, ShaooohError},
+    app::{AppState, HuntState, ShaooohError, ShaooohWarning},
     context::PkContext,
 };
 
@@ -19,6 +19,29 @@ impl Webhook {
         let title = format!("{} Error", name);
         let content = reqwest::multipart::Form::new()
             .text("message", format!("ERROR = {}", err))
+            .text("token", api_key.clone())
+            .text("user", user_id.clone())
+            .text("title", title)
+            .text("priority", "1");
+        log::info!("Calling webhook with {:?}", content);
+        let client = reqwest::Client::new();
+        match client
+            .post("https://api.pushover.net/1/messages.json")
+            .multipart(content)
+            .send()
+            .await
+        {
+            Ok(_) => {}
+            Err(e) => {
+                log::error!("Failed to send webhook {:?}", e);
+            }
+        };
+    }
+
+    pub async fn warn(err: ShaooohWarning, name: &String, api_key: String, user_id: String) {
+        let title = format!("{} Warning", name);
+        let content = reqwest::multipart::Form::new()
+            .text("message", format!("WARNING = {}", err))
             .text("token", api_key.clone())
             .text("user", user_id.clone())
             .text("title", title)
@@ -101,6 +124,7 @@ impl Webhook {
     pub async fn call(
         mut rx: watch::Receiver<AppState>,
         mut error_rx: broadcast::Receiver<ShaooohError>,
+        mut warn_rx: broadcast::Receiver<ShaooohWarning>,
         name: String,
     ) {
         let path = "user_config.json";
@@ -119,6 +143,15 @@ impl Webhook {
                                        // Getting an error will shut everything down, so exit the
                                        // loop to prevent sending multiple notifications
                                        true
+                                    }
+                                    Err(_) => true
+                                }
+                            }
+                            warn = warn_rx.recv() => {
+                                match warn {
+                                    Ok(warn) => {
+                                       Self::warn(warn, &name, api_key.clone(), user_id.clone()).await;
+                                       false
                                     }
                                     Err(_) => true
                                 }

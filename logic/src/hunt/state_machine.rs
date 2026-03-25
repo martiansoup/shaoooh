@@ -8,7 +8,7 @@ use std::sync::atomic::AtomicBool;
 use crate::{
     control::{BotControl, Button, Delay},
     fsm::StateMachine,
-    hunt::HuntResult,
+    hunt::{HuntResult, HuntResultWrap},
     vision::{Processing, ProcessingResult},
 };
 
@@ -65,6 +65,7 @@ impl InternalHuntState {
 #[derive(Debug)]
 pub struct HuntFSM {
     fsm: StateMachine<Processing, ProcessingResult, HuntStateOutput, HuntResult, InternalHuntState>,
+    sent_stall: bool,
 }
 
 impl HuntFSM {
@@ -86,7 +87,7 @@ impl HuntFSM {
         .unwrap_or_else(|_| panic!("Failed to create 'fsm' window"));
         opencv::highgui::move_window("fsm", 576, 32)
             .unwrap_or_else(|_| panic!("Failed to move 'fsm' window"));
-        HuntFSM { fsm }
+        HuntFSM { fsm, sent_stall: false }
     }
 
     pub fn processing(&self) -> &Vec<Processing> {
@@ -97,7 +98,7 @@ impl HuntFSM {
         &mut self,
         control: &mut Box<dyn BotControl>,
         results: Vec<ProcessingResult>,
-    ) -> HuntResult {
+    ) -> HuntResultWrap {
         let outputs = self.fsm.outputs();
         if !outputs.is_empty() {
             if outputs.windows(2).all(|v| v[0].delay == v[1].delay) {
@@ -112,7 +113,17 @@ impl HuntFSM {
             }
         }
 
-        self.step_no_output(results)
+        let stall = self.fsm.since_last() > Duration::from_secs(30);
+        if self.sent_stall && !stall {
+            self.sent_stall = false;
+        }
+        let possible_stall = stall && !self.sent_stall;
+        if possible_stall {
+            log::warn!("Detected a potential stall");
+            self.sent_stall = true;
+        }
+
+        HuntResultWrap { result: self.step_no_output(results), possible_stall }
     }
 
     pub fn cleanup(&mut self) {}

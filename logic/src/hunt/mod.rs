@@ -37,6 +37,13 @@ pub struct HuntResult {
     pub(crate) incr_encounters: bool,
 }
 
+
+#[derive(Debug)]
+pub struct HuntResultWrap {
+    pub(crate) result: HuntResult,
+    pub(crate) possible_stall: bool,
+}
+
 pub struct HuntBuild {}
 
 impl HuntBuild {

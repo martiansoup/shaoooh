@@ -25,7 +25,7 @@ print("  ...connected")
 
 delay_times = {
   b'm': 0.05, # micro-pause
-  b'p': 0.1,  # pause
+  b'p': 0.4,  # pause TODO - set as longer for skipped inputs
   b'P': 0.5,  # Pause
   b'M': 1     # mega-pause
 }

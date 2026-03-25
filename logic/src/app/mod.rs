@@ -77,6 +77,7 @@ pub struct Shaoooh {
     rx_conn: watch::Receiver<bool>,
     button_rx: mpsc::Receiver<(Button, Delay)>,
     error_tx: Arc<broadcast::Sender<ShaooohError>>,
+    warn_tx: Arc<broadcast::Sender<ShaooohWarning>>,
     image: Arc<Mutex<Vec<u8>>>,
     image2: Arc<Mutex<Vec<u8>>>,
     found: Arc<Mutex<crate::vision::found::FoundToggle>>,
@@ -117,6 +118,8 @@ impl Shaoooh {
         // RX will subscribe later from TX reference
         let (error_tx_chnl, _error_rx) = broadcast::channel(32);
         let error_tx = Arc::new(error_tx_chnl);
+        let (warn_tx_chnl, _warn_rx) = broadcast::channel(32);
+        let warn_tx = Arc::new(warn_tx_chnl);
 
         // Support 3ds features
         let mode_tup = match config {
@@ -149,6 +152,7 @@ impl Shaoooh {
             rx_conn: conn_rx,
             button_rx,
             error_tx,
+            warn_tx,
             image: image_mutex,
             image2: image_mutex2,
             found: found_mutex,
@@ -393,13 +397,19 @@ impl Shaoooh {
                     let result = h.step(&mut control, results);
                     h.display();
                     // Automatic transition requests
-                    if result.incr_encounters {
+                    if result.result.incr_encounters {
                         self.app.encounters += 1;
                         log::info!("Current encounters: {}", self.app.encounters);
                         self.update_state();
                     }
-                    if let Some(transition_req) = result.transition {
+                    if let Some(transition_req) = result.result.transition {
                         self.do_transition(transition_req, &mut hunt, true);
+                    }
+                    if result.possible_stall {
+                        match self.warn_tx.send(ShaooohWarning::PossibleStall) {
+                            Ok(_) => {}
+                            Err(e) => log::error!("Failed to send warning: {}", e)
+                        };
                     }
                 }
 
@@ -553,10 +563,12 @@ impl Shaoooh {
         let (b_frame_tx, b_frame_rx) = watch::channel(Mat::default());
         let (button_tx, button_rx) = mpsc::channel(16);
         let error_rx_webhook = self.error_tx.subscribe();
+        let warn_rx_webhook = self.warn_tx.subscribe();
 
         runtime.spawn(Webhook::call(
             rx_clone_hook,
             error_rx_webhook,
+            warn_rx_webhook,
             self.config.name(),
         ));
 

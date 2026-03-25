@@ -51,7 +51,7 @@ pub const RESIZE_SWITCH: ResizeProfile = ResizeProfile {
     border_lr: 43,
     border_tb: 0,
     resize_out: (256, 192),
-    brightness: 0.0,
+    brightness: -25.0,
 };
 
 impl ResizeProfile {
@@ -510,7 +510,7 @@ impl Vision {
         let count = opencv::core::count_non_zero(&thresholded).unwrap();
         let met = count > settings.num_thresh;
         //if settings.invert {
-            log::info!("got {} / {}", count, settings.num_thresh);
+        //    log::info!("got {} / {}", count, settings.num_thresh);
         // if settings.col_thresh == 75.0 {
             // highgui::imshow("BAR", &region);
         // }

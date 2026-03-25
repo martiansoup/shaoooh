@@ -56,6 +56,7 @@ pub struct StateMachine<InputKind, InputValue, StateOutput, StateTransition, Int
     empty_input: Vec<InputKind>,
     empty_output: Vec<StateOutput>,
     graph: Option<draw::Graph>,
+    last_transition_time: SystemTime,
 }
 
 impl<InputKind, InputValue, StateOutput, StateTransition, InternalState: std::fmt::Debug>
@@ -71,6 +72,7 @@ impl<InputKind, InputValue, StateOutput, StateTransition, InternalState: std::fm
             empty_input: Vec::new(),
             empty_output: Vec::new(),
             graph: None,
+            last_transition_time: SystemTime::now(),
         }
     }
 
@@ -161,6 +163,10 @@ impl<InputKind, InputValue, StateOutput, StateTransition, InternalState: std::fm
         }
     }
 
+    pub fn since_last(&self) -> Duration {
+        self.last_transition_time.elapsed().expect("Failed to get elapsed time")
+    }
+
     pub fn process(&mut self, inputs: Vec<InputValue>) -> Option<StateTransition> {
         if let Some(delay) = self.delay {
             let extra_delay = Duration::from_secs(0); // TODO for debug
@@ -194,6 +200,7 @@ impl<InputKind, InputValue, StateOutput, StateTransition, InternalState: std::fm
                 let changing_state = self.current != next_state.0;
                 if self.current_state().delay_msec.end == 0 {
                     if changing_state {
+                        self.last_transition_time = SystemTime::now();
                         log::debug!(
                             "State: {} -> {}",
                             self.debug_name_at_indx(self.current),
@@ -207,6 +214,7 @@ impl<InputKind, InputValue, StateOutput, StateTransition, InternalState: std::fm
                     // Delay (Fixed)
                     let duration = Duration::from_millis(self.current_state().delay_msec.start);
                     if changing_state {
+                        self.last_transition_time = SystemTime::now();
                         log::debug!(
                             "State: {} -> {:?} -> {}",
                             self.debug_name_at_indx(self.current),
@@ -222,6 +230,7 @@ impl<InputKind, InputValue, StateOutput, StateTransition, InternalState: std::fm
                     let delay = rng.random_range(self.current_state().delay_msec.clone());
                     let duration = Duration::from_millis(delay);
                     if changing_state {
+                        self.last_transition_time = SystemTime::now();
                         log::debug!(
                             "State: {} -> {:?} -> {}",
                             self.debug_name_at_indx(self.current),

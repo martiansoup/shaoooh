@@ -739,6 +739,12 @@ impl DetectionResolver {
                 Processing::Sprite(Game::FireRedLeafGreen, vec![16, 19], false),
                 Duration::from_millis(3250),
             )
+        } else if builder.target() == 120 {
+            // SS Anne Fishing - Staryu
+            (
+                Processing::Sprite(Game::FireRedLeafGreen, vec![98, 120, 130/*, 79*/], false),
+                Duration::from_millis(2700),
+            )
         } else {
             log::warn!("Defaulting to species list = target ({})", builder.target());
             (
@@ -839,7 +845,7 @@ impl DetectionResolver {
                 3500..3500,
             ),
             // Detect
-            StateDescription::new(Detection::Detect, vec![detect], vec![], 0..0, detect_checks),
+            StateDescription::new(Detection::Detect, vec![detect], vec![], 4000..4000, detect_checks),
             // Done
             StateDescription::deadend_state(Detection::Done),
             // Run

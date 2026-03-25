@@ -14,10 +14,10 @@ fn get_config() -> shaoooh::app::Config {
 
 fn default_arg() -> shaoooh::app::TransitionArg {
     shaoooh::app::TransitionArg::new(
-        "Bulbasaur",
-        1,
+        "SSAnne",
+        120,
         shaoooh::app::Game::FireRedLeafGreen,
-        shaoooh::app::Method::SoftResetGift,
+        shaoooh::app::Method::RandomEncounter,
     )
 }
 

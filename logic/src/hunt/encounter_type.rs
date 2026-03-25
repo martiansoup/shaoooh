@@ -182,6 +182,8 @@ enum UtilityState {
 enum FishingStates {
     TryFish,
     WaitFishActive,
+    Select,
+    LoopBack,
     ShouldPressA,
     Delay,
     PressA,
@@ -962,6 +964,12 @@ impl EncounterTypeResolver {
     }
 
     pub fn frlg_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        if builder.target() == 120 {
+            // Staryu
+            return Self::rs_fishing(builder);
+        }
+       
+
         let states = vec![
             StateDescription::choose_toggle_state(
                 TryGetEncounter::Init,
@@ -1051,7 +1059,7 @@ impl EncounterTypeResolver {
             StateDescription::linear_state(
                 FishingStates::NoNibble,
                 vec![HuntStateOutput::button(Button::A)],
-                2500..3500,
+                2500..2500,
             ),
             StateDescription::branch_state(FishingStates::ToStart, FishingStates::TryFish, 50..50),
             StateDescription::simple_process_state_no_output3(
