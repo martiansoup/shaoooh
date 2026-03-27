@@ -512,10 +512,10 @@ impl Vision {
         //if settings.invert {
         //    log::info!("got {} / {}", count, settings.num_thresh);
         // if settings.col_thresh == 75.0 {
-            // highgui::imshow("BAR", &region);
+        // highgui::imshow("BAR", &region);
         // }
         // if settings.col_thresh == 50.0 {
-            // highgui::imshow("NEGA", &region);
+        // highgui::imshow("NEGA", &region);
         // }
         //}
         // for i in 150..250 {

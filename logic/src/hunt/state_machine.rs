@@ -87,7 +87,10 @@ impl HuntFSM {
         .unwrap_or_else(|_| panic!("Failed to create 'fsm' window"));
         opencv::highgui::move_window("fsm", 576, 32)
             .unwrap_or_else(|_| panic!("Failed to move 'fsm' window"));
-        HuntFSM { fsm, sent_stall: false }
+        HuntFSM {
+            fsm,
+            sent_stall: false,
+        }
     }
 
     pub fn processing(&self) -> &Vec<Processing> {
@@ -123,7 +126,10 @@ impl HuntFSM {
             self.sent_stall = true;
         }
 
-        HuntResultWrap { result: self.step_no_output(results), possible_stall }
+        HuntResultWrap {
+            result: self.step_no_output(results),
+            possible_stall,
+        }
     }
 
     pub fn cleanup(&mut self) {}

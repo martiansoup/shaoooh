@@ -181,14 +181,16 @@ enum UtilityState {
 #[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
 enum FishingStates {
     TryFish,
+    StartTimer,
     WaitFishActive,
-    Select,
-    LoopBack,
+    CheckTimer,
     ShouldPressA,
     Delay,
     PressA,
     CheckOnHook,
     CheckNoNibble,
+    DelayNoNibble,
+    OnHook2,
     NoNibble,
     ToStart,
     StartEncounter,
@@ -909,16 +911,40 @@ impl EncounterTypeResolver {
 
         let sr_states = vec![
             StateDescription::linear_state(SoftResetProcess::SoftReset, sr_buttons, 10000..10000),
-            StateDescription::linear_state(SoftResetProcess::Title1, vec![HuntStateOutput::button(Button::A)], 5000..5000),
-            StateDescription::linear_state(SoftResetProcess::Title2, vec![HuntStateOutput::button(Button::A)], 5000..5000),
+            StateDescription::linear_state(
+                SoftResetProcess::Title1,
+                vec![HuntStateOutput::button(Button::A)],
+                5000..5000,
+            ),
+            StateDescription::linear_state(
+                SoftResetProcess::Title2,
+                vec![HuntStateOutput::button(Button::A)],
+                5000..5000,
+            ),
             //StateDescription::linear_state(SoftResetProcess::Title3, vec![HuntStateOutput::button(Button::A)], 5000..5000),
             //StateDescription::linear_state(SoftResetProcess::Title4, vec![HuntStateOutput::button(Button::A)], 5000..5000),
-            StateDescription::linear_state(SoftResetProcess::SelectFile, vec![HuntStateOutput::button(Button::A)], 8000..8000),
+            StateDescription::linear_state(
+                SoftResetProcess::SelectFile,
+                vec![HuntStateOutput::button(Button::A)],
+                8000..8000,
+            ),
             //StateDescription::linear_state(SoftResetProcess::CGearNo1, vec![HuntStateOutput::button(Button::B)], 1000..1000),
             //StateDescription::linear_state(SoftResetProcess::CGearNo2, vec![HuntStateOutput::button(Button::A)], 8000..8000),
-            StateDescription::linear_state(SoftResetProcess::GetGift, vec![HuntStateOutput::button(Button::A)], 1000..9000),
-            StateDescription::linear_state(SoftResetProcess::GetGift2, vec![HuntStateOutput::button(Button::A)], 3500..3500),
-            StateDescription::linear_state(SoftResetProcess::GetGift3, vec![HuntStateOutput::button(Button::A)], 4500..4500),
+            StateDescription::linear_state(
+                SoftResetProcess::GetGift,
+                vec![HuntStateOutput::button(Button::A)],
+                1000..9000,
+            ),
+            StateDescription::linear_state(
+                SoftResetProcess::GetGift2,
+                vec![HuntStateOutput::button(Button::A)],
+                3500..3500,
+            ),
+            StateDescription::linear_state(
+                SoftResetProcess::GetGift3,
+                vec![HuntStateOutput::button(Button::A)],
+                4500..4500,
+            ),
         ];
 
         builder.add_states(sr_states);
@@ -926,36 +952,76 @@ impl EncounterTypeResolver {
         let choose_states = if builder.target() == 495 {
             // Snivy - L L
             vec![
-                StateDescription::linear_state(StartSoftResetEncounter::Press1, vec![HuntStateOutput::button(Button::Left)], 1000..1000),
-                StateDescription::linear_state(StartSoftResetEncounter::Press2, vec![HuntStateOutput::button(Button::Left)], 1000..1000),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press1,
+                    vec![HuntStateOutput::button(Button::Left)],
+                    1000..1000,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press2,
+                    vec![HuntStateOutput::button(Button::Left)],
+                    1000..1000,
+                ),
             ]
         } else if builder.target() == 498 {
             // Tepig - L
-            vec![
-                StateDescription::linear_state(StartSoftResetEncounter::Press1, vec![HuntStateOutput::button(Button::Left)], 1000..1000)
-            ]
+            vec![StateDescription::linear_state(
+                StartSoftResetEncounter::Press1,
+                vec![HuntStateOutput::button(Button::Left)],
+                1000..1000,
+            )]
         } else {
             // Oshawott - L R
             vec![
-                StateDescription::linear_state(StartSoftResetEncounter::Press1, vec![HuntStateOutput::button(Button::Left)], 1000..1000),
-                StateDescription::linear_state(StartSoftResetEncounter::Press2, vec![HuntStateOutput::button(Button::Right)], 1000..1000),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press1,
+                    vec![HuntStateOutput::button(Button::Left)],
+                    1000..1000,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press2,
+                    vec![HuntStateOutput::button(Button::Right)],
+                    1000..1000,
+                ),
             ]
         };
 
         builder.add_states(choose_states);
 
         let mash_states1 = vec![
-            StateDescription::linear_state(TryGetEncounter::Init, vec![HuntStateOutput::new(Button::A, Delay::Twentieth)], 75..75),
-            StateDescription::simple_process_state_no_output3(Branch3::new(TryGetEncounter::Entering, TryGetEncounter::Got, TryGetEncounter::Init), Processing::BW2_BLACK_SCREEN),
-            StateDescription::linear_state_no_delay(TryGetEncounter::Got, vec![])
+            StateDescription::linear_state(
+                TryGetEncounter::Init,
+                vec![HuntStateOutput::new(Button::A, Delay::Twentieth)],
+                75..75,
+            ),
+            StateDescription::simple_process_state_no_output3(
+                Branch3::new(
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Got,
+                    TryGetEncounter::Init,
+                ),
+                Processing::BW2_BLACK_SCREEN,
+            ),
+            StateDescription::linear_state_no_delay(TryGetEncounter::Got, vec![]),
         ];
 
         builder.add_states(mash_states1);
 
         let mash_states2 = vec![
-            StateDescription::linear_state(TryGetEncounter::Init, vec![HuntStateOutput::new(Button::A, Delay::Twentieth)], 75..75),
-            StateDescription::simple_process_state_no_output3(Branch3::new(TryGetEncounter::Entering, TryGetEncounter::Got, TryGetEncounter::Init), Processing::BW2_WHITE_SCREEN),
-            StateDescription::linear_state(TryGetEncounter::Got, vec![], 5000..5000)
+            StateDescription::linear_state(
+                TryGetEncounter::Init,
+                vec![HuntStateOutput::new(Button::A, Delay::Twentieth)],
+                75..75,
+            ),
+            StateDescription::simple_process_state_no_output3(
+                Branch3::new(
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Got,
+                    TryGetEncounter::Init,
+                ),
+                Processing::BW2_WHITE_SCREEN,
+            ),
+            StateDescription::linear_state(TryGetEncounter::Got, vec![], 5000..5000),
         ];
 
         builder.add_states(mash_states2);
@@ -965,10 +1031,41 @@ impl EncounterTypeResolver {
 
     pub fn frlg_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
         if builder.target() == 120 {
+            // let sr_buttons = vec![
+            //     HuntStateOutput::new(Button::A, Delay::Tenth),
+            //     HuntStateOutput::new(Button::B, Delay::Tenth),
+            //     HuntStateOutput::new(Button::Start, Delay::Tenth),
+            //     HuntStateOutput::new(Button::Select, Delay::Tenth),
+            // ];
+            // let states = vec![
+            //     StateDescription::linear_state(SoftResetProcess::SoftReset, sr_buttons, 3750..4250),
+            //     StateDescription::linear_state(
+            //         SoftResetProcess::Title1,
+            //         vec![HuntStateOutput::button(Button::A)],
+            //         5000..5500,
+            //     ),
+            //     StateDescription::linear_state(
+            //         SoftResetProcess::Title2,
+            //         vec![HuntStateOutput::button(Button::A)],
+            //         3750..4250,
+            //     ),
+            //     StateDescription::linear_state(
+            //         SoftResetProcess::Title3,
+            //         vec![HuntStateOutput::button(Button::A)],
+            //         2500..3000,
+            //     ),
+            //     StateDescription::linear_state(
+            //         SoftResetProcess::SkipMemory,
+            //         vec![HuntStateOutput::button(Button::B)],
+            //         3000..3500,
+            //     ),
+            // ];
+
+            // builder.add_states(states);
+
             // Staryu
             return Self::rs_fishing(builder);
         }
-       
 
         let states = vec![
             StateDescription::choose_toggle_state(
@@ -1024,15 +1121,32 @@ impl EncounterTypeResolver {
     }
 
     pub fn rs_fishing(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+        let no_nibble_proc = match builder.game() {
+            Game::FireRedLeafGreen => Processing::FRLG_FISHING_NO_NIBBLE,
+            Game::RubySapphire => Processing::RS_FISHING_NO_NIBBLE,
+            _ => Processing::RS_FISHING_NO_NIBBLE,
+        };
+
+        let on_hook_proc = match builder.game() {
+            Game::FireRedLeafGreen => Processing::FRLG_FISHING_ON_HOOK,
+            Game::RubySapphire => Processing::RS_FISHING_ON_HOOK,
+            _ => Processing::RS_FISHING_ON_HOOK,
+        };
+
         let states = vec![
             StateDescription::linear_state(
                 FishingStates::TryFish,
                 vec![HuntStateOutput::button(Button::Select)],
                 100..100,
             ),
-            StateDescription::simple_process_state_no_output(
-                Branch2::new(FishingStates::WaitFishActive, FishingStates::ShouldPressA),
+            StateDescription::start_timer_state(FishingStates::StartTimer, FishingStates::WaitFishActive),
+            StateDescription::simple_process_state_no_output3(
+                Branch3::new(FishingStates::WaitFishActive, FishingStates::ShouldPressA, FishingStates::CheckTimer),
                 Processing::RS_FISHING_ACTIVE,
+            ),
+            StateDescription::branch_delay_state(
+                Branch3::new(FishingStates::CheckTimer, FishingStates::TryFish, FishingStates::WaitFishActive),
+                5000
             ),
             StateDescription::simple_process_state_no_output3(
                 Branch3::new(
@@ -1054,7 +1168,7 @@ impl EncounterTypeResolver {
                     FishingStates::StartEncounter,
                     FishingStates::CheckNoNibble,
                 ),
-                Processing::RS_FISHING_ON_HOOK,
+                on_hook_proc.clone(),
             ),
             StateDescription::linear_state(
                 FishingStates::NoNibble,
@@ -1065,10 +1179,23 @@ impl EncounterTypeResolver {
             StateDescription::simple_process_state_no_output3(
                 Branch3::new(
                     FishingStates::CheckNoNibble,
-                    FishingStates::NoNibble,
+                    FishingStates::DelayNoNibble,
                     FishingStates::ShouldPressA,
                 ),
-                Processing::RS_FISHING_NO_NIBBLE,
+                no_nibble_proc,
+            ),
+            StateDescription::linear_state(
+                FishingStates::DelayNoNibble,
+                vec![],
+                500..500,
+            ),
+            StateDescription::simple_process_state_no_output3(
+                Branch3::new(
+                    FishingStates::OnHook2,
+                    FishingStates::StartEncounter,
+                    FishingStates::NoNibble,
+                ),
+                on_hook_proc,
             ),
             StateDescription::linear_state(
                 FishingStates::StartEncounter,

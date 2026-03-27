@@ -37,7 +37,6 @@ pub struct HuntResult {
     pub(crate) incr_encounters: bool,
 }
 
-
 #[derive(Debug)]
 pub struct HuntResultWrap {
     pub(crate) result: HuntResult,

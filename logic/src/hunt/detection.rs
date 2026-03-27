@@ -413,23 +413,23 @@ impl DetectionResolver {
 
         let states = vec![
             StateDescription::start_timer_state(Detection::PrePreEnterEncounter, Detection::Detect),
-                StateDescription::process_and_not_state_no_output_end_timer(
-                    Branch2::new(Detection::Detect, Detection::SetFound),
-                    Processing::BW_HP_BAR_PRESENT,
-                    Processing::BW_BALL_ANIMATION,
-                ),
-                StateDescription::simple_process_state_no_output(
-                    Branch2::new(Detection::SetFound, Detection::Run1),
-                    Processing::SetFound(true),
-                ),
-                StateDescription::branch_last_delay_state(
-                    Branch3::new(Detection::Run1, Detection::Toggle, Detection::Run2),
-                    timer,
-                ),
-                StateDescription::found_target_state(Detection::Toggle, Detection::Done),
-                StateDescription::deadend_state(Detection::Done),
-                StateDescription::incr_encounter_state(Detection::Run2, Detection::Run3),
-                StateDescription::linear_state(Detection::Run3, vec![], 0..1500),
+            StateDescription::process_and_not_state_no_output_end_timer(
+                Branch2::new(Detection::Detect, Detection::SetFound),
+                Processing::BW_HP_BAR_PRESENT,
+                Processing::BW_BALL_ANIMATION,
+            ),
+            StateDescription::simple_process_state_no_output(
+                Branch2::new(Detection::SetFound, Detection::Run1),
+                Processing::SetFound(true),
+            ),
+            StateDescription::branch_last_delay_state(
+                Branch3::new(Detection::Run1, Detection::Toggle, Detection::Run2),
+                timer,
+            ),
+            StateDescription::found_target_state(Detection::Toggle, Detection::Done),
+            StateDescription::deadend_state(Detection::Done),
+            StateDescription::incr_encounter_state(Detection::Run2, Detection::Run3),
+            StateDescription::linear_state(Detection::Run3, vec![], 0..1500),
         ];
 
         builder.add_states(states);
@@ -688,7 +688,7 @@ impl DetectionResolver {
                 targets,
                 target,
                 shiny_threshold,
-                0.017
+                0.017,
             ),
             // Done
             StateDescription::deadend_state(Detection::Done),
@@ -742,7 +742,7 @@ impl DetectionResolver {
         } else if builder.target() == 120 {
             // SS Anne Fishing - Staryu
             (
-                Processing::Sprite(Game::FireRedLeafGreen, vec![98, 120, 130/*, 79*/], false),
+                Processing::Sprite(Game::FireRedLeafGreen, vec![98, 120, 130 /*, 79*/], false),
                 Duration::from_millis(2700),
             )
         } else {
@@ -845,7 +845,13 @@ impl DetectionResolver {
                 3500..3500,
             ),
             // Detect
-            StateDescription::new(Detection::Detect, vec![detect], vec![], 4000..4000, detect_checks),
+            StateDescription::new(
+                Detection::Detect,
+                vec![detect],
+                vec![],
+                4000..4000,
+                detect_checks,
+            ),
             // Done
             StateDescription::deadend_state(Detection::Done),
             // Run

@@ -408,7 +408,7 @@ impl Shaoooh {
                     if result.possible_stall {
                         match self.warn_tx.send(ShaooohWarning::PossibleStall) {
                             Ok(_) => {}
-                            Err(e) => log::error!("Failed to send warning: {}", e)
+                            Err(e) => log::error!("Failed to send warning: {}", e),
                         };
                     }
                 }

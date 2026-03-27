@@ -164,7 +164,9 @@ impl<InputKind, InputValue, StateOutput, StateTransition, InternalState: std::fm
     }
 
     pub fn since_last(&self) -> Duration {
-        self.last_transition_time.elapsed().expect("Failed to get elapsed time")
+        self.last_transition_time
+            .elapsed()
+            .expect("Failed to get elapsed time")
     }
 
     pub fn process(&mut self, inputs: Vec<InputValue>) -> Option<StateTransition> {

@@ -561,7 +561,6 @@ where
         Self::new(tag, Vec::new(), Vec::new(), 0..0, deadend_checks)
     }
 
-
     pub fn process_and_not_state_no_output_end_timer(
         branch: Branch2<K>,
         processing: Processing,
@@ -587,8 +586,7 @@ where
                         .iter()
                         .filter(|f| f.process == not_proc_for_met)
                         .any(|f| f.met);
-                    if res_pos && !res_neg
-                    {
+                    if res_pos && !res_neg {
                         int.last_duration = int.time.elapsed().expect("Couldn't get duration");
                         Some(HuntResult::default())
                     } else {
@@ -609,8 +607,7 @@ where
                         .iter()
                         .filter(|f| f.process == not_proc_for_not)
                         .any(|f| f.met);
-                    if !(res_pos && !res_neg)
-                    {
+                    if !(res_pos && !res_neg) {
                         Some(HuntResult::default())
                     } else {
                         None
@@ -618,9 +615,13 @@ where
                 },
             ),
         );
-        StateDescription::new(tag, vec![processing, not_processing], vec![], 0..0, process_checks)
-
-
+        StateDescription::new(
+            tag,
+            vec![processing, not_processing],
+            vec![],
+            0..0,
+            process_checks,
+        )
     }
 
     fn simple_process_state_helper(
@@ -1079,7 +1080,7 @@ where
         species: Vec<u32>,
         target: u32,
         threshold: Duration,
-        diff: f64
+        diff: f64,
     ) -> Self {
         let Branch3 {
             tag,

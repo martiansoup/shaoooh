@@ -99,7 +99,7 @@ impl Processing {
         h: 40,
         col_thresh: 210.0,
         num_thresh: 175,
-        invert: false
+        invert: false,
     });
     pub const BW_BALL_ANIMATION: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 68,
@@ -108,7 +108,7 @@ impl Processing {
         h: 84,
         col_thresh: 210.0,
         num_thresh: 300,
-        invert: false
+        invert: false,
     });
     pub const BW2_BLACK_SCREEN: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 0,
@@ -302,6 +302,24 @@ impl Processing {
     });
     pub const RS_FISHING_NO_NIBBLE: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 22,
+        y: 138,
+        w: 9,
+        h: 14,
+        col_thresh: 210.0,
+        num_thresh: 1,
+        invert: true,
+    });
+    pub const FRLG_FISHING_ON_HOOK: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 145,
+        y: 135,
+        w: 26,
+        h: 7,
+        col_thresh: 210.0,
+        num_thresh: 1,
+        invert: true,
+    });
+    pub const FRLG_FISHING_NO_NIBBLE: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 20,
         y: 138,
         w: 9,
         h: 14,
