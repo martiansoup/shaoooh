@@ -638,12 +638,12 @@ impl DetectionResolver {
                 Self::RUN_DELAY..Self::RUN_DELAY,
             ),
             StateDescription::linear_state(
-                Detection::Run3,
+                Detection::Run5,
                 vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
                 Self::RUN_DELAY..Self::RUN_DELAY,
             ),
             StateDescription::linear_state(
-                Detection::Run4,
+                Detection::Run6,
                 vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
                 3000..9200,
             ),
@@ -743,7 +743,7 @@ impl DetectionResolver {
             // SS Anne Fishing - Staryu
             (
                 Processing::Sprite(Game::FireRedLeafGreen, vec![98, 120, 130 /*, 79*/], false),
-                Duration::from_millis(2700),
+                Duration::from_millis(2500),
             )
         } else {
             log::warn!("Defaulting to species list = target ({})", builder.target());
@@ -867,11 +867,21 @@ impl DetectionResolver {
             ),
             StateDescription::linear_state(
                 Detection::Run3,
-                vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
+                vec![HuntStateOutput::new(Button::Down, Delay::Tenth)],
                 Self::RUN_DELAY..Self::RUN_DELAY,
             ),
             StateDescription::linear_state(
                 Detection::Run4,
+                vec![HuntStateOutput::new(Button::Right, Delay::Tenth)],
+                Self::RUN_DELAY..Self::RUN_DELAY,
+            ),
+            StateDescription::linear_state(
+                Detection::Run5,
+                vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
+                Self::RUN_DELAY..Self::RUN_DELAY,
+            ),
+            StateDescription::linear_state(
+                Detection::Run6,
                 vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
                 3000..9200,
             ),

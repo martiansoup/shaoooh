@@ -511,6 +511,7 @@ impl Vision {
         let met = count > settings.num_thresh;
         //if settings.invert {
         //    log::info!("got {} / {}", count, settings.num_thresh);
+        //}
         // if settings.col_thresh == 75.0 {
         // highgui::imshow("BAR", &region);
         // }
