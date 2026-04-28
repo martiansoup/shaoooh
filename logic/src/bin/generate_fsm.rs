@@ -34,7 +34,7 @@ async fn main() {
         .init()
         .unwrap();
 
-    log::info!("Starting Shaoooh Test : Hunt Information");
+    log::info!("Starting Shaoooh : FSM Generation");
 
     let args = Args::parse();
 

@@ -5,6 +5,7 @@ pub mod displays;
 pub mod fsm;
 pub mod hunt;
 pub mod vision;
+pub mod vm;
 
 #[cfg(all(target_arch = "aarch64", target_os = "linux"))]
 pub mod lights;
