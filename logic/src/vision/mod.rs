@@ -86,6 +86,7 @@ pub enum Processing {
     USUMBottomScreen(f64),
     USUMBottomScreenInv(f64),
     SetFound(bool),
+    Input(String)
 }
 
 impl Processing {

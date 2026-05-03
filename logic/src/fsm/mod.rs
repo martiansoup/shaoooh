@@ -13,6 +13,7 @@ use rand::Rng;
 pub type BoxedStateCheck<InputValue, StateTransition, InternalState> =
     Box<dyn Fn(&Vec<InputValue>, &mut InternalState) -> Option<(usize, StateTransition)>>;
 
+#[derive(Debug)]
 pub struct StateId {
     tag: usize,
     name: String,

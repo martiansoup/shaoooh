@@ -19,11 +19,15 @@ struct EncounterUnparsed {
 // TODO derive strings only on debug?
 #[derive(Debug)]
 struct EncounterParsed {
+    #[expect(dead_code, reason = "TODO")]
     id: u32,
+    #[expect(dead_code, reason = "TODO")]
     version_id: u32,
     version: String,
     location: String,
+    #[expect(dead_code, reason = "TODO")]
     slot: u32,
+    #[expect(dead_code, reason = "TODO")]
     method_id: u32,
     method: String,
     rarity: u32,
@@ -31,6 +35,7 @@ struct EncounterParsed {
     min_lvl: u32,
     max_lvl: u32,
     condition: String,
+    #[expect(dead_code, reason = "TODO")]
     condition_id: u32,
 }
 
@@ -54,8 +59,8 @@ impl EncountersProvider {
         es
     }
 
-    fn parse_encounters(es: Vec<EncounterUnparsed>) -> Vec<EncounterParsed> {
-        //let es = Self::dedup(es);
+    fn parse_encounters(es: Vec<EncounterUnparsed>, dedup: bool) -> Vec<EncounterParsed> {
+        let es = if dedup { Self::dedup(es) } else { es };
         let mut res = vec![];
         let mut locations = vec![];
         let mut encounter_slots = vec![];
@@ -309,7 +314,7 @@ impl EncountersProvider {
         encounters
     }
 
-    pub fn get_encounters(&self, species: u32, game: Option<Game>) {
+    pub fn get_encounters(&self, species: u32, game: Option<Game>, dedup: bool) {
         let game_str = match &game {
             Some(g) => {
                 let s: &'static str = g.into();
@@ -326,7 +331,7 @@ impl EncountersProvider {
         log::trace!("Finding encounters for #{}{}", species, game_str);
         let unparsed = Self::get_encounter_list(species, versions);
 
-        for e in Self::parse_encounters(unparsed) {
+        for e in Self::parse_encounters(unparsed, dedup) {
             //log::trace!("{:?}", e);
             let name = PkContext::get().species().name(e.mon);
             let condition = if e.condition.len() > 0 {

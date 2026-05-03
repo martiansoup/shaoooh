@@ -464,7 +464,7 @@ impl Shaoooh {
             .unwrap();
         let _guard = runtime.enter();
 
-        let (service_ref, task, service_ok) =
+        let (_service_ref, task, service_ok) =
             service.publish_task().expect("Failed to create service");
 
         runtime.spawn(task);

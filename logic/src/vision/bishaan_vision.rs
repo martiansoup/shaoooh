@@ -453,7 +453,7 @@ impl BishaanVision {
                     .clone_pointee();
 
                 let mut diff = Mat::default();
-                opencv::core::absdiff(&cur_subset, &last_subset, &mut diff);
+                opencv::core::absdiff(&cur_subset, &last_subset, &mut diff).expect("Failed to get difference");
 
                 let sum = opencv::core::sum_elems(&diff);
 

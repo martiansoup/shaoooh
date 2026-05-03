@@ -150,16 +150,13 @@ enum LoopState {
 
 #[derive(PartialEq, Hash, Eq, AsRefStr, Clone)]
 enum UtilityState {
-    Init,
     StartTimer,
     UpdateTimer,
     CheckTimer,
     Up,
     Down,
     Left,
-    Right,
     Entering,
-    DownTo,
     Wait,
     UpToBattle,
     AToBattle,
@@ -779,7 +776,7 @@ impl EncounterTypeResolver {
                 builder.add_states(states2);
                 Some(builder)
             }
-            442 | 486 | 487 => {
+            486 | 487 => {
                 // Legendaries
                 // Needs Setup/Decide/Decr
                 // Count button press method

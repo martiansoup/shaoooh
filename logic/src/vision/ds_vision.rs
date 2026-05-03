@@ -585,6 +585,7 @@ impl Vision {
                 panic!("ColourChannelDetect3DS incompatible with DS")
             }
             Processing::Sprite3DS(..) => panic!("Sprite3DS incompatible with DS"),
+            Processing::Input(..) => panic!("Manual input incompatible with DS"),
         }
     }
 }

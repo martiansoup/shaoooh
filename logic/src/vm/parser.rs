@@ -1,19 +1,26 @@
-use crate::vm::state::{State, GroupOp};
-use nom::branch::{alt, permutation};
+use nom::branch::alt;
 use nom::bytes::complete::take_while;
 use nom::bytes::tag;
 use nom::bytes::{is_not, take_until1};
-use nom::character::complete::{alphanumeric1, space0};
+use nom::character::complete::space0;
 use nom::character::satisfy;
 use nom::combinator::{all_consuming, complete, eof, map, map_res, opt, recognize};
-use nom::multi::{many0, many1_count, separated_list1};
+use nom::multi::{many0, many1_count};
 use nom::sequence::{delimited, preceded};
 use nom::IResult;
 use nom::{AsChar, Parser};
 
+use handlebars::Handlebars;
+
 use std::ops::Range;
 
 use crate::vm::state::InternalOp;
+use crate::vm::state::{State, GroupOp};
+use crate::vm::state_machine::ParsedStateMachine;
+
+use serde::Serialize;
+
+use crate::app::{Game, Method};
 
 pub struct FsmParser {
     fsm: Vec<u8>,
@@ -31,9 +38,16 @@ enum ParseType {
     Processing,
 }
 
+#[derive(Serialize)]
+struct TplContext {
+    target: u32,
+    game: Game,
+    method: Method,
+}
+
 impl FsmParser {
     pub fn new(mut fsm: Vec<u8>) -> Self {
-        fsm.push(b'\n');
+        fsm.push(b'\n'); // Ensure empty newline at end
         Self { fsm }
     }
 
@@ -42,13 +56,13 @@ impl FsmParser {
     }
 
     fn parse_comment(s: &str) -> IResult<&str, Option<State>> {
-        let (input, (tag, _, comment)) = (tag(COMMENT), space0, is_not("\n")).parse(s)?;
+        let (_input, (_tag, _, comment)) = (tag(COMMENT), space0, is_not("\n")).parse(s)?;
 
         Ok((comment, None))
     }
 
     fn parse_tag(s: &str) -> IResult<&str, Option<&str>> {
-        opt(complete(map((take_until1(LABEL), tag(LABEL)), |(a, b)| a))).parse(s)
+        opt(complete(map((take_until1(LABEL), tag(LABEL)), |(a, _b)| a))).parse(s)
     }
 
     fn alphanumeric_or_equals(s: &str) -> IResult<&str, char> {
@@ -79,16 +93,19 @@ impl FsmParser {
             map((tag("LastDelay="), Self::u64_from_text), |(_, n)| {
                 InternalOp::LastDelay(n)
             }),
+            map((tag("ProcDelay="), Self::u64_from_text), |(_, n)| {
+                InternalOp::ProcDelay(n)
+            }),
             map(
                 (
-                    tag("LastDelayRange="),
+                    tag("ProcDelayRange="),
                     Self::u64_from_text,
                     tag(","),
                     Self::u64_from_text,
                     tag(".."),
                     Self::u64_from_text,
                 ),
-                |(_, n, _, a, _, b)| InternalOp::LastDelayRange(n, a..b),
+                |(_, n, _, a, _, b)| InternalOp::ProcDelayRange(n, a..b),
             ),
             map(tag("CounterZero"), |_| InternalOp::CounterZero),
             map((tag("CounterValue="), Self::usize_from_text), |(_, n)| {
@@ -138,13 +155,13 @@ impl FsmParser {
     }
 
     fn parse_positive_branch(s: &str) -> IResult<&str, &str> {
-        let (remaining, (_, b)) = complete((tag("+"), take_until1(" "))).parse(s)?;
+        let (remaining, (_, b)) = complete((tag("+"), alt((take_until1(" "), take_until1("\n"))))).parse(s)?;
 
         Ok((remaining, b))
     }
 
     fn parse_negative_branch(s: &str) -> IResult<&str, &str> {
-        let (remaining, (_, b)) = complete((tag("-"), take_until1(" "))).parse(s)?;
+        let (remaining, (_, b)) = complete((tag("-"), alt((take_until1(" "), take_until1("\n"))))).parse(s)?;
 
         Ok((remaining, b))
     }
@@ -260,13 +277,13 @@ impl FsmParser {
         )))
         .parse(s)?;
 
-        log::warn!(
-            "Think got state: {:?}\nmods = {:?}, mid = {:?}\noutputs = {:?}",
-            tag,
-            modifiers,
-            middle,
-            outputs
-        );
+        // log::warn!(
+        //     "Think got state: {:?}\nmods = {:?}, mid = {:?}\noutputs = {:?}",
+        //     tag,
+        //     modifiers,
+        //     middle,
+        //     outputs
+        // );
 
         let mut state = State::new();
 
@@ -277,7 +294,6 @@ impl FsmParser {
         let (delay, positive, negative, processing) = middle;
 
         state.set_delay(delay);
-
 
         state.set_outputs(outputs.into_iter().map(|s| s.to_string()).collect());
         state.set_modifiers(modifiers);
@@ -308,30 +324,56 @@ impl FsmParser {
         .parse(s)
     }
 
-    pub fn parse(self) -> Option<Vec<State>> {
+    fn preprocess(&self) -> Option<String> {
+        if let Ok(s) = std::str::from_utf8(&self.fsm) {
+            let mut hbars = Handlebars::new();
+            hbars.set_strict_mode(true);
+
+            let data = TplContext {
+                target: 1,
+                game: Game::FireRedLeafGreen,
+                method: Method::SoftResetGift
+            };
+
+            match hbars.render_template(s, &data) {
+                Ok(rndr) => Some(rndr),
+                Err(e) => {
+                    log::error!("Failed to preprocess: {}", e);
+                    None
+                }
+            }
+        } else {
+            log::error!("Failed to read as utf-8");
+            None
+        }
+    }
+
+    pub fn parse(self) -> Option<ParsedStateMachine> {
         let mut any_error = false;
         let mut result = Vec::new();
-        for line in self.fsm.split_inclusive(|x| *x == b'\n') {
-            let lstr = std::str::from_utf8(line)
-                .expect("Failed to read as utf-8")
-                .trim_start_matches(' ');
+        let input = self.preprocess()?;
+        for line in input.split_inclusive('\n') {
+            let lstr = line.trim_start_matches(' ');
             log::trace!("Parsing: {}", lstr);
             let p = Self::parse_line(lstr);
             if let Ok(p) = p {
-                log::debug!("p0 = '{}'", p.0);
-                log::debug!("p1 = {:?}", p.1);
                 if let Some(s) = p.1 {
+                    if !s.is_ok() {
+                        log::error!("State not ok: {:?}", s);
+                        any_error = true;
+                    }
                     result.push(s);
                 }
             } else {
                 log::error!("Failed to parse: '{}' ({:?})", lstr, p);
+                any_error = true;
             }
         }
 
         if any_error {
             None
         } else {
-            Some(result)
+            Some(ParsedStateMachine::new(result))
         }
     }
 }
