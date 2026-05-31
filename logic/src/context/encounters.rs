@@ -108,7 +108,7 @@ impl EncountersProvider {
 
             // Wasn't in location names, construct from area
             for loc in &locations {
-                if !location_map.contains_key(&loc) {
+                if !location_map.contains_key(loc) {
                     needed_areas.push(*loc);
                 }
             }
@@ -123,7 +123,7 @@ impl EncountersProvider {
                 if needed_areas.contains(&id) {
                     let loc_id: u32 = str::parse(&r[1]).expect("Couldn't parse location id");
                     let suffix = &r[3];
-                    if suffix.len() > 0 {
+                    if !suffix.is_empty() {
                         suffix_map.insert(id, suffix.to_string());
                     }
                     needed_locs.push(loc_id);
@@ -146,7 +146,7 @@ impl EncountersProvider {
             }
 
             for loc in &locations {
-                if !location_map.contains_key(&loc) {
+                if !location_map.contains_key(loc) {
                     let area = loc;
                     let location = area_map.get(area).unwrap();
                     let suffix = match suffix_map.get(area) {
@@ -294,20 +294,18 @@ impl EncountersProvider {
             let min_lvl: u32 = str::parse(&r[5]).expect("Couldn't parse min level");
             let max_lvl: u32 = str::parse(&r[6]).expect("Couldn't parse max level");
 
-            if mon == species {
-                if versions.contains(&version) {
-                    let e = EncounterUnparsed {
-                        id,
-                        version,
-                        location,
-                        slot,
-                        mon,
-                        min_lvl,
-                        max_lvl,
-                    };
+            if mon == species && versions.contains(&version) {
+                let e = EncounterUnparsed {
+                    id,
+                    version,
+                    location,
+                    slot,
+                    mon,
+                    min_lvl,
+                    max_lvl,
+                };
 
-                    encounters.push(e);
-                }
+                encounters.push(e);
             }
         }
 
@@ -334,7 +332,7 @@ impl EncountersProvider {
         for e in Self::parse_encounters(unparsed, dedup) {
             //log::trace!("{:?}", e);
             let name = PkContext::get().species().name(e.mon);
-            let condition = if e.condition.len() > 0 {
+            let condition = if !e.condition.is_empty() {
                 format!(" ({})", e.condition)
             } else {
                 "".to_string()

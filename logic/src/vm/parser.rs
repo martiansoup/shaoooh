@@ -1,3 +1,4 @@
+use nom::IResult;
 use nom::branch::alt;
 use nom::bytes::complete::take_while;
 use nom::bytes::tag;
@@ -7,7 +8,6 @@ use nom::character::satisfy;
 use nom::combinator::{all_consuming, complete, eof, map, map_res, opt, recognize};
 use nom::multi::{many0, many1_count};
 use nom::sequence::{delimited, preceded};
-use nom::IResult;
 use nom::{AsChar, Parser};
 
 use handlebars::Handlebars;
@@ -15,7 +15,7 @@ use handlebars::Handlebars;
 use std::ops::Range;
 
 use crate::vm::state::InternalOp;
-use crate::vm::state::{State, GroupOp};
+use crate::vm::state::{GroupOp, State};
 use crate::vm::state_machine::ParsedStateMachine;
 
 use serde::Serialize;
@@ -145,7 +145,7 @@ impl FsmParser {
             match c {
                 '+' => Some(ParseType::PositiveBranch),
                 '-' => Some(ParseType::NegativeBranch),
-                s if ('0'..'9').contains(&s) => Some(ParseType::Delay),
+                s if s.is_ascii_digit() => Some(ParseType::Delay),
                 '{' => Some(ParseType::Processing),
                 _ => None,
             }
@@ -155,13 +155,15 @@ impl FsmParser {
     }
 
     fn parse_positive_branch(s: &str) -> IResult<&str, &str> {
-        let (remaining, (_, b)) = complete((tag("+"), alt((take_until1(" "), take_until1("\n"))))).parse(s)?;
+        let (remaining, (_, b)) =
+            complete((tag("+"), alt((take_until1(" "), take_until1("\n"))))).parse(s)?;
 
         Ok((remaining, b))
     }
 
     fn parse_negative_branch(s: &str) -> IResult<&str, &str> {
-        let (remaining, (_, b)) = complete((tag("-"), alt((take_until1(" "), take_until1("\n"))))).parse(s)?;
+        let (remaining, (_, b)) =
+            complete((tag("-"), alt((take_until1(" "), take_until1("\n"))))).parse(s)?;
 
         Ok((remaining, b))
     }
@@ -181,8 +183,10 @@ impl FsmParser {
         (
             delimited(tag("{"), take_until1("}"), tag("}")),
             opt((
-                alt((map(tag("&!"), |_| GroupOp::AndNot),
-                    map(tag("&"), |_| GroupOp::And))),
+                alt((
+                    map(tag("&!"), |_| GroupOp::AndNot),
+                    map(tag("&"), |_| GroupOp::And),
+                )),
                 delimited(tag("{"), take_until1("}"), tag("}")),
             )),
         )
@@ -319,7 +323,7 @@ impl FsmParser {
         alt((
             map(Self::end_or_newline, |_| None),
             map(Self::parse_comment, |_| None),
-            map(Self::parse_state, |s| Some(s)),
+            map(Self::parse_state, Some),
         ))
         .parse(s)
     }
@@ -332,7 +336,7 @@ impl FsmParser {
             let data = TplContext {
                 target: 1,
                 game: Game::FireRedLeafGreen,
-                method: Method::SoftResetGift
+                method: Method::SoftResetGift,
             };
 
             match hbars.render_template(s, &data) {

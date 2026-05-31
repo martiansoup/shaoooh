@@ -1,13 +1,13 @@
 use std::{net::Ipv4Addr, path::Path, time::Duration};
 
 use opencv::{
-    core::{BORDER_DEFAULT, CV_8S, CV_32S, Point, Vector},
-    highgui::{WINDOW_GUI_EXPANDED, WINDOW_GUI_NORMAL, WINDOW_KEEPRATIO, WINDOW_NORMAL},
+    core::{BORDER_DEFAULT, Point, Vector},
+    highgui::{WINDOW_GUI_EXPANDED, WINDOW_KEEPRATIO},
     imgcodecs::{IMREAD_COLOR, IMREAD_GRAYSCALE},
     imgproc::{THRESH_BINARY, TM_CCORR_NORMED},
     prelude::*,
 };
-use shaoooh::vision::{BishaanVision, compat};
+use shaoooh::vision::compat;
 use tokio::sync::watch;
 
 use simple_logger::SimpleLogger;
@@ -22,20 +22,20 @@ async fn main() {
 
     log::info!("Starting Shaoooh Test : Bishaan Process");
 
-    let (t_frame_tx, mut t_frame_rx) = watch::channel(Mat::default());
-    let (b_frame_tx, mut b_frame_rx) = watch::channel(Mat::default());
+    let (t_frame_tx, t_frame_rx) = watch::channel(Mat::default());
+    let (b_frame_tx, b_frame_rx) = watch::channel(Mat::default());
 
-    let ip = Ipv4Addr::new(192, 168, 68, 4);
+    let _ip = Ipv4Addr::new(192, 168, 68, 4);
 
     tokio::spawn(async move {
         let bot = opencv::imgcodecs::imread("3ds_frames/bot_frame_0.png", IMREAD_COLOR).unwrap();
-        b_frame_tx.send(bot);
+        b_frame_tx.send(bot).expect("Failed to send frame");
         let mut im_index = 0;
         let mut im_path = format!("3ds_frames/top_frame_{}.png", im_index);
         let mut path = Path::new(&im_path);
         while path.exists() {
             let top = opencv::imgcodecs::imread(&im_path, IMREAD_COLOR).expect("Failed to read");
-            t_frame_tx.send(top);
+            t_frame_tx.send(top).expect("Failed to send frame");
 
             im_index += 1;
             im_path = format!("3ds_frames/top_frame_{}.png", im_index);
@@ -45,8 +45,10 @@ async fn main() {
     });
 
     //let vision = BishaanVision::new(t_frame_rx, b_frame_rx);
-    opencv::highgui::named_window("th", WINDOW_KEEPRATIO | WINDOW_GUI_EXPANDED);
-    opencv::highgui::named_window("top_hp", WINDOW_KEEPRATIO | WINDOW_GUI_EXPANDED);
+    opencv::highgui::named_window("th", WINDOW_KEEPRATIO | WINDOW_GUI_EXPANDED)
+        .expect("Failed to create window");
+    opencv::highgui::named_window("top_hp", WINDOW_KEEPRATIO | WINDOW_GUI_EXPANDED)
+        .expect("Failed to create window");
 
     let ref_img = opencv::imgcodecs::imread("static/usum_shiny_star.png", IMREAD_GRAYSCALE)
         .expect("Couldn't read image");
@@ -60,11 +62,12 @@ async fn main() {
         let top = t_frame_rx.borrow().clone();
         let bottom = b_frame_rx.borrow().clone();
 
-        opencv::highgui::imshow("top", &top);
+        opencv::highgui::imshow("top", &top).expect("Failed to show window");
 
         // Conert to grey first?
         let mut grey = Mat::default();
-        compat::cvt_color(&top, &mut grey, opencv::imgproc::COLOR_BGR2GRAY, 0);
+        compat::cvt_color(&top, &mut grey, opencv::imgproc::COLOR_BGR2GRAY, 0)
+            .expect("Failed to convert colour");
 
         let mut hsv = Mat::default();
         compat::cvt_color(&top, &mut hsv, opencv::imgproc::COLOR_BGR2HSV, 0)
@@ -72,16 +75,18 @@ async fn main() {
         let mut thresholded_ylw = Mat::default();
         let lower = Vector::from_slice(&[25.0, 32.0, 100.0]);
         let upper = Vector::from_slice(&[40.0, 200.0, 255.0]);
-        opencv::core::in_range(&hsv, &lower, &upper, &mut thresholded_ylw);
-        opencv::highgui::imshow("yellow", &thresholded_ylw);
+        opencv::core::in_range(&hsv, &lower, &upper, &mut thresholded_ylw)
+            .expect("Failed to range");
+        opencv::highgui::imshow("yellow", &thresholded_ylw).expect("Failed to show window");
 
         let mut thresholded = Mat::default();
         opencv::imgproc::threshold(&grey, &mut thresholded, 220.0, 255.0, THRESH_BINARY)
             .expect("Failed to apply threshold");
-        opencv::highgui::imshow("th", &thresholded);
+        opencv::highgui::imshow("th", &thresholded).expect("Failed to show window");
 
         let mut hp = Mat::default();
-        opencv::imgproc::sobel(&thresholded, &mut hp, -1, 1, 1, 5, 1.0, 0.0, BORDER_DEFAULT);
+        opencv::imgproc::sobel(&thresholded, &mut hp, -1, 1, 1, 5, 1.0, 0.0, BORDER_DEFAULT)
+            .expect("Failed to threshold");
 
         let mut result = Mat::default();
         opencv::imgproc::match_template(
@@ -111,9 +116,9 @@ async fn main() {
             println!("MET");
         }
 
-        opencv::highgui::imshow("top_hp", &hp);
+        opencv::highgui::imshow("top_hp", &hp).expect("Failed to show window");
 
-        opencv::highgui::imshow("bottom", &bottom);
+        opencv::highgui::imshow("bottom", &bottom).expect("Failed to show window");
         opencv::highgui::wait_key(1).expect("Event loop failed");
 
         std::thread::sleep(Duration::from_millis(50));

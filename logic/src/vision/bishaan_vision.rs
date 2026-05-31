@@ -453,7 +453,8 @@ impl BishaanVision {
                     .clone_pointee();
 
                 let mut diff = Mat::default();
-                opencv::core::absdiff(&cur_subset, &last_subset, &mut diff).expect("Failed to get difference");
+                opencv::core::absdiff(&cur_subset, &last_subset, &mut diff)
+                    .expect("Failed to get difference");
 
                 let sum = opencv::core::sum_elems(&diff);
 
@@ -552,10 +553,10 @@ impl BishaanVisionSocket {
         log::info!("Creating BishaanVisionSocket");
 
         let img_socket = UdpSocket::bind("0.0.0.0:8001").await?;
-        img_socket.connect((ip.clone(), 8000)).await?;
+        img_socket.connect((ip, 8000)).await?;
 
         {
-            let mut ctl1_socket = TcpStream::connect((ip.clone(), 8000)).await?;
+            let mut ctl1_socket = TcpStream::connect((ip, 8000)).await?;
 
             // Send init packet
             let init = NTRPacket::init();
@@ -654,20 +655,14 @@ impl BishaanVisionSocket {
                             .expect("Failed to rotate");
                             frame = Frame::Top(m2);
                         }
-                    } else {
-                        if let Ok(s) = opencv::imgcodecs::imdecode(
-                            &opencv::core::Vector::from_slice(&self.bot_screen_buf),
-                            opencv::imgcodecs::IMREAD_COLOR,
-                        ) {
-                            let mut m2 = Mat::default();
-                            opencv::core::rotate(
-                                &s,
-                                &mut m2,
-                                opencv::core::ROTATE_90_COUNTERCLOCKWISE,
-                            )
+                    } else if let Ok(s) = opencv::imgcodecs::imdecode(
+                        &opencv::core::Vector::from_slice(&self.bot_screen_buf),
+                        opencv::imgcodecs::IMREAD_COLOR,
+                    ) {
+                        let mut m2 = Mat::default();
+                        opencv::core::rotate(&s, &mut m2, opencv::core::ROTATE_90_COUNTERCLOCKWISE)
                             .expect("Failed to rotate");
-                            frame = Frame::Bottom(m2);
-                        }
+                        frame = Frame::Bottom(m2);
                     }
                 }
             } else {
@@ -714,25 +709,24 @@ impl BishaanVisionSocket {
                 let r = read.read(&mut header_buf).await;
                 match r {
                     Ok(n) => {
-                        if n == 84 {
-                            if let Some(hdr) = NTRPacket::from_wire(&header_buf) {
-                                if hdr.extra_len() > 0 {
-                                    let mut extra_buf = vec![0u8; hdr.extra_len()];
-                                    let e_res = read.read(&mut extra_buf).await;
-                                    match e_res {
-                                        Ok(_n) => {
-                                            let str_conv = String::from_utf8_lossy(&extra_buf);
-                                            let strings = str_conv.split('\n');
-                                            for s in strings {
-                                                if s.len() > 0 {
-                                                    log::info!("[NTR({})] {}", hdr.seq(), s);
-                                                }
-                                            }
-                                        }
-                                        Err(e) => {
-                                            log::error!("{:?}", e);
+                        if n == 84
+                            && let Some(hdr) = NTRPacket::from_wire(&header_buf)
+                            && hdr.extra_len() > 0
+                        {
+                            let mut extra_buf = vec![0u8; hdr.extra_len()];
+                            let e_res = read.read(&mut extra_buf).await;
+                            match e_res {
+                                Ok(_n) => {
+                                    let str_conv = String::from_utf8_lossy(&extra_buf);
+                                    let strings = str_conv.split('\n');
+                                    for s in strings {
+                                        if !s.is_empty() {
+                                            log::info!("[NTR({})] {}", hdr.seq(), s);
                                         }
                                     }
+                                }
+                                Err(e) => {
+                                    log::error!("{:?}", e);
                                 }
                             }
                         }

@@ -4,13 +4,15 @@ pub struct FoundToggle {
     toggle: bool,
 }
 
+impl Default for FoundToggle {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FoundToggle {
     pub fn new() -> Self {
-        let frame = if let Ok(f) = std::fs::read("static/metamon_desaturated.png") {
-            f
-        } else {
-            vec![]
-        };
+        let frame = std::fs::read("static/metamon_desaturated.png").unwrap_or_default();
 
         Self {
             entry0: frame.clone(),

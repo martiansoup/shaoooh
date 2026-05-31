@@ -205,9 +205,9 @@ impl EncounterTypeResolver {
             Some(Self::frlg_random(builder))
         } else if *game == Game::RubySapphire && *method == Method::RandomEncounter {
             Some(Self::rs_random(builder))
-        } else if *game == Game::DiamondPearl && *method == Method::RandomEncounter {
-            Some(Self::dp_random(builder))
-        } else if *game == Game::HeartGoldSoulSilver && *method == Method::RandomEncounter {
+        } else if (*game == Game::DiamondPearl && *method == Method::RandomEncounter)
+            || (*game == Game::HeartGoldSoulSilver && *method == Method::RandomEncounter)
+        {
             Some(Self::dp_random(builder))
         } else if *game == Game::FireRedLeafGreen && *method == Method::SoftResetEncounter {
             Self::gen3_softreset(builder)
@@ -594,7 +594,7 @@ impl EncounterTypeResolver {
             ];
 
             builder.add_states(states2);
-        } else if species >= 144 && species <= 146 || species == 150 {
+        } else if (144..=146).contains(&species) || species == 150 {
             // Articuno/Zapdos/Moltres/Mewtwo
 
             let delay = if species == 150 {
@@ -860,16 +860,40 @@ impl EncounterTypeResolver {
 
         let sr_states = vec![
             StateDescription::linear_state(SoftResetProcess::SoftReset, sr_buttons, 10000..10000),
-            StateDescription::linear_state(SoftResetProcess::Title1, vec![HuntStateOutput::button(Button::A)], 5000..5000),
-            StateDescription::linear_state(SoftResetProcess::Title2, vec![HuntStateOutput::button(Button::A)], 5000..5000),
+            StateDescription::linear_state(
+                SoftResetProcess::Title1,
+                vec![HuntStateOutput::button(Button::A)],
+                5000..5000,
+            ),
+            StateDescription::linear_state(
+                SoftResetProcess::Title2,
+                vec![HuntStateOutput::button(Button::A)],
+                5000..5000,
+            ),
             //StateDescription::linear_state(SoftResetProcess::Title3, vec![HuntStateOutput::button(Button::A)], 5000..5000),
             //StateDescription::linear_state(SoftResetProcess::Title4, vec![HuntStateOutput::button(Button::A)], 5000..5000),
-            StateDescription::linear_state(SoftResetProcess::SelectFile, vec![HuntStateOutput::button(Button::A)], 8000..16000),
+            StateDescription::linear_state(
+                SoftResetProcess::SelectFile,
+                vec![HuntStateOutput::button(Button::A)],
+                8000..16000,
+            ),
             //StateDescription::linear_state(SoftResetProcess::CGearNo1, vec![HuntStateOutput::button(Button::B)], 1000..1000),
             //StateDescription::linear_state(SoftResetProcess::CGearNo2, vec![HuntStateOutput::button(Button::A)], 8000..8000),
-            StateDescription::linear_state(SoftResetProcess::GetGift, vec![HuntStateOutput::button(Button::A)], 1000..1000),
-            StateDescription::linear_state(SoftResetProcess::GetGift2, vec![HuntStateOutput::button(Button::A)], 3500..3500),
-            StateDescription::linear_state(SoftResetProcess::GetGift3, vec![HuntStateOutput::button(Button::A)], 4500..4500),
+            StateDescription::linear_state(
+                SoftResetProcess::GetGift,
+                vec![HuntStateOutput::button(Button::A)],
+                1000..1000,
+            ),
+            StateDescription::linear_state(
+                SoftResetProcess::GetGift2,
+                vec![HuntStateOutput::button(Button::A)],
+                3500..3500,
+            ),
+            StateDescription::linear_state(
+                SoftResetProcess::GetGift3,
+                vec![HuntStateOutput::button(Button::A)],
+                4500..4500,
+            ),
         ];
 
         builder.add_states(sr_states);
@@ -877,36 +901,76 @@ impl EncounterTypeResolver {
         let choose_states = if builder.target() == 495 {
             // Snivy - L L
             vec![
-                StateDescription::linear_state(StartSoftResetEncounter::Press1, vec![HuntStateOutput::button(Button::Left)], 1000..1000),
-                StateDescription::linear_state(StartSoftResetEncounter::Press2, vec![HuntStateOutput::button(Button::Left)], 1000..1000),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press1,
+                    vec![HuntStateOutput::button(Button::Left)],
+                    1000..1000,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press2,
+                    vec![HuntStateOutput::button(Button::Left)],
+                    1000..1000,
+                ),
             ]
         } else if builder.target() == 498 {
             // Tepig - L
-            vec![
-                StateDescription::linear_state(StartSoftResetEncounter::Press1, vec![HuntStateOutput::button(Button::Left)], 1000..1000)
-            ]
+            vec![StateDescription::linear_state(
+                StartSoftResetEncounter::Press1,
+                vec![HuntStateOutput::button(Button::Left)],
+                1000..1000,
+            )]
         } else {
             // Oshawott - L R
             vec![
-                StateDescription::linear_state(StartSoftResetEncounter::Press1, vec![HuntStateOutput::button(Button::Left)], 1000..1000),
-                StateDescription::linear_state(StartSoftResetEncounter::Press2, vec![HuntStateOutput::button(Button::Right)], 1000..1000),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press1,
+                    vec![HuntStateOutput::button(Button::Left)],
+                    1000..1000,
+                ),
+                StateDescription::linear_state(
+                    StartSoftResetEncounter::Press2,
+                    vec![HuntStateOutput::button(Button::Right)],
+                    1000..1000,
+                ),
             ]
         };
 
         builder.add_states(choose_states);
 
         let mash_states1 = vec![
-            StateDescription::linear_state(TryGetEncounter::Init, vec![HuntStateOutput::new(Button::A, Delay::Twentieth)], 75..75),
-            StateDescription::simple_process_state_no_output3(Branch3::new(TryGetEncounter::Entering, TryGetEncounter::Got, TryGetEncounter::Init), Processing::BW2_BLACK_SCREEN),
-            StateDescription::linear_state_no_delay(TryGetEncounter::Got, vec![])
+            StateDescription::linear_state(
+                TryGetEncounter::Init,
+                vec![HuntStateOutput::new(Button::A, Delay::Twentieth)],
+                75..75,
+            ),
+            StateDescription::simple_process_state_no_output3(
+                Branch3::new(
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Got,
+                    TryGetEncounter::Init,
+                ),
+                Processing::BW2_BLACK_SCREEN,
+            ),
+            StateDescription::linear_state_no_delay(TryGetEncounter::Got, vec![]),
         ];
 
         builder.add_states(mash_states1);
 
         let mash_states2 = vec![
-            StateDescription::linear_state(TryGetEncounter::Init, vec![HuntStateOutput::new(Button::A, Delay::Twentieth)], 75..75),
-            StateDescription::simple_process_state_no_output3(Branch3::new(TryGetEncounter::Entering, TryGetEncounter::Got, TryGetEncounter::Init), Processing::BW2_WHITE_SCREEN),
-            StateDescription::linear_state(TryGetEncounter::Got, vec![], 5000..5000)
+            StateDescription::linear_state(
+                TryGetEncounter::Init,
+                vec![HuntStateOutput::new(Button::A, Delay::Twentieth)],
+                75..75,
+            ),
+            StateDescription::simple_process_state_no_output3(
+                Branch3::new(
+                    TryGetEncounter::Entering,
+                    TryGetEncounter::Got,
+                    TryGetEncounter::Init,
+                ),
+                Processing::BW2_WHITE_SCREEN,
+            ),
+            StateDescription::linear_state(TryGetEncounter::Got, vec![], 5000..5000),
         ];
 
         builder.add_states(mash_states2);
@@ -1091,7 +1155,7 @@ impl EncounterTypeResolver {
         builder
     }
 
- pub fn dp_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+    pub fn dp_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
         let states = vec![
             StateDescription::choose_toggle_state(
                 TryGetEncounter::Init,
@@ -1257,7 +1321,7 @@ impl EncounterTypeResolver {
         ];
         builder.add_states(states);
         match target {
-            793 | 794 | 795 | 796 | 797 | 798 | 799 => builder.add_states(states_press),
+            793..=799 => builder.add_states(states_press),
             806 => builder.add_states(states_honey),
             _ => builder.add_states(states_walk),
         }
@@ -1289,7 +1353,7 @@ impl EncounterTypeResolver {
             StateDescription::linear_state(
                 USUM::Clear3,
                 vec![HuntStateOutput::button(Button::Up)],
-                9000..8000,
+                9000..9500,
             ),
             StateDescription::set_atomic_state(USUM::AllowHeartbeat, USUM::WaitHeartbeat),
             StateDescription::linear_state(USUM::WaitHeartbeat, vec![], 2500..2500),
@@ -1416,7 +1480,7 @@ impl EncounterTypeResolver {
             StateDescription::linear_state(
                 USUMRandom::Clear3,
                 vec![HuntStateOutput::button(Button::Up)],
-                9000..8000,
+                9000..9500,
             ),
             StateDescription::set_atomic_state(
                 USUMRandom::AllowHeartbeat,

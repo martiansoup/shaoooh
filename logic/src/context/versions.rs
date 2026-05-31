@@ -39,12 +39,9 @@ impl VersionsProvider {
             let id: u32 = str::parse(&r[0]).expect("Couldn't parse version ID");
             let game = Self::game_from_group(&r[1]);
 
-            match game {
-                Some(g) => {
-                    game_mapping.insert(g, id);
-                    group_mapping.insert(id, vec![]);
-                }
-                None => {}
+            if let Some(g) = game {
+                game_mapping.insert(g, id);
+                group_mapping.insert(id, vec![]);
             }
         }
 
@@ -57,12 +54,9 @@ impl VersionsProvider {
             let group: u32 = str::parse(&r[1]).expect("Couldn't parse group ID");
             let name = r[2].to_string();
 
-            match group_mapping.get_mut(&group) {
-                Some(ids) => {
-                    ids.push(id);
-                    name_mapping.insert(id, name);
-                }
-                None => {}
+            if let Some(ids) = group_mapping.get_mut(&group) {
+                ids.push(id);
+                name_mapping.insert(id, name);
             }
         }
 

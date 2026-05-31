@@ -402,10 +402,10 @@ impl Shaoooh {
                     img_wr.clear();
                     img_wr.extend(vision.read_frame2());
                 }
-                if vision.new_found() {
-                    if let Ok(mut found_guard) = self.found.try_lock() {
-                        found_guard.update(vision.read_found());
-                    }
+                if vision.new_found()
+                    && let Ok(mut found_guard) = self.found.try_lock()
+                {
+                    found_guard.update(vision.read_found());
                 }
             } else if !self.rx.is_closed() {
                 log::warn!("Failed to process frame");
@@ -509,10 +509,9 @@ impl Shaoooh {
 
         // If in Bishaan(3DS) configuration, want to wait until the 3DS has performed a connection
         // test, and then allow some time to start InputRedirection and Streaming
-        if !skip_conn {
-            if let Config::Bishaan(_) = self.config {
-                let shutdown_token_conn = shutdown_token.clone();
-                runtime.block_on(async {
+        if !skip_conn && let Config::Bishaan(_) = self.config {
+            let shutdown_token_conn = shutdown_token.clone();
+            runtime.block_on(async {
                     tokio::select! {
                         _ = shutdown_token_conn.cancelled() => {
                             log::info!("Got shutdown during connection test");
@@ -537,7 +536,6 @@ impl Shaoooh {
                         }
                     };
                 });
-            }
         }
 
         let (t_frame_tx, t_frame_rx) = watch::channel(Mat::default());

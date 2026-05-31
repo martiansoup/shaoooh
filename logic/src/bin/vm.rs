@@ -52,25 +52,30 @@ async fn main() {
                 while time.elapsed().unwrap() < Duration::from_secs(10) {
                     let inputs = f.inputs();
                     let mut results = vec![];
-                    if inputs.len() > 0 {
+                    if !inputs.is_empty() {
                         for i in inputs {
-                            println!("Value for input '{:?}': (0 - not met, 1 - met, 2 - shiny, 3 - non-target)", i);
+                            println!(
+                                "Value for input '{:?}': (0 - not met, 1 - met, 2 - shiny, 3 - non-target)",
+                                i
+                            );
                             let mut buffer = String::new();
-                            std::io::stdin().read_line(&mut buffer).expect("Failed to read line");
+                            std::io::stdin()
+                                .read_line(&mut buffer)
+                                .expect("Failed to read line");
                             let proc = i.clone();
                             let (met, shiny, species) = match buffer.trim() {
                                 "0" => (false, false, 0),
                                 "1" => (true, false, 0),
                                 "2" => (true, true, target),
                                 "3" => (true, true, 0),
-                                _ => (false, false, 0)
+                                _ => (false, false, 0),
                             };
 
                             results.push(ProcessingResult {
                                 process: proc,
                                 met,
                                 shiny,
-                                species: 0
+                                species,
                             })
                         }
                     }
@@ -81,14 +86,12 @@ async fn main() {
                     f.process(results);
                     std::thread::sleep(Duration::from_millis(5));
                 }
-
             }
             Err(e) => {
                 log::error!("Couldn't build FSM: {:?}", e);
             }
         }
     }
-
 }
 
 //   pub fn step(

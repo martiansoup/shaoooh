@@ -181,12 +181,9 @@ impl BishaanControlSocket {
     }
 
     fn get_circle(buttons: &[Button]) -> u32 {
-        let val = buttons
+        buttons
             .iter()
-            .find(|b| match b {
-                Button::Circle(_, _) => true,
-                _ => false,
-            })
+            .find(|b| matches!(b, Button::Circle(_, _)))
             .map_or(0x7ff7ff, |b| match b {
                 Button::Circle(x, y) => {
                     let mult: u32 = 16;
@@ -195,18 +192,13 @@ impl BishaanControlSocket {
                     x32 | (y32 << 12)
                 }
                 _ => unreachable!("Filtered to circle"),
-            });
-
-        val
+            })
     }
 
     fn get_touch(buttons: &[Button]) -> u32 {
         buttons
             .iter()
-            .find(|b| match b {
-                Button::Touch(_, _) => true,
-                _ => false,
-            })
+            .find(|b| matches!(b, Button::Touch(_, _)))
             .map_or(0x2000000, |b| match b {
                 Button::Touch(x, y) => {
                     let x32: u32 = (0xfff * std::cmp::min(*x as u32, Self::TOUCH_SCREEN_WIDTH))

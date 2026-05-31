@@ -1,13 +1,8 @@
-use std::thread;
-use std::time::Duration;
 use std::sync::{Arc, atomic::AtomicBool};
-
-use chrono::Datelike;
-use shaoooh::context::PkContext;
 
 use simple_logger::SimpleLogger;
 
-use shaoooh::app::{Game, Method, Shaoooh};
+use shaoooh::app::{Game, Method};
 use shaoooh::hunt::HuntBuild;
 
 use clap::Parser;

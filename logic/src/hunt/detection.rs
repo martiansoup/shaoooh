@@ -150,7 +150,7 @@ impl DetectionResolver {
             StateDescription::linear_state(
                 CheckSummary::Down,
                 vec![HuntStateOutput::button(Button::Down)],
-                (base * 1)..(base * 1),
+                base..base,
             ),
             StateDescription::linear_state(
                 CheckSummary::ToPokemon,
@@ -160,12 +160,12 @@ impl DetectionResolver {
             StateDescription::linear_state(
                 CheckSummary::Up1,
                 vec![HuntStateOutput::button(Button::Up)],
-                (base * 1)..(base * 1),
+                base..base,
             ),
             StateDescription::linear_state(
                 CheckSummary::Up2,
                 vec![HuntStateOutput::button(Button::Up)],
-                (base * 1)..(base * 1),
+                base..base,
             ),
             StateDescription::linear_state(
                 CheckSummary::Select,
@@ -387,31 +387,31 @@ impl DetectionResolver {
 
     pub fn gen5_starter(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
         let timer = match builder.target() {
-          495 => 15000,
-          498 => 17600,
-          501 => 15100,
-          _ => 100
+            495 => 15000,
+            498 => 17600,
+            501 => 15100,
+            _ => 100,
         };
 
         let states = vec![
             StateDescription::start_timer_state(Detection::PrePreEnterEncounter, Detection::Detect),
-                StateDescription::process_and_not_state_no_output_end_timer(
-                    Branch2::new(Detection::Detect, Detection::SetFound),
-                    Processing::BW_HP_BAR_PRESENT,
-                    Processing::BW_BALL_ANIMATION,
-                ),
-                StateDescription::simple_process_state_no_output(
-                    Branch2::new(Detection::SetFound, Detection::Run1),
-                    Processing::SetFound(true),
-                ),
-                StateDescription::branch_last_delay_state(
-                    Branch3::new(Detection::Run1, Detection::Toggle, Detection::Run2),
-                    timer,
-                ),
-                StateDescription::found_target_state(Detection::Toggle, Detection::Done),
-                StateDescription::deadend_state(Detection::Done),
-                StateDescription::incr_encounter_state(Detection::Run2, Detection::Run3),
-                StateDescription::linear_state(Detection::Run3, vec![], 1000..2500),
+            StateDescription::process_and_not_state_no_output_end_timer(
+                Branch2::new(Detection::Detect, Detection::SetFound),
+                Processing::BW_HP_BAR_PRESENT,
+                Processing::BW_BALL_ANIMATION,
+            ),
+            StateDescription::simple_process_state_no_output(
+                Branch2::new(Detection::SetFound, Detection::Run1),
+                Processing::SetFound(true),
+            ),
+            StateDescription::branch_last_delay_state(
+                Branch3::new(Detection::Run1, Detection::Toggle, Detection::Run2),
+                timer,
+            ),
+            StateDescription::found_target_state(Detection::Toggle, Detection::Done),
+            StateDescription::deadend_state(Detection::Done),
+            StateDescription::incr_encounter_state(Detection::Run2, Detection::Run3),
+            StateDescription::linear_state(Detection::Run3, vec![], 1000..2500),
         ];
 
         builder.add_states(states);
@@ -635,7 +635,7 @@ impl DetectionResolver {
         builder
     }
 
- pub fn dp_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+    pub fn dp_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
         let target = builder.target();
         let game = builder.game().clone();
         let method = builder.method().clone();
@@ -648,9 +648,9 @@ impl DetectionResolver {
 
         let targets = match target {
             422 => vec![422, 418, 278, 419, 399, 417], // Shellos
-            74 => vec![74, 81, 75, 82, 126, 202], // Geodude HGSS safari
-            79 => vec![79, 84, 98, 80, 41], // Slowpoke HGSS safari
-            _ => vec![target]
+            74 => vec![74, 81, 75, 82, 126, 202],      // Geodude HGSS safari
+            79 => vec![79, 84, 98, 80, 41],            // Slowpoke HGSS safari
+            _ => vec![target],
         };
 
         let ready_cond = match target {
@@ -682,7 +682,7 @@ impl DetectionResolver {
                 targets,
                 target,
                 shiny_threshold,
-                0.017
+                0.017,
             ),
             // Done
             StateDescription::deadend_state(Detection::Done),

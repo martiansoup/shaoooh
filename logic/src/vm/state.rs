@@ -23,22 +23,21 @@ pub enum InternalOp {
 
 impl InternalOp {
     fn is_branch(&self) -> bool {
-        match self {
-            InternalOp::LastDelay(..) => true,
-            InternalOp::CounterZero => true,
-            InternalOp::CounterValue(..) => true,
-            InternalOp::CheckToggle => true,
-            InternalOp::Deadend => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            InternalOp::LastDelay(..)
+                | InternalOp::CounterZero
+                | InternalOp::CounterValue(..)
+                | InternalOp::CheckToggle
+                | InternalOp::Deadend
+        )
     }
 
     fn is_proc_mod(&self) -> bool {
-        match self {
-            InternalOp::ProcDelay(..) => true,
-            InternalOp::ProcDelayRange(..) => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            InternalOp::ProcDelay(..) | InternalOp::ProcDelayRange(..)
+        )
     }
 }
 
@@ -114,7 +113,7 @@ impl State {
     }
 
     pub fn set_modifiers(&mut self, m: Vec<InternalOp>) {
-        if m.len() > 0 {
+        if !m.is_empty() {
             self.simple = false;
             self.internal_ops = m;
         }
@@ -126,11 +125,11 @@ impl State {
 
     pub fn is_deadend(&self) -> bool {
         for i in &self.internal_ops {
-            if matches!(i, InternalOp::Deadend { .. }) {
+            if matches!(i, InternalOp::Deadend) {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     pub fn set_positive(&mut self, b: String) {
@@ -169,7 +168,7 @@ impl State {
     }
 
     pub fn get_branch(&self) -> Option<InternalOp> {
-        self.internal_ops.iter().filter(|x| x.is_branch()).next().cloned()
+        self.internal_ops.iter().find(|x| x.is_branch()).cloned()
     }
 
     pub fn any_proc_mod(&self) -> bool {
@@ -181,11 +180,11 @@ impl State {
     }
 
     pub fn get_proc_mod(&self) -> Option<InternalOp> {
-        self.internal_ops.iter().filter(|x| x.is_proc_mod()).next().cloned()
+        self.internal_ops.iter().find(|x| x.is_proc_mod()).cloned()
     }
 
     pub fn any_processing(&self) -> bool {
-        self.processing_grp1.len() > 0 || self.processing_grp2.len() > 0
+        !self.processing_grp1.is_empty() || !self.processing_grp2.is_empty()
     }
 
     pub fn inputs_grp1(&self) -> Vec<&str> {
@@ -215,7 +214,7 @@ impl State {
     fn err_name(&self) -> &str {
         match &self.tag {
             Some(s) => s,
-            None => "#anonymous#"
+            None => "#anonymous#",
         }
     }
 
@@ -226,16 +225,25 @@ impl State {
         let proc_mod_and_no_proc = self.any_proc_mod() && !self.any_processing();
 
         if branch_and_proc {
-            log::error!("State '{}' contains both a branch and processing steps", self.err_name());
+            log::error!(
+                "State '{}' contains both a branch and processing steps",
+                self.err_name()
+            );
         }
         if !single_branch {
             log::error!("State '{}' contains multiple branches", self.err_name());
         }
         if !single_proc_mod {
-            log::error!("State '{}' contains multiple processing modifiers", self.err_name());
+            log::error!(
+                "State '{}' contains multiple processing modifiers",
+                self.err_name()
+            );
         }
         if proc_mod_and_no_proc {
-            log::error!("State '{}' contains processing modifier but no processing", self.err_name());
+            log::error!(
+                "State '{}' contains processing modifier but no processing",
+                self.err_name()
+            );
         }
 
         !branch_and_proc && single_branch && single_proc_mod && !proc_mod_and_no_proc

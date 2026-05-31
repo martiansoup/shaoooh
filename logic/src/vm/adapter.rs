@@ -3,12 +3,12 @@ use crate::vision::Processing;
 use crate::app::Game;
 
 pub trait StateParser {
-
-    fn parse(s: &str, game: Game, strict: bool) -> Result<Self, String> where Self: Sized;
+    fn parse(s: &str, game: Game, strict: bool) -> Result<Self, String>
+    where
+        Self: Sized;
 }
 
 impl StateParser for Processing {
-
     fn parse(s: &str, game: Game, strict: bool) -> Result<Self, String> {
         let mut args = s.split(":");
 
@@ -18,7 +18,7 @@ impl StateParser for Processing {
                 let flipped = args.next();
 
                 if let (Some(targets), Some(flipped)) = (targets, flipped) {
-                    let targets = targets.split("+").map(|n| n.parse::<u32>()).flatten().collect();
+                    let targets = targets.split("+").flat_map(|n| n.parse::<u32>()).collect();
                     let flipped = match flipped {
                         "0" | "false" => false,
                         "1" | "true" => true,
@@ -28,7 +28,7 @@ impl StateParser for Processing {
                 } else {
                     None
                 }
-            },
+            }
             Some("BW_HP_BAR_PRESENT") => Some(Processing::BW_HP_BAR_PRESENT),
             Some("BW_BALL_ANIMATION") => Some(Processing::BW_BALL_ANIMATION),
             Some("BW2_BLACK_SCREEN") => Some(Processing::BW2_BLACK_SCREEN),
@@ -52,7 +52,7 @@ impl StateParser for Processing {
             Some("RS_FISHING_BITE") => Some(Processing::RS_FISHING_BITE),
             Some("RS_FISHING_ON_HOOK") => Some(Processing::RS_FISHING_ON_HOOK),
             Some("RS_FISHING_NO_NIBBLE") => Some(Processing::RS_FISHING_NO_NIBBLE),
-            _ => None
+            _ => None,
         };
 
         if let Some(p) = proc {

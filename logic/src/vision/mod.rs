@@ -86,7 +86,7 @@ pub enum Processing {
     USUMBottomScreen(f64),
     USUMBottomScreenInv(f64),
     SetFound(bool),
-    Input(String)
+    Input(String),
 }
 
 impl Processing {
@@ -97,7 +97,7 @@ impl Processing {
         h: 40,
         col_thresh: 210.0,
         num_thresh: 175,
-        invert: false
+        invert: false,
     });
     pub const BW_BALL_ANIMATION: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 68,
@@ -106,7 +106,7 @@ impl Processing {
         h: 84,
         col_thresh: 210.0,
         num_thresh: 300,
-        invert: false
+        invert: false,
     });
     pub const BW2_BLACK_SCREEN: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 0,

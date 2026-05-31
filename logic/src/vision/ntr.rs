@@ -34,7 +34,7 @@ impl NTRPacket {
         // args[0] = top_screen<<8 | (priority%256)
         // args[1] = quality
         // args[2] = (qos*2)<<16
-        let arg_priority = 0 << 8 | (2 % 256);
+        let arg_priority = 2;
         let arg_quality = 20;
         let arg_qos = (16 * 2) << 16;
         NTRPacket {
@@ -88,13 +88,8 @@ impl NTRPacket {
     }
 
     pub fn to_wire(&self) -> Vec<u8> {
-        let mut buf = vec![];
-
         // Magic number
-        buf.push(0x78);
-        buf.push(0x56);
-        buf.push(0x34);
-        buf.push(0x12);
+        let mut buf = vec![0x78, 0x56, 0x34, 0x12];
 
         // Sequence
         buf.extend_from_slice(&self.seq.to_le_bytes());
@@ -113,7 +108,7 @@ impl NTRPacket {
             buf.push(0x00);
         }
 
-        if self.args_extra.len() > 0 {
+        if !self.args_extra.is_empty() {
             log::error!("Extra arguments unsupported when converting to wire format");
         }
         if self.data_length != 0 {

@@ -29,6 +29,10 @@ struct Args {
     #[arg(short, long, default_value_t = false)]
     quiet: bool,
 
+    /// Reduce log verbosity
+    #[arg(short, long, default_value_t = false)]
+    dedup: bool,
+
     /// Filter by game
     #[arg(short, long)]
     game: Option<Game>,
@@ -59,7 +63,7 @@ fn main() {
     match species {
         Some(s) => {
             log::info!("Finding encounters for #{} - {}", s, ctx.species().name(s));
-            ctx.encounters().get_encounters(s, args.game);
+            ctx.encounters().get_encounters(s, args.game, args.dedup);
         }
         None => {
             log::error!("Couldn't find species")

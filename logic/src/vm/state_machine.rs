@@ -1,7 +1,7 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
-use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
 use crate::vm::adapter::StateParser;
@@ -27,6 +27,9 @@ pub enum ParsedStateMachineError {
     FailedToParseProcessing(String),
 }
 
+type CheckType =
+    Box<dyn Fn(&Vec<ProcessingResult>, &mut InternalHuntState) -> Option<(usize, HuntResult)>>;
+
 impl ParsedStateMachine {
     pub fn new(states: Vec<State>) -> Self {
         Self { states }
@@ -38,7 +41,7 @@ impl ParsedStateMachine {
         self,
         target: u32,
         game: Game,
-        method: Method,
+        _method: Method,
         strict: bool,
     ) -> Result<
         StateMachine<Processing, ProcessingResult, String, HuntResult, InternalHuntState>,
@@ -74,12 +77,12 @@ impl ParsedStateMachine {
             let mut p_inputs: Vec<Result<Processing, String>> = s
                 .inputs_grp1()
                 .iter()
-                .map(|x| Processing::parse(*x, game.clone(), strict))
+                .map(|x| Processing::parse(x, game.clone(), strict))
                 .collect();
             p_inputs.extend(
                 s.inputs_grp2()
                     .iter()
-                    .map(|x| Processing::parse(*x, game.clone(), strict)),
+                    .map(|x| Processing::parse(x, game.clone(), strict)),
             );
 
             let any_proc_error = p_inputs
@@ -92,7 +95,7 @@ impl ParsedStateMachine {
                 return Err(ParsedStateMachineError::FailedToParseProcessing(err));
             }
 
-            let inputs : Vec<Processing> = p_inputs.into_iter().flatten().collect();
+            let inputs: Vec<Processing> = p_inputs.into_iter().flatten().collect();
 
             let mut next_states = vec![];
             let next_wrapped = if (i + 1) == num_states { 0 } else { i + 1 };
@@ -138,12 +141,7 @@ impl ParsedStateMachine {
                 next_states.push(i);
             }
 
-            let check: Box<
-                dyn Fn(
-                    &Vec<ProcessingResult>,
-                    &mut InternalHuntState,
-                ) -> Option<(usize, HuntResult)>,
-            > = if s.simple() {
+            let check: CheckType = if s.simple() {
                 Box::new(
                     move |_x: &Vec<ProcessingResult>, _int: &mut InternalHuntState| {
                         Some((next_wrapped, HuntResult::default()))
@@ -157,14 +155,12 @@ impl ParsedStateMachine {
                 let inputs_grp1: Vec<Processing> = s
                     .inputs_grp1()
                     .iter()
-                    .map(|x| Processing::parse(x, game.clone(), strict))
-                    .flatten()
+                    .flat_map(|x| Processing::parse(x, game.clone(), strict))
                     .collect();
                 let inputs_grp2: Vec<Processing> = s
                     .inputs_grp1()
                     .iter()
-                    .map(|x| Processing::parse(x, game.clone(), strict))
-                    .flatten()
+                    .flat_map(|x| Processing::parse(x, game.clone(), strict))
                     .collect();
                 let modifiers = s.modifiers().to_vec();
                 let grp1_op = s.grp1_op();
@@ -233,7 +229,7 @@ impl ParsedStateMachine {
                                 InputOp::Or => grp2_results.any(|b| b.met),
                             };
 
-                            let mut r = if inputs_grp2.len() == 0 {
+                            let mut r = if inputs_grp2.is_empty() {
                                 grp1_res
                             } else {
                                 match grp1_2_op {
@@ -307,7 +303,8 @@ impl ParsedStateMachine {
                                 Some(InternalOp::CounterValue(v)) => int.counter == v,
                                 Some(InternalOp::CheckToggle) => int.toggle,
                                 // Deadend handled separately, shouldn't reach here
-                                Some(InternalOp::Deadend) | _ => {
+                                // so included in catchall
+                                _ => {
                                     panic!("Unexpected branch")
                                 }
                             };
