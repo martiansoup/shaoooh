@@ -14,10 +14,10 @@ fn get_config() -> shaoooh::app::Config {
 
 fn default_arg() -> shaoooh::app::TransitionArg {
     shaoooh::app::TransitionArg::new(
-        "Snivy",
-        495,
-        shaoooh::app::Game::BlackWhite,
-        shaoooh::app::Method::SoftResetGift,
+        "JohtoSafariRockyBeach",
+        79,
+        shaoooh::app::Game::HeartGoldSoulSilver,
+        shaoooh::app::Method::RandomEncounter,
     )
     //shaoooh::app::TransitionArg::new("AllTheSpindaPt2", 327, shaoooh::app::Game::RubySapphire, shaoooh::app::Method::RandomEncounter)
 }

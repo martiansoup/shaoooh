@@ -210,6 +210,8 @@ impl EncounterTypeResolver {
             Some(Self::rs_random(builder))
         } else if *game == Game::DiamondPearl && *method == Method::RandomEncounter {
             Some(Self::dp_random(builder))
+        } else if *game == Game::HeartGoldSoulSilver && *method == Method::RandomEncounter {
+            Some(Self::dp_random(builder))
         } else if *game == Game::FireRedLeafGreen && *method == Method::SoftResetEncounter {
             Self::gen3_softreset(builder)
         } else if (*game == Game::RubySapphire || *game == Game::FireRedLeafGreen)
@@ -865,10 +867,10 @@ impl EncounterTypeResolver {
             StateDescription::linear_state(SoftResetProcess::Title2, vec![HuntStateOutput::button(Button::A)], 5000..5000),
             //StateDescription::linear_state(SoftResetProcess::Title3, vec![HuntStateOutput::button(Button::A)], 5000..5000),
             //StateDescription::linear_state(SoftResetProcess::Title4, vec![HuntStateOutput::button(Button::A)], 5000..5000),
-            StateDescription::linear_state(SoftResetProcess::SelectFile, vec![HuntStateOutput::button(Button::A)], 8000..8000),
+            StateDescription::linear_state(SoftResetProcess::SelectFile, vec![HuntStateOutput::button(Button::A)], 8000..16000),
             //StateDescription::linear_state(SoftResetProcess::CGearNo1, vec![HuntStateOutput::button(Button::B)], 1000..1000),
             //StateDescription::linear_state(SoftResetProcess::CGearNo2, vec![HuntStateOutput::button(Button::A)], 8000..8000),
-            StateDescription::linear_state(SoftResetProcess::GetGift, vec![HuntStateOutput::button(Button::A)], 1000..9000),
+            StateDescription::linear_state(SoftResetProcess::GetGift, vec![HuntStateOutput::button(Button::A)], 1000..1000),
             StateDescription::linear_state(SoftResetProcess::GetGift2, vec![HuntStateOutput::button(Button::A)], 3500..3500),
             StateDescription::linear_state(SoftResetProcess::GetGift3, vec![HuntStateOutput::button(Button::A)], 4500..4500),
         ];

@@ -416,7 +416,7 @@ impl Vision {
         let count = opencv::core::count_non_zero(&thresholded).unwrap();
         let met = count > settings.num_thresh;
         //if settings.invert {
-            log::info!("got {} / {}", count, settings.num_thresh);
+        //    log::info!("got {} / {}", count, settings.num_thresh);
         // if settings.col_thresh == 75.0 {
             // highgui::imshow("BAR", &region);
         // }

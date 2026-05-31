@@ -93,6 +93,8 @@ impl DetectionResolver {
             Some(Self::rs_random(builder))
         } else if *game == Game::DiamondPearl && *method == Method::RandomEncounter {
             Some(Self::dp_random(builder))
+        } else if *game == Game::HeartGoldSoulSilver && *method == Method::RandomEncounter {
+            Some(Self::dp_random(builder))
         } else if *game == Game::FireRedLeafGreen && *method == Method::SoftResetEncounter {
             Some(Self::frlg_softreset(builder))
         } else if (*game == Game::RubySapphire || *game == Game::FireRedLeafGreen)
@@ -384,7 +386,12 @@ impl DetectionResolver {
     }
 
     pub fn gen5_starter(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
-        let timer = 14750;
+        let timer = match builder.target() {
+          495 => 15000,
+          498 => 17600,
+          501 => 15100,
+          _ => 100
+        };
 
         let states = vec![
             StateDescription::start_timer_state(Detection::PrePreEnterEncounter, Detection::Detect),
@@ -404,7 +411,7 @@ impl DetectionResolver {
                 StateDescription::found_target_state(Detection::Toggle, Detection::Done),
                 StateDescription::deadend_state(Detection::Done),
                 StateDescription::incr_encounter_state(Detection::Run2, Detection::Run3),
-                StateDescription::linear_state(Detection::Run3, vec![], 0..1500),
+                StateDescription::linear_state(Detection::Run3, vec![], 1000..2500),
         ];
 
         builder.add_states(states);
@@ -632,12 +639,24 @@ impl DetectionResolver {
         let target = builder.target();
         let game = builder.game().clone();
         let method = builder.method().clone();
-        let shiny_threshold = Duration::from_millis(9300);
+        let shiny_threshold = match target {
+            422 => Duration::from_millis(9300),
+            74 => Duration::from_millis(4400),
+            79 => Duration::from_millis(4000),
+            _ => Duration::from_millis(100),
+        };
 
-        let targets = if target == 422 {
-            vec![422, 418, 278, 419, 399, 417]
-        } else {
-            vec![target]
+        let targets = match target {
+            422 => vec![422, 418, 278, 419, 399, 417], // Shellos
+            74 => vec![74, 81, 75, 82, 126, 202], // Geodude HGSS safari
+            79 => vec![79, 84, 98, 80, 41], // Slowpoke HGSS safari
+            _ => vec![target]
+        };
+
+        let ready_cond = match target {
+            74 => Processing::DP_SAFARI_ENCOUNTER_READY,
+            79 => Processing::DP_SAFARI_ENCOUNTER_READY,
+            _ => Processing::DP_ENCOUNTER_READY,
         };
 
         let states = vec![
@@ -648,7 +667,7 @@ impl DetectionResolver {
             ),
             StateDescription::simple_process_state_no_output_end_timer(
                 Branch2::new(Detection::WaitEncounterReady, Detection::PressA),
-                Processing::DP_ENCOUNTER_READY,
+                ready_cond,
             ),
             StateDescription::linear_state(
                 Detection::PressA,
