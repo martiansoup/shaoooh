@@ -31,6 +31,8 @@ use std::sync::atomic::AtomicBool;
 
 use crate::app::states::{Game, Method, RequestTransition};
 
+use crate::vm::FsmParser;
+
 #[derive(Debug, Default)]
 pub struct HuntResult {
     pub(crate) transition: Option<RequestTransition>,
@@ -54,15 +56,54 @@ impl HuntBuild {
 
         let builder = HuntFSMBuilder::new(base);
 
+        let game_str: &'static str = game.clone().into();
+        let method_str: &'static str = method.clone().into();
+        let fsm_file = format!("fsm/{}_{}.fsm", game_str, method_str);
+        log::debug!("FSM file: {}", fsm_file);
+
+        let fsm_exists = std::fs::exists(&fsm_file).map_or(false, |s| s);
+
         if let Some(builder) = EncounterTypeResolver::add_states(builder) {
             if let Some(builder) = DetectionResolver::add_states(builder) {
                 return Some(builder.build(atomic));
             } else {
-                log::error!("Failed to add detection type states");
+                if !fsm_exists {
+                    log::error!("Failed to add detection type states");
+                } else {
+                    log::debug!("Failed to add detection type states");
+                }
             }
         } else {
-            log::error!("Failed to add encounter type states");
+            if !fsm_exists {
+                log::error!("Failed to add encounter type states");
+            } else {
+                log::debug!("Failed to add encounter type states");
+            }
         }
+
+        if fsm_exists {
+            log::info!("Loading FSM file '{}'", fsm_file);
+            let contents = std::fs::read(&fsm_file).expect("Failed to read FSM file");
+
+            let parser = FsmParser::new(contents);
+            let parsed_fsm = parser.parse();
+
+            log::trace!("Parsed: {:#?}", parsed_fsm);
+
+            if let Some(parsed) = parsed_fsm {
+                let fsm =
+                    parsed.build::<HuntStateOutput>(target, game.clone(), method.clone(), true);
+
+                if let Ok(fsm) = fsm {
+                    return Some(HuntFSM::new(fsm));
+                } else {
+                    log::error!("Failed to build state machine from '{}'", fsm_file);
+                }
+            } else {
+                log::error!("Failed to parse state machine from '{}'", fsm_file);
+            }
+        }
+
         // TODO new method for FSMs
         // if game == Game::FireRedLeafGreen
         //     && method == Method::SoftResetGift

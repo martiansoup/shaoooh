@@ -11,6 +11,7 @@ impl BotVision for NopVision {
     ) -> Option<Vec<ProcessingResult>> {
         let mut results = vec![];
         for proc in processing {
+            todo!("Request input");
             results.push(ProcessingResult {
                 process: proc.clone(),
                 met: true,

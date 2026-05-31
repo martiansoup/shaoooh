@@ -25,6 +25,7 @@ pub enum ParsedStateMachineError {
     BranchNotFound,
     DuplicateLabel,
     FailedToParseProcessing(String),
+    FailedToParseOutputs(String),
 }
 
 type CheckType =
@@ -37,16 +38,19 @@ impl ParsedStateMachine {
 
     // Hunt is: StateMachine<Processing, ProcessingResult, HuntStateOutput, HuntResult, InternalHuntState>,
     // pub struct StateMachine<InputKind, InputValue, StateOutput, StateTransition, InternalState>
-    pub fn build(
+    pub fn build<T>(
         self,
         target: u32,
         game: Game,
         _method: Method,
         strict: bool,
     ) -> Result<
-        StateMachine<Processing, ProcessingResult, String, HuntResult, InternalHuntState>,
+        StateMachine<Processing, ProcessingResult, T, HuntResult, InternalHuntState>,
         ParsedStateMachineError,
-    > {
+    >
+    where
+        T: StateParser + std::fmt::Debug + Clone,
+    {
         let b = AtomicBool::new(true);
         let atomic = Arc::new(b);
         let mut fsm = StateMachine::new(InternalHuntState::new(atomic));
@@ -71,7 +75,23 @@ impl ParsedStateMachine {
             };
             let id = StateId::new(i, name.clone(), name);
 
-            let outputs = s.outputs().iter().map(|x| x.to_string()).collect();
+            let outputs: Vec<Result<T, String>> = s
+                .outputs()
+                .iter()
+                .map(|x| T::parse(x, game.clone(), true))
+                .collect();
+            let any_output_error = outputs
+                .iter()
+                .filter(|x| x.is_err())
+                .map(|x| x.clone().unwrap_err())
+                .reduce(|acc, e| acc + " " + &e);
+
+            if let Some(err) = any_output_error {
+                return Err(ParsedStateMachineError::FailedToParseOutputs(err));
+            }
+
+            let outputs: Vec<T> = outputs.into_iter().flatten().collect();
+
             let delay = s.delay();
 
             let mut p_inputs: Vec<Result<Processing, String>> = s
@@ -89,7 +109,7 @@ impl ParsedStateMachine {
                 .iter()
                 .filter(|x| x.is_err())
                 .map(|x| x.clone().unwrap_err())
-                .reduce(|acc, e| acc + &e);
+                .reduce(|acc, e| acc + " " + &e);
 
             if let Some(err) = any_proc_error {
                 return Err(ParsedStateMachineError::FailedToParseProcessing(err));
@@ -277,6 +297,7 @@ impl ParsedStateMachine {
                                     if x.iter().any(|s| s.shiny && (target == s.species)) {
                                         Transition::FoundTarget
                                     } else {
+                                        todo!("Need arg for non target");
                                         Transition::FoundNonTarget
                                     };
 

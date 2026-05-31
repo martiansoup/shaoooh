@@ -160,7 +160,7 @@ pub enum Game {
     UltraSunUltraMoon,
 }
 
-#[derive(clap::ValueEnum, Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(clap::ValueEnum, Clone, Serialize, Deserialize, Debug, PartialEq, IntoStaticStr)]
 pub enum Method {
     RandomEncounter,
     SoftResetEncounter,

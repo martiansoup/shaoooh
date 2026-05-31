@@ -1,0 +1,16 @@
+# Example FSM file
+reset@      State 7500..8000 :L:R:Start:Select
+title1@     State 4000..4250 :A
+title2@     State 2500..2750 :A
+title3@     State 3500..3750 :A
+start_talk@ State 4000..4500 :A
+yes@        State 4000..4500 :A
+talk2@      State 4000..4500 :A
+talk3@      State 4000..4500 :A
+talk4@      State 0 :A
+wait_in@    State +start_time {DP_IN_ENCOUNTER}
+start_time@ State&StartTimer
+wait_ready@ State&UpdateTimer +check 0 {HGSS_ENCOUNTER_READY}
+check@      State&ProcDelay=5000 +done -loop {Sprite:{{target}}:0}
+done@       State&Deadend 500
+loop@       State 500

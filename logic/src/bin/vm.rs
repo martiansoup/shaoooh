@@ -40,7 +40,8 @@ async fn main() {
     if let Some(parsed) = parsed_fsm {
         // TODO Game/Method
         let target = 1;
-        let fsm = parsed.build(target, Game::FireRedLeafGreen, Method::SoftResetGift, false);
+        let fsm =
+            parsed.build::<String>(target, Game::FireRedLeafGreen, Method::SoftResetGift, false);
 
         match fsm {
             Ok(mut f) => {
@@ -49,7 +50,7 @@ async fn main() {
                 log::info!("Start state: {}", f.current_name());
 
                 let time = SystemTime::now();
-                while time.elapsed().unwrap() < Duration::from_secs(10) {
+                while time.elapsed().unwrap() < Duration::from_secs(60) {
                     let inputs = f.inputs();
                     let mut results = vec![];
                     if !inputs.is_empty() {
