@@ -86,7 +86,7 @@ impl HuntBuild {
             let contents = std::fs::read(&fsm_file).expect("Failed to read FSM file");
 
             let parser = FsmParser::new(contents);
-            let parsed_fsm = parser.parse();
+            let parsed_fsm = parser.parse(target, &game, &method);
 
             log::trace!("Parsed: {:#?}", parsed_fsm);
 

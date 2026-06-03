@@ -194,9 +194,27 @@ impl Processing {
         y: 100,
         w: 106,
         h: 35,
-        col_thresh: 150.0,
+        col_thresh: 170.0,
         num_thresh: 1500,
         invert: false,
+    });
+    pub const HGSS_BATTLE_BLACK_BAR: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 0,
+        y: 146,
+        w: 256,
+        h: 45,
+        col_thresh: 15.0,
+        num_thresh: 10900,
+        invert: true
+    });
+    pub const HGSS_BATTLE_WHITE_TOP: Self = Processing::RegionDetect(RegionDetectSettings {
+        x: 0,
+        y: 0,
+        w: 256,
+        h: 144,
+        col_thresh: 210.0,
+        num_thresh: 29500,
+        invert: false
     });
     pub const DP_SAFARI_ENCOUNTER_READY: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 150,

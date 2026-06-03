@@ -234,6 +234,10 @@ impl ParsedStateMachine {
                             // Branch to self
                             Some((i, hunt_res))
                         } else if any_proc {
+                            for result in x {
+                                log::trace!("Processing: {:?}", result);
+                            }
+
                             let mut grp1_results =
                                 x.iter().filter(|s| inputs_grp1.contains(&s.process));
                             let mut grp2_results =
@@ -287,6 +291,22 @@ impl ParsedStateMachine {
                                 // If a delay is met, force condition met
                                 r = r || met;
                                 log::info!("Processing modifier = {}", met);
+
+                                if met {
+                                    let transition = if x.iter().any(|s| target == s.species) {
+                                        Transition::FoundTarget
+                                    } else {
+                                        todo!("Need arg for non target");
+                                        Transition::FoundNonTarget
+                                    };
+
+                                    hunt_res.transition = Some(RequestTransition {
+                                        transition,
+                                        arg: None,
+                                    });
+                                }
+
+                                hunt_res.incr_encounters = true;
                             }
 
                             // Shiny in result overrides result to true

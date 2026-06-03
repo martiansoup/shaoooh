@@ -328,15 +328,15 @@ impl FsmParser {
         .parse(s)
     }
 
-    fn preprocess(&self) -> Option<String> {
+    fn preprocess(&self, target: u32, game: &Game, method: &Method) -> Option<String> {
         if let Ok(s) = std::str::from_utf8(&self.fsm) {
             let mut hbars = Handlebars::new();
             hbars.set_strict_mode(true);
 
             let data = TplContext {
-                target: 1,
-                game: Game::FireRedLeafGreen,
-                method: Method::SoftResetGift,
+                target,
+                game: game.clone(),
+                method: method.clone(),
             };
 
             match hbars.render_template(s, &data) {
@@ -352,10 +352,10 @@ impl FsmParser {
         }
     }
 
-    pub fn parse(self) -> Option<ParsedStateMachine> {
+    pub fn parse(self, target: u32, game: &Game, method: &Method) -> Option<ParsedStateMachine> {
         let mut any_error = false;
         let mut result = Vec::new();
-        let input = self.preprocess()?;
+        let input = self.preprocess(target, game, method)?;
         for line in input.split_inclusive('\n') {
             let lstr = line.trim_start_matches(' ');
             log::trace!("Parsing: {}", lstr);

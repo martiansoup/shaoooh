@@ -380,7 +380,7 @@ impl Vision {
         };
         let res = ProcessingResult {
             process,
-            met: found_species != 0,
+            met: is_shiny,
             species: found_species,
             shiny: is_shiny,
         };

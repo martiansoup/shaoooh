@@ -56,6 +56,8 @@ impl StateParser for Processing {
             Some("RS_FISHING_BITE") => Some(Processing::RS_FISHING_BITE),
             Some("RS_FISHING_ON_HOOK") => Some(Processing::RS_FISHING_ON_HOOK),
             Some("RS_FISHING_NO_NIBBLE") => Some(Processing::RS_FISHING_NO_NIBBLE),
+            Some("HGSS_BATTLE_BLACK_BAR") => Some(Processing::HGSS_BATTLE_BLACK_BAR),
+            Some("HGSS_BATTLE_WHITE_TOP") => Some(Processing::HGSS_BATTLE_WHITE_TOP),
             _ => None,
         };
 
