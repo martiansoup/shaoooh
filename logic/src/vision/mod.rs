@@ -1,6 +1,9 @@
 use crate::app::states::Game;
 
+use serde::{Deserialize, Serialize};
+
 mod bishaan_vision;
+pub mod collection;
 pub mod compat;
 mod ds_vision;
 pub mod found;
@@ -13,7 +16,7 @@ pub use ds_vision::Vision;
 pub use nop_vision::NopVision;
 pub use ntr::NTRPacket;
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct RegionDetectSettings {
     pub x: i32,
     pub y: i32,
@@ -24,14 +27,14 @@ pub struct RegionDetectSettings {
     pub invert: bool,
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum ColourChannel {
     Blue,
     Green,
     Red,
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct ColourChannelDetectSettings {
     pub x: i32,
     pub y: i32,
@@ -43,7 +46,7 @@ pub struct ColourChannelDetectSettings {
     pub colour: ColourChannel,
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct ColourChannelDetect3DSSettings {
     pub x: i32,
     pub y: i32,
@@ -56,7 +59,7 @@ pub struct ColourChannelDetect3DSSettings {
     pub top: bool,
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct ChannelDetectSettings {
     pub x: i32,
     pub y: i32,
@@ -71,7 +74,7 @@ pub struct ChannelDetectSettings {
     pub num_thresh: i32,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Processing {
     // List of sprites to check, and should it be flipped
     Sprite(Game, Vec<u32>, bool),
@@ -205,7 +208,7 @@ impl Processing {
         h: 45,
         col_thresh: 15.0,
         num_thresh: 10900,
-        invert: true
+        invert: true,
     });
     pub const HGSS_BATTLE_WHITE_TOP: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 0,
@@ -214,7 +217,7 @@ impl Processing {
         h: 144,
         col_thresh: 210.0,
         num_thresh: 29500,
-        invert: false
+        invert: false,
     });
     pub const DP_SAFARI_ENCOUNTER_READY: Self = Processing::RegionDetect(RegionDetectSettings {
         x: 150,

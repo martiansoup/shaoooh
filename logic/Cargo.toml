@@ -3,9 +3,6 @@ name = "shaoooh"
 version = "0.1.0"
 edition = "2024"
 
-[build]
-jobs = 2
-
 [dependencies]
 axum = { version = "0.8.4", features = ["macros"] }
 tower-http = {version = "0.6.2", features = ["fs"]}

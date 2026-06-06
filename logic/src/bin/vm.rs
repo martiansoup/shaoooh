@@ -33,15 +33,17 @@ async fn main() {
 
     let parser = FsmParser::new(fsm_file);
 
-    let parsed_fsm = parser.parse();
+    // TODO target/game/method
+    let target = 1;
+    let game = Game::FireRedLeafGreen;
+    let method = Method::SoftResetGift;
+
+    let parsed_fsm = parser.parse(target, &game, &method);
 
     log::trace!("Parsed: {:#?}", parsed_fsm);
 
     if let Some(parsed) = parsed_fsm {
-        // TODO Game/Method
-        let target = 1;
-        let fsm =
-            parsed.build::<String>(target, Game::FireRedLeafGreen, Method::SoftResetGift, false);
+        let fsm = parsed.build::<String>(target, game, method, false);
 
         match fsm {
             Ok(mut f) => {

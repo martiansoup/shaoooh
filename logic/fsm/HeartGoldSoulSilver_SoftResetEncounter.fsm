@@ -8,10 +8,10 @@ yes@        State 2000..2000 :A
 talk2@      State 3000..300 :A
 talk3@      State 2000..2000 :A
 talk4@      State 0 :A
-wait_start@ State +start_time {HGSS_BATTLE_BLACK_BAR,HGSS_BATTLE_WHITE_TOP}
+wait_start@ State +start_time {$HGSS_BATTLE_BLACK_BAR,$HGSS_BATTLE_WHITE_TOP}
 start_time@ State&StartTimer
-wait_bar@   State +wait_ready {DP_IN_ENCOUNTER}
-wait_ready@ State&UpdateTimer +check 0 {HGSS_ENCOUNTER_READY}
+wait_bar@   State +wait_ready {$DP_IN_ENCOUNTER}
+wait_ready@ State&UpdateTimer +check 0 {$HGSS_ENCOUNTER_READY}
 check@      State&ProcDelay=7300 +done -loop {Sprite:{{target}}:0}
 done@       State&Deadend 500
 loop@       State 2500..7500
