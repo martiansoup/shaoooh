@@ -1,0 +1,24 @@
+{
+  "example_HGSS_BATTLE_BLACK_BAR": {
+    "RegionDetect": {
+      "x": 0,
+      "y": 146,
+      "w": 256,
+      "h": 45,
+      "col_thresh": 15.0,
+      "num_thresh": 10900,
+      "invert": true
+    }
+  },
+  "example_BW2_BAR_NEGATE_CONFIRM": {
+    "RegionDetect": {
+      "x": 0,
+      "y": 0,
+      "w": 256,
+      "h": 40,
+      "col_thresh": 50.0,
+      "num_thresh": 5000,
+      "invert": true
+    }
+  }
+}
