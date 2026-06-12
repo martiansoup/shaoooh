@@ -242,8 +242,8 @@ impl<InputKind, InputValue, StateOutput, StateTransition, InternalState: std::fm
     }
 
     pub fn graph_str(&self) -> String {
-        let graph_config = "ranksep=0.1; bgcolor=\"#7A151B\"; dpi=72; size=\"4.6,7!\";";
-        let node_config = "shape=rect,height=0.1,style=filled,color=\"#D48735\",fillcolor=\"#FBCF9D\",fontcolor=\"#7A151B\",fontsize=8,fontname=\"DejaVu Sans Mono\"";
+        let graph_config = "ranksep=0.1; bgcolor=\"#7A151B\"; dpi=72; size=\"4.6,6!\";";
+        let node_config = "shape=rect,height=0.1,style=filled,color=\"#D48735\",fillcolor=\"#FBCF9D\",fontcolor=\"#7A151B\",fontsize=6,fontname=\"DejaVu Sans Mono\"";
         let edge_config = "arrowsize=0.5,color=\"#D48735\"";
         let mut graph = format!("digraph {{\n  {}\n", graph_config);
 

@@ -4,6 +4,8 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, SystemTime};
 
+use crate::app::TransitionArg;
+use crate::context::PkContext;
 use crate::vm::adapter::StateParser;
 use crate::vm::state::{GroupOp, InputOp, InternalOp, State};
 
@@ -42,7 +44,7 @@ impl ParsedStateMachine {
         self,
         target: u32,
         game: Game,
-        _method: Method,
+        method: Method,
         strict: bool,
     ) -> Result<
         StateMachine<Processing, ProcessingResult, T, HuntResult, InternalHuntState>,
@@ -51,6 +53,8 @@ impl ParsedStateMachine {
     where
         T: StateParser + std::fmt::Debug + Clone,
     {
+        log::info!("Building state machine for '{}'", PkContext::get().species().name(target));
+
         let b = AtomicBool::new(true);
         let atomic = Arc::new(b);
         let mut fsm = StateMachine::new(InternalHuntState::new(atomic));
@@ -190,6 +194,9 @@ impl ParsedStateMachine {
                 let proc_mod = s.get_proc_mod();
                 let branch = s.get_branch();
 
+                let game_copy = game.clone();
+                let method_copy = method.clone();
+
                 Box::new(
                     move |x: &Vec<ProcessingResult>, int: &mut InternalHuntState| {
                         let mut hunt_res = HuntResult::default();
@@ -262,6 +269,16 @@ impl ParsedStateMachine {
                                 }
                             };
 
+                            let sprite_match = x
+                                .iter()
+                                .filter(|z| matches!(z.process, Processing::Sprite(..)))
+                                .next()
+                                .map_or(0, |p| p.species);
+
+                            if sprite_match != 0 {
+                                log::info!("Encounter sprite match is '{}'", PkContext::get().species().name(sprite_match));
+                            }
+
                             if any_proc_mod {
                                 let met = match &proc_mod {
                                     Some(InternalOp::ProcDelay(u)) => {
@@ -293,17 +310,23 @@ impl ParsedStateMachine {
                                 log::info!("Processing modifier = {}", met);
 
                                 if met {
-                                    let transition = if x.iter().any(|s| target == s.species) {
-                                        Transition::FoundTarget
+                                    let (transition, arg) = if x.iter().any(|s| target == s.species)
+                                    {
+                                        (Transition::FoundTarget, None)
                                     } else {
-                                        todo!("Need arg for non target");
-                                        Transition::FoundNonTarget
+                                        (
+                                            Transition::FoundNonTarget,
+                                            Some(TransitionArg {
+                                                name: String::from(""),
+                                                species: sprite_match,
+                                                game: game_copy.clone(),
+                                                method: method_copy.clone(),
+                                            }),
+                                        )
                                     };
 
-                                    hunt_res.transition = Some(RequestTransition {
-                                        transition,
-                                        arg: None,
-                                    });
+                                    hunt_res.transition =
+                                        Some(RequestTransition { transition, arg });
                                 }
 
                                 hunt_res.incr_encounters = true;
@@ -313,18 +336,22 @@ impl ParsedStateMachine {
                             if x.iter().any(|s| s.shiny) {
                                 r = true;
 
-                                let transition =
+                                let (transition, arg) =
                                     if x.iter().any(|s| s.shiny && (target == s.species)) {
-                                        Transition::FoundTarget
+                                        (Transition::FoundTarget, None)
                                     } else {
-                                        todo!("Need arg for non target");
-                                        Transition::FoundNonTarget
+                                        (
+                                            Transition::FoundNonTarget,
+                                            Some(TransitionArg {
+                                                name: String::from(""),
+                                                species: sprite_match,
+                                                game: game_copy.clone(),
+                                                method: method_copy.clone(),
+                                            }),
+                                        )
                                     };
 
-                                hunt_res.transition = Some(RequestTransition {
-                                    transition,
-                                    arg: None,
-                                });
+                                hunt_res.transition = Some(RequestTransition { transition, arg });
 
                                 log::info!("Processing result indicated shiny",);
                             }

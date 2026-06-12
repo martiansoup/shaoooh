@@ -1,0 +1,22 @@
+# Ruby Sapphire Random Encounter
+chk_dir@    State&CheckToggle +up -left
+up@         State +entering -down  75..95 {$FRLG_START_ENCOUNTER} :Up
+down@       State +entering -up    75..95 {$FRLG_START_ENCOUNTER} :Down
+left@       State +entering -right 75..95 {$FRLG_START_ENCOUNTER} :Left
+right@      State +entering -left  75..95 {$FRLG_START_ENCOUNTER} :Right
+
+entering@   State&Toggle
+
+enter@      State&StartTimer  +wait_ready {$FRLG_IN_ENCOUNTER}
+wait_ready@ State&UpdateTimer +press_a {$FRLG_ENCOUNTER_READY}
+
+press_a@    State    3000..3000 :A
+
+# Route 116
+detect@     State&ProcDelay=2381 +done -run1 {Sprite:263+293+290+276+300:0}
+done@       State&Deadend 500
+
+run1@       State        500 :Down
+run2@       State        500 :Right
+run3@       State        500 :A
+run4@       State 3000..9200 :A

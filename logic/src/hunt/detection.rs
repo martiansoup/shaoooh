@@ -90,7 +90,7 @@ impl DetectionResolver {
         if *game == Game::FireRedLeafGreen && *method == Method::RandomEncounter {
             Some(Self::frlg_random(builder))
         } else if *game == Game::RubySapphire && *method == Method::RandomEncounter {
-            Some(Self::rs_random(builder))
+            Self::rs_random(builder)
         } else if *game == Game::DiamondPearl && *method == Method::RandomEncounter {
             Some(Self::dp_random(builder))
         } else if *game == Game::HeartGoldSoulSilver && *method == Method::RandomEncounter {
@@ -570,7 +570,7 @@ impl DetectionResolver {
 
     const RUN_DELAY: u64 = 500;
 
-    pub fn rs_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {
+    pub fn rs_random(mut builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
         let target = builder.target();
         let game = builder.game().clone();
         let method = builder.method().clone();
@@ -578,8 +578,10 @@ impl DetectionResolver {
 
         let targets = if target == 327 {
             vec![327, 27, 227]
+        } else if target == 320 {
+            vec![320]
         } else {
-            vec![target]
+            return None;
         };
 
         let states = vec![
@@ -632,7 +634,7 @@ impl DetectionResolver {
         ];
 
         builder.add_states(states);
-        builder
+        Some(builder)
     }
 
     pub fn dp_random(mut builder: HuntFSMBuilder) -> HuntFSMBuilder {

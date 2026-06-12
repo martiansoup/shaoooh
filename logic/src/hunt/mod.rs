@@ -97,7 +97,11 @@ impl HuntBuild {
                 if let Ok(fsm) = fsm {
                     return Some(HuntFSM::new(fsm));
                 } else {
-                    log::error!("Failed to build state machine from '{}'", fsm_file);
+                    log::error!(
+                        "Failed to build state machine from '{}' ({:?})",
+                        fsm_file,
+                        fsm
+                    );
                 }
             } else {
                 log::error!("Failed to parse state machine from '{}'", fsm_file);
