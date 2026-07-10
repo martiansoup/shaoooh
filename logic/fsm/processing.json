@@ -20,5 +20,27 @@
       "num_thresh": 5000,
       "invert": true
     }
+   },
+   "HGSS_BATTLE_WHITE_TOP_LUGIA": {
+    "RegionDetect": {
+      "x": 0,
+      "y": 0,
+      "w": 256,
+      "h": 144,
+      "col_thresh": 180.0,
+      "num_thresh": 29500,
+      "invert": false
+    }
+  },
+  "HGSS_BATTLE_BLACK_BAR_LUGIA": {
+    "RegionDetect" : {
+        "x": 0,
+        "y": 146,
+        "w": 256,
+        "h": 45,
+        "col_thresh": 30.0,
+        "num_thresh": 5900,
+        "invert": true
+    }
   }
 }

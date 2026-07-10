@@ -680,7 +680,8 @@
             } else {
               document.getElementById("species").innerHTML = out.state.arg.species;
             }
-            document.getElementById("encounters").innerHTML = out.state.encounters;
+            encounters = out.state.encounters + " (" + (100 - (100 * (1.0 - ((8191.0/8192.0)**out.state.encounters)))).toFixed(2) + "%)";
+            document.getElementById("encounters").innerHTML = encounters;
             buildControls(out.transitions);
             errorCount = 0;
             setTimeout(updateState, window.stateTimer)

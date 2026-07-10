@@ -10,13 +10,13 @@ entering@   State&Toggle
 enter@      State&StartTimer  +wait_ready {$FRLG_IN_ENCOUNTER}
 wait_ready@ State&UpdateTimer +press_a {$FRLG_ENCOUNTER_READY}
 
-press_a@    State    3000..3000 :A
+press_a@    State    3000..4000 :A
 
 # Route 116
 detect@     State&ProcDelay=2381 +done -run1 {Sprite:263+293+290+276+300:0}
 done@       State&Deadend 500
 
-run1@       State        500 :Down
-run2@       State        500 :Right
-run3@       State        500 :A
-run4@       State 3000..9200 :A
+run1@       State  500..1000 :Down
+run2@       State  500..1000 :Right
+run3@       State  500..1000 :A
+run4@       State 3000..6200 :A
