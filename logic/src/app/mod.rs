@@ -206,15 +206,15 @@ impl Shaoooh {
         res
     }
 
-    fn try_get_encounters(name: &str) -> (Vec<Phase>, u64) {
+    fn try_get_encounters(name: &str) -> (Vec<Phase>, u64, bool) {
         if std::fs::exists(Self::filename_from_name(name)).unwrap_or(false) {
             // TODO error check information? And check if already complete?
             let data = std::fs::read_to_string(Self::filename_from_name(name))
                 .expect("Couldn't read file");
             let hunt: HuntInformation = serde_json::from_str(&data).expect("Failed to parse json");
-            (hunt.phases, hunt.encounters)
+            (hunt.phases, hunt.encounters, hunt.complete)
         } else {
-            (Vec::new(), 0)
+            (Vec::new(), 0, false)
         }
     }
 
@@ -317,10 +317,15 @@ impl Shaoooh {
                         if transition.next_state == HuntState::FoundNonTarget {
                             self.app.last_phase = arg.unwrap().species;
                         } else {
+                            let complete;
                             self.app.arg = Some(arg.unwrap());
-                            (self.app.phases, self.app.encounters) =
+                            (self.app.phases, self.app.encounters, complete) =
                                 Self::try_get_encounters(&self.app.arg.as_ref().unwrap().name);
                             log::info!("Got argument: {:?}", self.app.arg);
+                            if complete {
+                                log::error!("Trying to perform transition on already complete hunt");
+                                return;
+                            }
                         }
                     }
                     if self.transition_logic(prev_state, hunt, &transition.transition) {
