@@ -58,6 +58,7 @@ struct ResponseMode {
 #[derive(Clone)]
 struct ApiState {
     rx: watch::Receiver<AppState>,
+    rx_transition: watch::Receiver<Transition>,
     tx: mpsc::Sender<RequestTransition>,
     tx_conn: watch::Sender<bool>,
     button_tx: mpsc::Sender<(Button, Delay)>,
@@ -72,6 +73,7 @@ pub struct Shaoooh {
     api: Option<ApiState>,
     app: AppState,
     tx: watch::Sender<AppState>,
+    tx_transition: watch::Sender<Transition>,
     rx: mpsc::Receiver<RequestTransition>,
     rx_conn: watch::Receiver<bool>,
     button_rx: mpsc::Receiver<(Button, Delay)>,
@@ -106,6 +108,7 @@ impl Shaoooh {
             last_phase: 0,
         };
         let (state_tx, state_rx) = watch::channel(app.clone());
+        let (t_watch_tx, t_watch_rx) = watch::channel(Transition::Phased);
         let (transition_tx, transition_rx) = mpsc::channel(1);
         let (button_tx, button_rx) = mpsc::channel(8);
         let (conn_tx, conn_rx) = watch::channel(false);
@@ -131,6 +134,7 @@ impl Shaoooh {
 
         let api = ApiState {
             rx: state_rx,
+            rx_transition: t_watch_rx,
             tx: transition_tx,
             tx_conn: conn_tx,
             button_tx,
@@ -144,6 +148,7 @@ impl Shaoooh {
             api: Some(api),
             app,
             tx: state_tx,
+            tx_transition: t_watch_tx,
             rx: transition_rx,
             rx_conn: conn_rx,
             button_rx,
@@ -309,6 +314,9 @@ impl Shaoooh {
         match try_transition {
             Some(transition) => {
                 log::info!("Got transition {:?}", transition);
+                if self.tx_transition.send(transition.transition.clone()).is_err() {
+                    log::warn!("Failed to send transition to webhook");
+                }
                 let arg = transition_req.arg;
                 if arg.is_some() == transition.needs_arg && (automatic || !transition.automatic) {
                     let prev_state = self.app.state.clone();
@@ -494,6 +502,7 @@ impl Shaoooh {
 
         let state = self.api.take().expect("Couldn't get API state");
         let rx_clone_hook = state.rx.clone();
+        let rx_transition_clone_hook = state.rx_transition.clone();
         let rx_clone_disp = state.rx.clone();
         let runtime_hndl = runtime.handle().clone();
         let error_rx_shutdown = self.error_tx.subscribe();
@@ -550,6 +559,7 @@ impl Shaoooh {
 
         runtime.spawn(Webhook::call(
             rx_clone_hook,
+            rx_transition_clone_hook,
             error_rx_webhook,
             self.config.name(),
         ));

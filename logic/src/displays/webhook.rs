@@ -1,9 +1,10 @@
+use std::sync::mpsc;
+
 use serde::Deserialize;
 use tokio::sync::{broadcast, watch};
 
 use crate::{
-    app::{AppState, HuntState, ShaooohError},
-    context::PkContext,
+    app::{AppState, HuntState, ShaooohError, Transition}, context::PkContext,
 };
 
 #[derive(Deserialize)]
@@ -36,6 +37,30 @@ impl Webhook {
                 log::error!("Failed to send webhook {:?}", e);
             }
         };
+    }
+
+    pub async fn transition(transition: Option<Transition>, name: &String, api_key: String, user_id: String) {
+        if let Some(transition) = transition {
+            let title = format!("{} Transition", name);
+            let content = reqwest::multipart::Form::new()
+                .text("message", format!("Transition = {:?}", transition))
+                .text("token", api_key.clone())
+                .text("user", user_id.clone())
+                .text("title", title);
+            log::info!("Calling webhook with {:?}", content);
+            let client = reqwest::Client::new();
+            match client
+                .post("https://api.pushover.net/1/messages.json")
+                .multipart(content)
+                .send()
+                .await
+            {
+                Ok(_) => {}
+                Err(e) => {
+                    log::error!("Failed to send webhook {:?}", e);
+                }
+            };
+        }
     }
 
     pub async fn status(
@@ -100,6 +125,7 @@ impl Webhook {
 
     pub async fn call(
         mut rx: watch::Receiver<AppState>,
+        mut transition_rx: watch::Receiver<Transition>,
         mut error_rx: broadcast::Receiver<ShaooohError>,
         name: String,
     ) {
@@ -128,6 +154,16 @@ impl Webhook {
                                     Ok(_) => {
                                         let state_copy = { Some((*rx.borrow_and_update()).clone()) };
                                         Self::status(state_copy, &name, api_key.clone(), user_id.clone()).await;
+                                        false
+                                    },
+                                    Err(_) => true
+                                }
+                            }
+                            rx_transition = transition_rx.changed() => {
+                                match rx_transition {
+                                    Ok(_) => {
+                                        let tcopy = { Some((*transition_rx.borrow_and_update()).clone()) };
+                                        Self::transition(tcopy, &name, api_key.clone(), user_id.clone()).await;
                                         false
                                     },
                                     Err(_) => true
