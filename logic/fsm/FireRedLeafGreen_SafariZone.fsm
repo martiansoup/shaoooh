@@ -1,0 +1,53 @@
+# FRLG Safari Zone
+
+# Try to get an encounter
+chk_dir@    State&CheckToggle +up -left
+up@         State +entering -down  75..95 {$FRLG_START_ENCOUNTER} :Up
+down@       State +entering -up    75..95 {$FRLG_START_ENCOUNTER} :Down
+left@       State +entering -right 75..95 {$FRLG_START_ENCOUNTER} :Left
+right@      State +entering -left  75..95 {$FRLG_START_ENCOUNTER} :Right
+
+entering@   State&Toggle
+
+enter@      State&StartTimer  +wait_ready {$FRLG_IN_ENCOUNTER}
+wait_ready@ State&UpdateTimer +press_a {$FRLG_ENCOUNTER_READY}
+
+press_a@    State    3000..4000 :A
+
+# Safari Zone Area 4
+detect@     State&ProcDelay=2481 +try_catch -run1 {Sprite:29+84+102+48+30+32+49+128+115:0}
+
+# Try to catch
+try_catch@  State 15000..15000 :A
+
+# Did it catch?
+# Caught if ready and options not onscreen
+was_caught@ State +caught -chk_fled {$FRLG_ENCOUNTER_READY,$FRLG_IN_ENCOUNTER}&!{FRLG_SAFARI_OPTIONS_ONSCREEN}
+# If still in encounter try again
+chk_fled@   State +stayed -fled {$FRLG_IN_ENCOUNTER,FRLG_SAFARI_OPTIONS_ONSCREEN}
+
+# Caught
+caught@     State 500..500 :B
+caught2@    State 1000..1000 :B
+caught3@    State 1000..1000 :B
+caught4@    State 1000..1000 :B
+caught5@    State 1000..1000 :B
+caught6@    State 1000..1000 :B
+caught_chk@ State&CheckToggle +caught_up -caught_end 500..500
+caught_up@  State :Up
+caught_end@ State&Caught
+
+# Stayed - try again
+stayed@     State +try_catch
+
+# Fled
+fled@       State&CheckToggle +fled_up -fled_end 500..500
+# Move up for next attempt
+fled_up@    State :Up
+fled_end@   State&Failed
+
+# Run for next encounter
+run1@       State  500..1000 :Down
+run2@       State  500..1000 :Right
+run3@       State  500..1000 :A
+run4@       State 3000..6200 :A

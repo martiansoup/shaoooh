@@ -19,11 +19,13 @@ enum Detection {
     PreEnterEncounter,
     EnterEncounter,
     WaitEncounterReady,
+    PressBIntimidate,
     PressA,
     Detect,
     Done,
     DlyScreen,
     SetFound,
+    Run0,
     Run1,
     Run2,
     Run3,
@@ -569,6 +571,7 @@ impl DetectionResolver {
     }
 
     const RUN_DELAY: u64 = 500;
+    const FRLG_RUN_DELAY: u64 = 750;
 
     pub fn rs_random(mut builder: HuntFSMBuilder) -> Option<HuntFSMBuilder> {
         let target = builder.target();
@@ -735,6 +738,12 @@ impl DetectionResolver {
                 Processing::Sprite(Game::FireRedLeafGreen, vec![16, 19], false),
                 Duration::from_millis(3250),
             )
+        } else if builder.target() == 109 || builder.target() == 88 {
+            // Mansion B1F
+            (
+                Processing::Sprite(Game::FireRedLeafGreen, vec![19, 20, 109, 110, 88, 89, 132, 37, 58], false),
+                Duration::from_millis(2500)
+            )
         } else {
             log::warn!("Defaulting to species list = target ({})", builder.target());
             (
@@ -834,15 +843,31 @@ impl DetectionResolver {
                 vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
                 3500..3500,
             ),
+            // If an intimidate opponent
+            // StateDescription::linear_state(
+            //     Detection::PressA,
+            //     vec![HuntStateOutput::new(Button::A, Delay::Tenth)],
+            //     8000..8000, // +4.5s for intimidate
+            // ),
+            // StateDescription::linear_state(
+            //     Detection::PressBIntimidate,
+            //     vec![HuntStateOutput::new(Button::B, Delay::Tenth)],
+            //     4000..4000, // +4.5s for intimidate
+            // ),
             // Detect
             StateDescription::new(Detection::Detect, vec![detect], vec![], 0..0, detect_checks),
             // Done
             StateDescription::deadend_state(Detection::Done),
             // Run
             StateDescription::linear_state(
+                Detection::Run0,
+                vec![],
+                Self::FRLG_RUN_DELAY..Self::FRLG_RUN_DELAY,
+            ),
+            StateDescription::linear_state(
                 Detection::Run1,
                 vec![HuntStateOutput::new(Button::Down, Delay::Tenth)],
-                Self::RUN_DELAY..Self::RUN_DELAY,
+                Self::FRLG_RUN_DELAY..Self::FRLG_RUN_DELAY,
             ),
             StateDescription::linear_state(
                 Detection::Run2,
@@ -862,6 +887,7 @@ impl DetectionResolver {
         ];
 
         builder.add_states(states);
+
         builder
     }
 

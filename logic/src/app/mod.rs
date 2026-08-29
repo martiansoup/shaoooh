@@ -24,6 +24,7 @@ pub(crate) mod error;
 pub(crate) mod main;
 pub(crate) mod states;
 use crate::{
+    context::PkContext,
     control::{
         BishaanControl, BishaanControlSocket, BotControl, Button, Delay, NopControl, ShaooohControl,
     },
@@ -45,6 +46,19 @@ use crate::displays::LightsDisplay;
 struct ResponseAppState {
     state: AppState,
     transitions: Vec<StateTransition>,
+}
+
+#[derive(Clone, Serialize)]
+struct ResponsePhase {
+    species: u32,
+    encounters: u64,
+    name: String,
+    caught: bool,
+}
+
+#[derive(Clone, Serialize)]
+struct ResponsePhases {
+    phases: Vec<ResponsePhase>,
 }
 
 #[derive(Clone, Serialize)]
@@ -168,6 +182,7 @@ impl Shaoooh {
             .route("/", get(get_index))
             .nest_service("/static", static_dir)
             .route("/api/state", get(get_state).post(post_state))
+            .route("/api/phases", get(get_phases))
             .route("/api/button", post(post_button))
             .route("/api/frame", get(get_frame))
             .route("/api/frame2", get(get_frame2))
@@ -314,7 +329,11 @@ impl Shaoooh {
         match try_transition {
             Some(transition) => {
                 log::info!("Got transition {:?}", transition);
-                if self.tx_transition.send(transition.transition.clone()).is_err() {
+                if self
+                    .tx_transition
+                    .send(transition.transition.clone())
+                    .is_err()
+                {
                     log::warn!("Failed to send transition to webhook");
                 }
                 let arg = transition_req.arg;
@@ -331,7 +350,9 @@ impl Shaoooh {
                                 Self::try_get_encounters(&self.app.arg.as_ref().unwrap().name);
                             log::info!("Got argument: {:?}", self.app.arg);
                             if complete {
-                                log::error!("Trying to perform transition on already complete hunt");
+                                log::error!(
+                                    "Trying to perform transition on already complete hunt"
+                                );
                                 return;
                             }
                         }
@@ -699,6 +720,23 @@ async fn get_state(State(state): State<ApiState>) -> Json<ResponseAppState> {
         .cloned()
         .collect();
     Json(ResponseAppState { state, transitions })
+}
+
+#[axum::debug_handler]
+async fn get_phases(State(state): State<ApiState>) -> Json<ResponsePhases> {
+    let state = (*state.rx.borrow()).clone();
+    let phases = state
+        .phases
+        .iter()
+        .map(|p| ResponsePhase {
+            species: p.species,
+            encounters: p.encounters,
+            name: PkContext::get().species().name(p.species),
+            caught: p.caught,
+        })
+        .collect();
+
+    Json(ResponsePhases { phases })
 }
 
 #[axum::debug_handler]

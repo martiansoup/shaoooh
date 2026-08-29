@@ -53,7 +53,10 @@ impl ParsedStateMachine {
     where
         T: StateParser + std::fmt::Debug + Clone,
     {
-        log::info!("Building state machine for '{}'", PkContext::get().species().name(target));
+        log::info!(
+            "Building state machine for '{}'",
+            PkContext::get().species().name(target)
+        );
 
         let b = AtomicBool::new(true);
         let atomic = Arc::new(b);
@@ -182,7 +185,7 @@ impl ParsedStateMachine {
                     .flat_map(|x| Processing::parse(x, game.clone(), strict))
                     .collect();
                 let inputs_grp2: Vec<Processing> = s
-                    .inputs_grp1()
+                    .inputs_grp2()
                     .iter()
                     .flat_map(|x| Processing::parse(x, game.clone(), strict))
                     .collect();
@@ -233,6 +236,29 @@ impl ParsedStateMachine {
                                         arg: None,
                                     })
                                 }
+                                InternalOp::FoundNonTarget => {
+                                    hunt_res.transition = Some(RequestTransition {
+                                        transition: Transition::FoundNonTarget,
+                                        arg: Some(TransitionArg {
+                                            name: String::from(""),
+                                            species: 1,
+                                            game: game_copy.clone(),
+                                            method: method_copy.clone(),
+                                        }),
+                                    })
+                                }
+                                InternalOp::Caught => {
+                                    hunt_res.transition = Some(RequestTransition {
+                                        transition: Transition::Caught,
+                                        arg: None,
+                                    })
+                                }
+                                InternalOp::Failed => {
+                                    hunt_res.transition = Some(RequestTransition {
+                                        transition: Transition::Fail,
+                                        arg: None,
+                                    })
+                                }
                                 InternalOp::IncrEncounters => hunt_res.incr_encounters = true,
                             }
                         }
@@ -276,7 +302,10 @@ impl ParsedStateMachine {
                                 .map_or(0, |p| p.species);
 
                             if sprite_match != 0 {
-                                log::info!("Encounter sprite match is '{}'", PkContext::get().species().name(sprite_match));
+                                log::info!(
+                                    "Encounter sprite match is '{}'",
+                                    PkContext::get().species().name(sprite_match)
+                                );
                             }
 
                             if any_proc_mod {

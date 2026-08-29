@@ -119,6 +119,9 @@ impl FsmParser {
             map(tag("ClearAtomic"), |_| InternalOp::ClearAtomic),
             map(tag("Deadend"), |_| InternalOp::Deadend),
             map(tag("FoundTarget"), |_| InternalOp::FoundTarget),
+            map(tag("FoundNonTarget"), |_| InternalOp::FoundNonTarget),
+            map(tag("Caught"), |_| InternalOp::Caught),
+            map(tag("Failed"), |_| InternalOp::Failed),
             map(tag("IncrEncounters"), |_| InternalOp::IncrEncounters),
         ))
         .parse(s)

@@ -42,5 +42,16 @@
         "num_thresh": 5900,
         "invert": true
     }
+  },
+  "FRLG_SAFARI_OPTIONS_ONSCREEN": {
+    "RegionDetect": {
+        "x": 135,
+        "y": 138,
+        "w": 108,
+        "h": 32,
+        "col_thresh": 200,
+        "num_thresh": 1500,
+        "invert": false
+    }
   }
 }

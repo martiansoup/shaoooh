@@ -277,13 +277,36 @@ impl Vision {
         let mut tpl_w = 0;
         let mut tpl_h = 0;
 
+        let frlg_x = 145;
+        let frlg_y = 36;
+        let frlg_w = 74;
+        let frlg_h = 70;
+
+        let (x_offset, y_offset) = match game {
+            Game::FireRedLeafGreen => (frlg_x, frlg_y),
+            _ => (0, 0),
+        };
+
+        let small_frame = if *game == Game::FireRedLeafGreen {
+            frame.roi(opencv::core::Rect::new(
+                frlg_x,
+                frlg_y,
+                frlg_w,
+                frlg_h,
+            ))
+            .expect("Failed to crop")
+            .clone_pointee()
+        } else {
+            frame.clone()
+        };
+
         for s in species {
             let (reference, shiny, mask) = self.get_or_create_references(game, flipped, *s);
 
             let mask_copy = mask.clone();
             let mut result = Mat::default();
             opencv::imgproc::match_template(
-                frame,
+                &small_frame,
                 reference,
                 &mut result,
                 TM_CCORR_NORMED,
@@ -292,7 +315,7 @@ impl Vision {
             .expect("Failed to convolve");
             let mut result_shiny = Mat::default();
             opencv::imgproc::match_template(
-                frame,
+                &small_frame,
                 shiny,
                 &mut result_shiny,
                 TM_CCORR_NORMED,
@@ -351,11 +374,13 @@ impl Vision {
 
         let mut for_rect = frame.clone();
         let rect = Rect {
-            x: found_location.x,
-            y: found_location.y,
+            x: found_location.x+x_offset,
+            y: found_location.y+y_offset,
             width: tpl_w,
             height: tpl_h,
         };
+
+        log::debug!("Found location: x = {}, y = {}", found_location.x+x_offset, found_location.y+y_offset);
 
         opencv::imgproc::rectangle(&mut for_rect, rect, 0.0.into(), 1, LINE_8, 0)
             .expect("Failed to select rectangle");

@@ -4,7 +4,8 @@ use serde::Deserialize;
 use tokio::sync::{broadcast, watch};
 
 use crate::{
-    app::{AppState, HuntState, ShaooohError, Transition}, context::PkContext,
+    app::{AppState, HuntState, ShaooohError, Transition},
+    context::PkContext,
 };
 
 #[derive(Deserialize)]
@@ -39,7 +40,12 @@ impl Webhook {
         };
     }
 
-    pub async fn transition(transition: Option<Transition>, name: &String, api_key: String, user_id: String) {
+    pub async fn transition(
+        transition: Option<Transition>,
+        name: &String,
+        api_key: String,
+        user_id: String,
+    ) {
         if let Some(transition) = transition {
             let title = format!("{} Transition", name);
             let content = reqwest::multipart::Form::new()

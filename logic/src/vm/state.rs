@@ -18,6 +18,9 @@ pub enum InternalOp {
     ClearAtomic,
     Deadend,
     FoundTarget,
+    FoundNonTarget,
+    Caught,
+    Failed,
     IncrEncounters,
 }
 
