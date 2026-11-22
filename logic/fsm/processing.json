@@ -53,5 +53,17 @@
         "num_thresh": 1500,
         "invert": false
     }
+  },
+  "HGSS_FISHING": {
+    "ColourChannelDetect": {
+      "x": 116,
+      "y": 51,
+      "w": 27,
+      "h": 26,
+      "col_thresh": 80,
+      "num_thresh": 80,
+      "invert": false,
+      "colour": "Red"
+    }
   }
 }

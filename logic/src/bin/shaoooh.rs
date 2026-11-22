@@ -14,8 +14,8 @@ fn get_config() -> shaoooh::app::Config {
 
 fn default_arg() -> shaoooh::app::TransitionArg {
     shaoooh::app::TransitionArg::new(
-        "MansionBasement2",
-        88,
+        "Moon",
+        35,
         shaoooh::app::Game::FireRedLeafGreen,
         shaoooh::app::Method::RandomEncounter,
     )

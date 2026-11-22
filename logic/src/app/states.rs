@@ -166,6 +166,7 @@ pub enum Method {
     SoftResetEncounter,
     SoftResetGift,
     SafariZone,
+    FishingEncounter,
     Utility,
 }
 

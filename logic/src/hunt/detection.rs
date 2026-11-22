@@ -744,6 +744,12 @@ impl DetectionResolver {
                 Processing::Sprite(Game::FireRedLeafGreen, vec![19, 20, 109, 110, 88, 89, 132, 37, 58], false),
                 Duration::from_millis(2500)
             )
+        } else if builder.target() == 35 {
+            // Mt Moon 1F
+            (
+                Processing::Sprite(Game::FireRedLeafGreen, vec![41, 74, 46, 35], false),
+                Duration::from_millis(2500)
+            )
         } else {
             log::warn!("Defaulting to species list = target ({})", builder.target());
             (

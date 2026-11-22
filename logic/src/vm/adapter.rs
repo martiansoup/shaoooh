@@ -37,10 +37,12 @@ impl StateParser for Processing {
             Some(s) => {
                 let procs = AvailableProcessing::new();
 
-                if let Ok(procs) = procs {
-                    procs.resolve(s)
-                } else {
-                    None
+                match procs {
+                    Ok(procs) => procs.resolve(s),
+                    Err(e) => {
+                        log::error!("Failed to load processing: {}", e);
+                        None
+                    }
                 }
             }
             _ => None,

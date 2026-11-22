@@ -1,0 +1,25 @@
+# HGSS Fishing Encounter
+
+fish@       State :Y
+bite@       State +reel1 {HGSS_FISHING}
+reel1@      State 1000..1000 :A
+reel2@      State :A
+
+wait_start@ State +start_time {$HGSS_BATTLE_BLACK_BAR,$HGSS_BATTLE_WHITE_TOP}
+start_time@ State&StartTimer
+wait_bar@   State +wait_ready {$DP_IN_ENCOUNTER}
+wait_ready@ State&UpdateTimer +check 0 {$HGSS_ENCOUNTER_READY}
+
+{{#if (eq target 222)}}
+check@      State&ProcDelay=7600 +done -run {Sprite:222+98+99+120:0}
+{{/if}}
+{{#if (eq target 72)}}
+check@      State&ProcDelay=7970 +done -run {Sprite:72+129+170+90:0}
+{{/if}}
+done@       State&Deadend 500
+
+run@        State 3000..3000
+run1@       State  500..1000 :Down
+run2@       State  500..1000 :Down
+run3@       State  500..1000 :Right
+run4@       State 6200..9200 :A
